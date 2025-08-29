@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { SafeAreaView, StyleSheet, ScrollView, View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Button } from '@/components/common/Button';
+import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 
-// Mock sermon data (same as detail page for consistency)
+// Mock sermon data with long content for testing
 const mockSermon: Sermon = {
   id: '1',
   title: 'The Good Shepherd: Understanding Christ\'s Heart for His People',
@@ -88,9 +90,33 @@ And let us never forget the price He paid to make us His own. The cross stands a
 In Him, we find everything we need for life and godliness. In Him, we discover what it means to be truly loved, perfectly protected, and eternally secure. May we live each day in the joy and confidence that comes from knowing we belong to Jesus Christ, the Good Shepherd who gave His life for His sheep.
 
 *Let us pray together as we close...*`,
-  outline: '',
+  outline: `I. The Heart of the Good Shepherd (John 10:11-13)
+   A. Not a hired hand, but an owner
+   B. Knows each sheep personally
+   C. Acts out of love, not duty
+
+II. The Sacrifice of the Good Shepherd (John 10:11, 15-18)
+   A. Willing to lay down His life
+   B. Goes beyond normal shepherd duties
+   C. The cross as ultimate expression
+   D. Resurrection power
+
+III. The Call of the Good Shepherd (John 10:16)
+   A. Other sheep not of this fold
+   B. All will hear His voice
+   C. Universal reach of the gospel
+
+IV. Living Under the Good Shepherd's Care (Application)
+   A. Recognizing our need for guidance
+   B. Learning to hear His voice
+   C. Trusting in His sacrificial love
+   D. Living in security of His love
+
+V. The Good Shepherd's Promise for the Future
+   A. Preparing a place for His sheep
+   B. Perfect unity in eternity`,
   scripture: 'John 10:11-16',
-  tags: [],
+  tags: ['Jesus', 'Love', 'Sacrifice', 'Shepherd', 'Salvation'],
   series: 'I Am Statements',
   date: new Date('2024-01-15'),
   lastModified: new Date('2024-01-20'),
@@ -98,87 +124,115 @@ In Him, we find everything we need for life and godliness. In Him, we discover w
   readingTime: 18,
   isArchived: false,
   isFavorite: true,
-  notes: '',
+  notes: 'Focus on the personal nature of Christ\'s care for each believer. Include testimonies about God\'s faithfulness.',
 };
 
-export default function PulpitViewPage() {
+export default function SermonDetailPage() {
   const { id } = useLocalSearchParams();
-  const [seconds, setSeconds] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-
+  
+  // In a real app, you would fetch the sermon by ID
   const sermon = mockSermon;
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isTimerRunning) {
-      interval = setInterval(() => {
-        setSeconds(prevSeconds => prevSeconds + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning]);
+  const handleEdit = () => {
+    router.push(`/sermon/edit/${sermon.id}`);
+  };
+
+  const handlePulpitView = () => {
+    router.push(`/pulpit/${sermon.id}`);
+  };
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleStartTimer = () => {
-    if (isTimerRunning) {
-      setIsTimerRunning(false);
-    } else {
-      setIsTimerRunning(true);
-      if (seconds === 0) {
-        setSeconds(0);
-      }
-    }
-  };
-
-  const resetTimer = () => {
-    setSeconds(0);
-    setIsTimerRunning(false);
-  };
-
-  const formatTime = (totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Sticky Header */}
-      <View style={styles.stickyHeader}>
+      {/* Header */}
+      <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>
-        
-        <View style={styles.timerDisplay}>
-          <Text style={styles.timerText}>{formatTime(seconds)}</Text>
-        </View>
-
-        <View style={styles.timerControls}>
-          <Pressable 
-            onPress={handleStartTimer} 
-            style={styles.timerButton}
-          >
-            <Ionicons 
-              name={isTimerRunning ? "pause" : "play"} 
-              size={20} 
-              color={isTimerRunning ? theme.colors.error : theme.colors.primary} 
-            />
+        <Text style={styles.headerTitle}>Sermon</Text>
+        <View style={styles.headerRight}>
+          <Pressable style={styles.headerAction}>
+            <Ionicons name="heart-outline" size={24} color={theme.colors.textSecondary} />
           </Pressable>
-          {seconds > 0 && (
-            <Pressable onPress={resetTimer} style={styles.resetButton}>
-              <Ionicons name="refresh" size={18} color={theme.colors.textSecondary} />
-            </Pressable>
-          )}
+          <Pressable style={styles.headerAction}>
+            <Ionicons name="share-outline" size={24} color={theme.colors.textSecondary} />
+          </Pressable>
         </View>
       </View>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sermonText}>{sermon.content}</Text>
-        <View style={styles.bottomPadding} />
+        {/* Sermon Info Card */}
+        <Card style={styles.infoCard}>
+          <View style={styles.sermonHeader}>
+            <Text style={styles.title}>{sermon.title}</Text>
+            {sermon.series && (
+              <View style={styles.seriesBadge}>
+                <Text style={styles.seriesText}>SERIES: {sermon.series.toUpperCase()}</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.metaInfo}>
+            <View style={styles.metaRow}>
+              <Ionicons name="book" size={16} color={theme.colors.primary} />
+              <Text style={styles.metaText}>{sermon.scripture}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar" size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.metaText}>{formatDate(sermon.date)}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="time" size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.metaText}>{sermon.readingTime} min read • {sermon.wordCount} words</Text>
+            </View>
+          </View>
+
+          {sermon.tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {sermon.tags.map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>#{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
+
+        {/* Sermon Content */}
+        <Card style={styles.contentCard}>
+          <Text style={styles.contentText}>{sermon.content}</Text>
+        </Card>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsContainer}>
+          <Button
+            title="Edit Sermon"
+            onPress={handleEdit}
+            variant="outline"
+            style={styles.actionButton}
+            icon={<Ionicons name="create-outline" size={16} color={theme.colors.primary} />}
+          />
+          <Button
+            title="Pulpit View"
+            onPress={handlePulpitView}
+            variant="primary"
+            style={styles.actionButton}
+            icon={<Ionicons name="tv-outline" size={16} color={theme.colors.white} />}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -189,66 +243,107 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  stickyHeader: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray200,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
   },
   backButton: {
     padding: theme.spacing.xs,
-    flex: 1,
-    alignItems: 'flex-start',
+    marginRight: theme.spacing.sm,
   },
-  timerDisplay: {
-    flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timerText: {
-    ...theme.typography.h4,
+  headerTitle: {
+    ...theme.typography.h5,
     color: theme.colors.textPrimary,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-  timerControls: {
+    fontWeight: '600',
     flex: 1,
+  },
+  headerRight: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: theme.spacing.xs,
+    gap: theme.spacing.sm,
   },
-  timerButton: {
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.gray100,
-  },
-  resetButton: {
-    padding: theme.spacing.sm,
+  headerAction: {
+    padding: theme.spacing.xs,
   },
   content: {
     flex: 1,
-    paddingHorizontal: theme.spacing.xl,
-    paddingTop: theme.spacing.lg,
+    padding: theme.spacing.md,
   },
-  sermonText: {
+  infoCard: {
+    marginBottom: theme.spacing.lg,
+  },
+  sermonHeader: {
+    marginBottom: theme.spacing.lg,
+  },
+  title: {
+    ...theme.typography.h3,
+    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    lineHeight: 32,
+    marginBottom: theme.spacing.md,
+  },
+  seriesBadge: {
+    backgroundColor: theme.colors.accent + '20',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+    alignSelf: 'flex-start',
+  },
+  seriesText: {
+    ...theme.typography.overline,
+    color: theme.colors.accent,
+    fontWeight: '700',
+  },
+  metaInfo: {
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  metaText: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+  },
+  tag: {
+    backgroundColor: theme.colors.primary + '15',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+  },
+  tagText: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  contentCard: {
+    marginBottom: theme.spacing.xl,
+  },
+  contentText: {
     ...theme.typography.body1,
     color: theme.colors.textPrimary,
-    lineHeight: 32,
-    fontSize: 18,
-    fontWeight: '400',
+    lineHeight: 28,
+    fontSize: 16,
   },
-  bottomPadding: {
-    height: 100,
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    paddingBottom: theme.spacing.xxl,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

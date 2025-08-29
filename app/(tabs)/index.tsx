@@ -91,8 +91,7 @@ export default function SermonsScreen() {
 
   const handleSermonPress = (sermon: Sermon) => {
     console.log('Opening sermon:', sermon.title);
-    // For now, navigate to edit - in full app would show detail view first
-    router.push(`/sermon/edit/${sermon.id}`);
+    router.push(`/sermon/${sermon.id}`);
   };
 
   const handleCreateNew = () => {
