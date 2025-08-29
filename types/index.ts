@@ -1,0 +1,108 @@
+export interface Sermon {
+  id: string;
+  title: string;
+  content: string;
+  outline?: string;
+  scripture?: string;
+  tags: string[];
+  series?: string;
+  date: Date;
+  lastModified: Date;
+  wordCount: number;
+  readingTime: number;
+  isArchived: boolean;
+  isFavorite: boolean;
+  notes?: string;
+}
+
+export interface SermonSeries {
+  id: string;
+  name: string;
+  description: string;
+  sermons: string[]; // sermon IDs
+  startDate: Date;
+  endDate?: Date;
+  image?: string;
+  color: string;
+}
+
+export interface FileCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  parentId?: string;
+  children?: string[];
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  title?: string;
+  church?: string;
+  bio?: string;
+  isPremium: boolean;
+  joinedDate: Date;
+}
+
+export interface CommunityPost {
+  id: string;
+  authorId: string;
+  author: User;
+  title: string;
+  content: string;
+  sermonId?: string;
+  tags: string[];
+  likes: number;
+  comments: number;
+  shares: number;
+  isLiked: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  visibility: 'public' | 'community' | 'private';
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  author: User;
+  content: string;
+  likes: number;
+  replies: Comment[];
+  createdAt: Date;
+  isLiked: boolean;
+}
+
+export interface ResearchTool {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  isPremium: boolean;
+  category: 'outline' | 'illustration' | 'context' | 'language' | 'history' | 'topic';
+}
+
+export interface PulpitSettings {
+  fontSize: number;
+  lineHeight: number;
+  theme: 'light' | 'dark';
+  showTimer: boolean;
+  showProgress: boolean;
+  timerDuration: number;
+}
+
+export interface AppSettings {
+  theme: 'light' | 'dark' | 'auto';
+  autoSave: boolean;
+  autoSaveInterval: number;
+  fontSize: number;
+  notifications: {
+    reminders: boolean;
+    community: boolean;
+    updates: boolean;
+  };
+  pulpit: PulpitSettings;
+}

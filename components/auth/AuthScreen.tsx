@@ -1,0 +1,529 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Button } from '../common/Button';
+import { Card } from '../common/Card';
+import { theme } from '@/constants/Theme';
+
+interface AuthScreenProps {
+  onAuthenticated: () => void;
+}
+
+type AuthMode = 'signin' | 'signup' | 'forgot';
+
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
+  const [mode, setMode] = useState<AuthMode>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [church, setChurch] = useState('');
+  const [title, setTitle] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    
+    try {
+      if (mode === 'signup') {
+        if (!name.trim()) {
+          Alert.alert('Validation Error', 'Please enter your name');
+          return;
+        }
+        if (!email.trim()) {
+          Alert.alert('Validation Error', 'Please enter your email');
+          return;
+        }
+        if (!password.trim()) {
+          Alert.alert('Validation Error', 'Please enter a password');
+          return;
+        }
+        if (password !== confirmPassword) {
+          Alert.alert('Validation Error', 'Passwords do not match');
+          return;
+        }
+        if (password.length < 6) {
+          Alert.alert('Validation Error', 'Password must be at least 6 characters');
+          return;
+        }
+        
+        // Mock signup
+        console.log('Signing up:', { name, email, church, title });
+        setTimeout(() => {
+          Alert.alert('Welcome!', 'Account created successfully');
+          onAuthenticated();
+        }, 2000);
+        
+      } else if (mode === 'signin') {
+        if (!email.trim()) {
+          Alert.alert('Validation Error', 'Please enter your email');
+          return;
+        }
+        if (!password.trim()) {
+          Alert.alert('Validation Error', 'Please enter your password');
+          return;
+        }
+        
+        // Mock signin
+        console.log('Signing in:', { email });
+        setTimeout(() => {
+          onAuthenticated();
+        }, 2000);
+        
+      } else if (mode === 'forgot') {
+        if (!email.trim()) {
+          Alert.alert('Validation Error', 'Please enter your email');
+          return;
+        }
+        
+        // Mock forgot password
+        console.log('Forgot password for:', email);
+        setTimeout(() => {
+          Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
+          setMode('signin');
+        }, 2000);
+      }
+    } catch {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialAuth = (provider: 'google' | 'apple' | 'facebook') => {
+    console.log(`Authenticating with ${provider}`);
+    // Mock social authentication
+    setTimeout(() => {
+      onAuthenticated();
+    }, 1000);
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.logoContainer}>
+        <View style={styles.logo}>
+          <Ionicons name="book" size={32} color={theme.colors.primary} />
+        </View>
+        <Text style={styles.appName}>SermonCraft</Text>
+        <Text style={styles.tagline}>Crafting sermons with purpose</Text>
+      </View>
+    </View>
+  );
+
+  const renderForm = () => (
+    <Card style={styles.formCard}>
+      <View style={styles.formHeader}>
+        <Text style={styles.formTitle}>
+          {mode === 'signin' && 'Sign In'}
+          {mode === 'signup' && 'Create Account'}
+          {mode === 'forgot' && 'Reset Password'}
+        </Text>
+        <Text style={styles.formSubtitle}>
+          {mode === 'signin' && 'Welcome back! Sign in to your account'}
+          {mode === 'signup' && 'Join thousands of pastors using SermonCraft'}
+          {mode === 'forgot' && 'Enter your email to reset your password'}
+        </Text>
+      </View>
+
+      <View style={styles.form}>
+        {mode === 'signup' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Full Name *</Text>
+            <TextInput
+              style={styles.textInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your full name"
+              placeholderTextColor={theme.colors.textTertiary}
+              autoCapitalize="words"
+              textContentType="name"
+            />
+          </View>
+        )}
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Email Address *</Text>
+          <TextInput
+            style={styles.textInput}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Enter your email"
+            placeholderTextColor={theme.colors.textTertiary}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            textContentType="emailAddress"
+          />
+        </View>
+
+        {mode !== 'forgot' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Password *</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                placeholderTextColor={theme.colors.textTertiary}
+                secureTextEntry={!showPassword}
+                textContentType="password"
+              />
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.passwordToggle}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color={theme.colors.textTertiary}
+                />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {mode === 'signup' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Confirm Password *</Text>
+            <TextInput
+              style={styles.textInput}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm your password"
+              placeholderTextColor={theme.colors.textTertiary}
+              secureTextEntry={!showPassword}
+              textContentType="password"
+            />
+          </View>
+        )}
+
+        {mode === 'signup' && (
+          <>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Title/Position</Text>
+              <TextInput
+                style={styles.textInput}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="e.g., Senior Pastor, Youth Pastor"
+                placeholderTextColor={theme.colors.textTertiary}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Church/Organization</Text>
+              <TextInput
+                style={styles.textInput}
+                value={church}
+                onChangeText={setChurch}
+                placeholder="Enter your church name"
+                placeholderTextColor={theme.colors.textTertiary}
+                autoCapitalize="words"
+              />
+            </View>
+          </>
+        )}
+
+        {mode === 'signin' && (
+          <Pressable
+            onPress={() => setMode('forgot')}
+            style={styles.forgotPassword}
+          >
+            <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
+          </Pressable>
+        )}
+
+        <Button
+          title={
+            mode === 'signin' ? 'Sign In' : 
+            mode === 'signup' ? 'Create Account' : 
+            'Send Reset Link'
+          }
+          onPress={handleSubmit}
+          loading={isLoading}
+          variant="primary"
+          style={{ marginTop: theme.spacing.md }}
+        />
+      </View>
+    </Card>
+  );
+
+  const renderSocialAuth = () => {
+    if (mode === 'forgot') return null;
+
+    return (
+      <View style={styles.socialSection}>
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>Or continue with</Text>
+          <View style={styles.divider} />
+        </View>
+
+        <View style={styles.socialButtons}>
+          <Pressable
+            onPress={() => handleSocialAuth('google')}
+            style={styles.socialButton}
+          >
+            <Ionicons name="logo-google" size={20} color="#DB4437" />
+            <Text style={styles.socialButtonText}>Google</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleSocialAuth('apple')}
+            style={styles.socialButton}
+          >
+            <Ionicons name="logo-apple" size={20} color={theme.colors.black} />
+            <Text style={styles.socialButtonText}>Apple</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleSocialAuth('facebook')}
+            style={styles.socialButton}
+          >
+            <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+            <Text style={styles.socialButtonText}>Facebook</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  };
+
+  const renderFooter = () => (
+    <View style={styles.footer}>
+      {mode === 'signin' && (
+        <View style={styles.footerOption}>
+          <Text style={styles.footerText}>Don&apos;t have an account?</Text>
+          <Pressable onPress={() => setMode('signup')}>
+            <Text style={styles.footerLink}> Sign up</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {mode === 'signup' && (
+        <View style={styles.footerOption}>
+          <Text style={styles.footerText}>Already have an account?</Text>
+          <Pressable onPress={() => setMode('signin')}>
+            <Text style={styles.footerLink}> Sign in</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {mode === 'forgot' && (
+        <View style={styles.footerOption}>
+          <Text style={styles.footerText}>Remember your password?</Text>
+          <Pressable onPress={() => setMode('signin')}>
+            <Text style={styles.footerLink}> Sign in</Text>
+          </Pressable>
+        </View>
+      )}
+
+      <View style={styles.legalLinks}>
+        <Pressable>
+          <Text style={styles.legalLink}>Privacy Policy</Text>
+        </Pressable>
+        <Text style={styles.legalSeparator}>•</Text>
+        <Pressable>
+          <Text style={styles.legalLink}>Terms of Service</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  return (
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {renderHeader()}
+        {renderForm()}
+        {renderSocialAuth()}
+        {renderFooter()}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.xxl,
+  },
+  header: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  appName: {
+    ...theme.typography.h2,
+    color: theme.colors.textPrimary,
+    fontWeight: '700',
+  },
+  tagline: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  formCard: {
+    marginBottom: theme.spacing.lg,
+  },
+  formHeader: {
+    marginBottom: theme.spacing.lg,
+    alignItems: 'center',
+  },
+  formTitle: {
+    ...theme.typography.h3,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.sm,
+  },
+  formSubtitle: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  form: {
+    gap: theme.spacing.md,
+  },
+  inputGroup: {
+    gap: theme.spacing.sm,
+  },
+  inputLabel: {
+    ...theme.typography.body2,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+  },
+  textInput: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    minHeight: 48,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    minHeight: 48,
+  },
+  passwordInput: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    flex: 1,
+  },
+  passwordToggle: {
+    padding: theme.spacing.sm,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+  },
+  forgotPasswordText: {
+    ...theme.typography.body2,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  socialSection: {
+    marginBottom: theme.spacing.lg,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.gray300,
+  },
+  dividerText: {
+    ...theme.typography.body2,
+    color: theme.colors.textTertiary,
+    paddingHorizontal: theme.spacing.md,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+  },
+  socialButtonText: {
+    ...theme.typography.body2,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+  },
+  footer: {
+    alignItems: 'center',
+    gap: theme.spacing.lg,
+  },
+  footerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerText: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+  },
+  footerLink: {
+    ...theme.typography.body2,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  legalLink: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+  },
+  legalSeparator: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+  },
+});
