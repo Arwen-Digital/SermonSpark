@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Card } from '../common/Card';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../constants/Theme';
 import { Sermon } from '../../types';
+import { Card } from '../common/Card';
 
 interface SermonCardProps {
   sermon: Sermon;
@@ -66,7 +66,7 @@ export const SermonCard: React.FC<SermonCardProps> = ({
           <Text style={styles.metaText}>•</Text>
           <Text style={styles.metaText}>{sermon.wordCount} words</Text>
           <Text style={styles.metaText}>•</Text>
-          <Text style={styles.metaText}>{formatReadingTime(sermon.readingTime)}</Text>
+          {/* <Text style={styles.metaText}>{formatReadingTime(sermon.readingTime)}</Text> */}
         </View>
         {sermon.tags.length > 0 && (
           <View style={styles.tagsContainer}>

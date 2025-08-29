@@ -1,11 +1,11 @@
-import React from 'react';
-import { SafeAreaView, StyleSheet, ScrollView, View, Text, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import React from 'react';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 // Mock sermon data with long content for testing
 const mockSermon: Sermon = {
@@ -196,7 +196,7 @@ export default function SermonDetailPage() {
             </View>
             <View style={styles.metaRow}>
               <Ionicons name="time" size={16} color={theme.colors.textSecondary} />
-              <Text style={styles.metaText}>{sermon.readingTime} min read • {sermon.wordCount} words</Text>
+              {/* <Text style={styles.metaText}>{sermon.readingTime} min read • {sermon.wordCount} words</Text> */}
             </View>
           </View>
 
