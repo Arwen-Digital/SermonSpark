@@ -156,29 +156,43 @@ export default function ResearchScreen() {
       onPress={() => handleToolPress(item)}
       variant="elevated"
     >
-      <View style={styles.toolHeader}>
+      <View style={styles.toolCardContent}>
         <View style={styles.toolIconContainer}>
           <Ionicons
             name={item.icon as any}
             size={24}
             color={theme.colors.primary}
           />
+          {item.isPremium && (
+            <View style={styles.premiumBadge}>
+              <Ionicons name="star" size={12} color={theme.colors.premium} />
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.toolInfo}>
+          <Text style={styles.toolName}>{item.name}</Text>
+          <Text style={styles.toolDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+        </View>
+
+        <View style={styles.toolActions}>
+          <Pressable
+            style={styles.toolActionButton}
+            onPress={() => handleToolPress(item)}
+          >
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.gray600} />
+          </Pressable>
         </View>
       </View>
       
-      <View style={styles.toolContent}>
-        <Text style={styles.toolName}>{item.name}</Text>
-        <Text style={styles.toolDescription}>{item.description}</Text>
-      </View>
-
-      <View style={styles.toolFooter}>
-        <Button
-          title="Use Tool"
-          onPress={() => handleToolPress(item)}
-          variant="outline"
-          size="sm"
-        />
-      </View>
+      {item.isPremium && (
+        <View style={styles.lockedOverlay}>
+          <Ionicons name="lock-closed" size={16} color={theme.colors.gray500} />
+          <Text style={styles.lockedText}>Premium</Text>
+        </View>
+      )}
     </Card>
   );
 
@@ -198,9 +212,9 @@ export default function ResearchScreen() {
               data={filteredTools}
               keyExtractor={(item) => item.id}
               renderItem={renderTool}
-              numColumns={2}
               scrollEnabled={false}
               contentContainerStyle={styles.toolsList}
+              ItemSeparatorComponent={() => <View style={{ height: theme.spacing.sm }} />}
             />
           </View>
         </ScrollView>
@@ -310,32 +324,33 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   toolCard: {
-    flex: 1,
-    margin: theme.spacing.xs,
-    minHeight: 180,
+    marginHorizontal: 0,
   },
-  toolHeader: {
+  toolCardContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    gap: theme.spacing.md,
   },
   toolIconContainer: {
+    position: 'relative',
     width: 48,
     height: 48,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: theme.colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
   premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: theme.colors.premium,
-    paddingHorizontal: theme.spacing.xs,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
-    gap: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   premiumText: {
     ...theme.typography.overline,
@@ -343,22 +358,27 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
   },
-  toolContent: {
+  toolInfo: {
     flex: 1,
-    marginBottom: theme.spacing.sm,
   },
   toolName: {
-    ...theme.typography.h6,
+    ...theme.typography.body1,
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   toolDescription: {
     ...theme.typography.body2,
     color: theme.colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
-  toolFooter: {
-    marginTop: 'auto',
+  toolActions: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toolActionButton: {
+    padding: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
   },
   lockedOverlay: {
     flexDirection: 'row',
