@@ -1,32 +1,33 @@
 export const theme = {
   colors: {
-    // Primary colors (Christian-inspired)
-    primary: '#2E5C8A', // Deep blue
-    primaryLight: '#4A7BA7',
-    primaryDark: '#1E3F5A',
+    // Primary colors (minimal red usage)
+    primary: '#4A5568', // Dark gray for main elements
+    primaryLight: '#718096', // Medium gray
+    primaryDark: '#2D3748', // Very dark gray
     
-    // Secondary colors
-    secondary: '#8B5A3C', // Warm brown
-    secondaryLight: '#A67C52',
-    secondaryDark: '#5D3D28',
+    // Red accent (minimal usage only)
+    accent: '#FF4444', // Red accent like YouVersion - use sparingly
+    accentLight: '#FF6666', // Light red
+    accentDark: '#CC3333', // Dark red
     
-    // Accent colors
-    accent: '#D4AF37', // Gold
-    accentLight: '#E6C866',
-    accentDark: '#B8941F',
+    // Secondary colors (neutral grays)
+    secondary: '#666666', // Medium gray
+    secondaryLight: '#999999', // Light gray
+    secondaryDark: '#333333', // Dark gray
     
-    // Neutral colors
+    
+    // Neutral colors (clean grays)
     white: '#FFFFFF',
-    black: '#1A1A1A',
-    gray100: '#F8F9FA',
-    gray200: '#E9ECEF',
-    gray300: '#DEE2E6',
-    gray400: '#CED4DA',
-    gray500: '#ADB5BD',
-    gray600: '#6C757D',
-    gray700: '#495057',
-    gray800: '#343A40',
-    gray900: '#212529',
+    black: '#000000',
+    gray100: '#FAFAFA', // Very light gray
+    gray200: '#F5F5F5', // Light gray
+    gray300: '#EEEEEE', // Medium light gray
+    gray400: '#DDDDDD', // Medium gray
+    gray500: '#999999', // Gray
+    gray600: '#666666', // Dark gray
+    gray700: '#333333', // Very dark gray
+    gray800: '#1F1F1F', // Almost black
+    gray900: '#000000', // Pure black
     
     // Semantic colors
     success: '#28A745',
@@ -38,18 +39,18 @@ export const theme = {
     info: '#17A2B8',
     infoLight: '#20C997',
     
-    // Background colors
-    background: '#F8F9FA',
-    backgroundSecondary: '#FFFFFF',
-    surface: '#FFFFFF',
-    surfaceSecondary: '#F5F5F5',
+    // Background colors (clean and minimal)
+    background: '#F7F7F7', // Light gray like YouVersion
+    backgroundSecondary: '#EEEEEE', // Slightly darker gray
+    surface: '#FFFFFF', // Pure white for cards
+    surfaceSecondary: '#FAFAFA', // Very light gray
     
-    // Text colors
-    textPrimary: '#212529',
-    textSecondary: '#6C757D',
-    textTertiary: '#ADB5BD',
-    textOnPrimary: '#FFFFFF',
-    textOnSecondary: '#FFFFFF',
+    // Text colors (high contrast)
+    textPrimary: '#1F1F1F', // Almost black
+    textSecondary: '#666666', // Medium gray
+    textTertiary: '#999999', // Light gray
+    textOnPrimary: '#FFFFFF', // White on red
+    textOnSecondary: '#FFFFFF', // White on gray
     
     // Premium feature indicator
     premium: '#FFD700',

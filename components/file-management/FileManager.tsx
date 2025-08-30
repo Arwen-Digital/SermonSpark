@@ -187,7 +187,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
           <Ionicons 
             name="filter" 
             size={20} 
-            color={showFilters ? theme.colors.primary : theme.colors.gray600} 
+            color={showFilters ? theme.colors.accent : theme.colors.gray600} 
           />
         </Pressable>
       </View>
@@ -268,7 +268,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
               <Ionicons
                 name={filter.sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
                 size={16}
-                color={theme.colors.primary}
+                color={theme.colors.gray600}
               />
             </Pressable>
           </View>
@@ -289,7 +289,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
         <Ionicons
           name="grid"
           size={20}
-          color={viewMode === 'grid' ? theme.colors.primary : theme.colors.gray600}
+          color={viewMode === 'grid' ? theme.colors.gray700 : theme.colors.gray600}
         />
       </Pressable>
       <Pressable
@@ -302,7 +302,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
         <Ionicons
           name="list"
           size={20}
-          color={viewMode === 'list' ? theme.colors.primary : theme.colors.gray600}
+          color={viewMode === 'list' ? theme.colors.gray700 : theme.colors.gray600}
         />
       </Pressable>
     </View>
@@ -365,33 +365,30 @@ export const FileManager: React.FC<FileManagerProps> = ({
   };
 
   const renderQuickActions = () => (
-    <Card style={styles.quickActionsCard}>
-      <View style={styles.quickActionsHeader}>
-        <Text style={styles.quickActionsTitle}>Quick Actions</Text>
-      </View>
+    <View style={styles.quickActionsCard}>
       <View style={styles.quickActionsGrid}>
         <Pressable onPress={onCreateNew} style={styles.quickActionItem}>
           <View style={styles.quickActionIcon}>
-            <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="add" size={20} color={theme.colors.white} />
           </View>
-          <Text style={styles.quickActionLabel}>Create a sermon</Text>
+          <Text style={styles.quickActionLabel}>Create a Sermon</Text>
         </Pressable>
         
         <Pressable onPress={() => console.log('Check community')} style={styles.quickActionItem}>
           <View style={styles.quickActionIcon}>
-            <Ionicons name="people-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="people" size={20} color={theme.colors.white} />
           </View>
-          <Text style={styles.quickActionLabel}>Check Community Updates</Text>
+          <Text style={styles.quickActionLabel}>Visit Community</Text>
         </Pressable>
         
         <Pressable onPress={() => console.log('Research topic')} style={styles.quickActionItem}>
           <View style={styles.quickActionIcon}>
-            <Ionicons name="search-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="search" size={20} color={theme.colors.white} />
           </View>
-          <Text style={styles.quickActionLabel}>Research a topic</Text>
+          <Text style={styles.quickActionLabel}>Research a Topic</Text>
         </Pressable>
       </View>
-    </Card>
+    </View>
   );
 
   return (
@@ -464,48 +461,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quickActionsCard: {
-    marginBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.primary + '08', // Subtle dark blue background
-    borderWidth: 0,
-    paddingVertical: theme.spacing.md, // Reduced vertical padding
-    paddingHorizontal: theme.spacing.lg,
-  },
-  quickActionsHeader: {
-    marginBottom: theme.spacing.md, // Reduced margin
-  },
-  quickActionsTitle: {
-    ...theme.typography.h6,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
+    marginBottom: theme.spacing.md,
+    backgroundColor: 'transparent',
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     gap: theme.spacing.sm,
   },
   quickActionItem: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: theme.spacing.xs, // More compact
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.xs,
   },
   quickActionIcon: {
-    width: 36, // Slightly smaller
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.white,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.gray600,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing.xs,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
-    ...theme.shadows.sm,
   },
   quickActionLabel: {
     ...theme.typography.caption,
-    color: theme.colors.primary, // Use primary color for better contrast
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 14,
-    fontSize: 11, // Smaller text
+    fontSize: 11,
     fontWeight: '500',
   },
   searchContainer: {
@@ -563,7 +549,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.gray600,
   },
   filterChipText: {
     ...theme.typography.body2,
