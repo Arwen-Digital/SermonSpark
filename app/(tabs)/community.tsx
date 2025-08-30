@@ -173,7 +173,7 @@ export default function CommunityScreen() {
       </View>
       <Button
         title="New Post"
-        onPress={() => console.log('Create new post')}
+        onPress={() => router.push('/community/create')}
         variant="primary"
         size="sm"
         icon={<Ionicons name="add" size={16} color={theme.colors.white} />}
