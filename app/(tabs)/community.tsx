@@ -5,6 +5,7 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { theme } from '@/constants/Theme';
 import { CommunityPost, User } from '@/types';
+import { router } from 'expo-router';
 
 // Mock community data
 const mockUsers: Record<string, User> = {
@@ -132,8 +133,7 @@ export default function CommunityScreen() {
   });
 
   const handlePostPress = (post: CommunityPost) => {
-    console.log('Opening post:', post.title);
-    // Navigate to post detail
+    router.push(`/community/${post.id}`);
   };
 
   const handleLike = (post: CommunityPost) => {

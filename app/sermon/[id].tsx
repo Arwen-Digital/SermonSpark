@@ -213,7 +213,7 @@ export default function SermonDetailPage() {
 
         {/* Sermon Content */}
         <Card style={styles.contentCard}>
-          <Text style={styles.contentText}>{sermon.content}</Text>
+          <Text style={styles.contentText} selectable={false}>{sermon.content}</Text>
         </Card>
 
         {/* Action Buttons */}

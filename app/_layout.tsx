@@ -25,6 +25,7 @@ export default function RootLayout() {
         <Stack.Screen name="sermon/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="sermon/edit/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="sermon/create" options={{ headerShown: false }} />
+        <Stack.Screen name="community/[postId]" options={{ headerShown: false }} />
         <Stack.Screen name="pulpit/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
