@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
@@ -98,8 +99,17 @@ export default function ResearchScreen() {
       console.log('Show premium upgrade modal');
       return;
     }
-    console.log('Opening research tool:', tool.name);
-    // Navigate to research tool
+    
+    // Navigate to specific tool pages based on tool name/ID
+    switch (tool.name) {
+      case 'Sermon Title Generator':
+        router.push('/research/sermon-title-generator');
+        break;
+      default:
+        console.log('Opening research tool:', tool.name);
+        // For other tools, implement their specific navigation
+        break;
+    }
   };
 
   const renderHeader = () => (
