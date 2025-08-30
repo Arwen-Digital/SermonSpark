@@ -3,6 +3,7 @@ import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable }
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { ResearchTool } from '@/types';
 
@@ -183,26 +184,28 @@ export default function ResearchScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderHeader()}
-        {renderCategories()}
-        
-        <View style={styles.toolsSection}>
-          <Text style={styles.sectionTitle}>
-            {selectedCategory === 'all' ? 'All Research Tools' : CATEGORIES.find(c => c.key === selectedCategory)?.label}
-          </Text>
-          <FlatList
-            data={filteredTools}
-            keyExtractor={(item) => item.id}
-            renderItem={renderTool}
-            numColumns={2}
-            scrollEnabled={false}
-            contentContainerStyle={styles.toolsList}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <FadeInView style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {renderHeader()}
+          {renderCategories()}
+          
+          <View style={styles.toolsSection}>
+            <Text style={styles.sectionTitle}>
+              {selectedCategory === 'all' ? 'All Research Tools' : CATEGORIES.find(c => c.key === selectedCategory)?.label}
+            </Text>
+            <FlatList
+              data={filteredTools}
+              keyExtractor={(item) => item.id}
+              renderItem={renderTool}
+              numColumns={2}
+              scrollEnabled={false}
+              contentContainerStyle={styles.toolsList}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </FadeInView>
   );
 }
 

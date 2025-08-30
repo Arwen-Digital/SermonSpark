@@ -3,6 +3,7 @@ import { StyleSheet, View, SafeAreaView, ScrollView, Text, Pressable } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { User } from '@/types';
 
@@ -204,25 +205,27 @@ export default function ProfileScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-        </View>
-        
-        {renderProfileHeader()}
-        {renderStatsCard()}
-        
-        <View style={styles.menuContainer}>
-          {MENU_SECTIONS.map(renderMenuSection)}
-        </View>
-        
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>SermonCraft v1.0.0</Text>
-          <Text style={styles.footerText}>Made with ❤️ for pastors worldwide</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <FadeInView style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Profile</Text>
+          </View>
+          
+          {renderProfileHeader()}
+          {renderStatsCard()}
+          
+          <View style={styles.menuContainer}>
+            {MENU_SECTIONS.map(renderMenuSection)}
+          </View>
+          
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>SermonCraft v1.0.0</Text>
+            <Text style={styles.footerText}>Made with ❤️ for pastors worldwide</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </FadeInView>
   );
 }
 

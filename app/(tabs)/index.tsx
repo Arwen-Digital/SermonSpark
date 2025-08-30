@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { FileManager } from '@/components/file-management/FileManager';
+import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 
@@ -115,16 +116,18 @@ export default function SermonsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <FileManager
-        sermons={sermons}
-        onSermonPress={handleSermonPress}
-        onCreateNew={handleCreateNew}
-        onSearch={handleSearch}
-        onFilter={handleFilter}
-        onPulpit={handlePulpit}
-      />
-    </SafeAreaView>
+    <FadeInView style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <FileManager
+          sermons={sermons}
+          onSermonPress={handleSermonPress}
+          onCreateNew={handleCreateNew}
+          onSearch={handleSearch}
+          onFilter={handleFilter}
+          onPulpit={handlePulpit}
+        />
+      </SafeAreaView>
+    </FadeInView>
   );
 }
 

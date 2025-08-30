@@ -3,6 +3,7 @@ import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable, 
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { CommunityPost, User } from '@/types';
 import { router } from 'expo-router';
@@ -318,44 +319,46 @@ export default function CommunityScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderHeader()}
-        {renderSearchBar()}
-        {renderTabs()}
-        
-        <View style={styles.postsSection}>
-          <FlatList
-            data={filteredPosts}
-            keyExtractor={(item) => item.id}
-            renderItem={renderPost}
-            scrollEnabled={false}
-            contentContainerStyle={styles.postsList}
-            ItemSeparatorComponent={() => <View style={{ height: theme.spacing.md }} />}
-          />
-        </View>
-        
-        {filteredPosts.length === 0 && (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={64} color={theme.colors.gray400} />
-            <Text style={styles.emptyTitle}>No discussions found</Text>
-            <Text style={styles.emptySubtitle}>
-              {searchQuery.trim()
-                ? 'Try adjusting your search terms'
-                : 'Be the first to start a conversation'}
-            </Text>
-            {!searchQuery.trim() && (
-              <Button
-                title="Start Discussion"
-                onPress={() => console.log('Create first post')}
-                variant="primary"
-                style={{ marginTop: theme.spacing.md }}
-              />
-            )}
+    <FadeInView style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {renderHeader()}
+          {renderSearchBar()}
+          {renderTabs()}
+          
+          <View style={styles.postsSection}>
+            <FlatList
+              data={filteredPosts}
+              keyExtractor={(item) => item.id}
+              renderItem={renderPost}
+              scrollEnabled={false}
+              contentContainerStyle={styles.postsList}
+              ItemSeparatorComponent={() => <View style={{ height: theme.spacing.md }} />}
+            />
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          
+          {filteredPosts.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={64} color={theme.colors.gray400} />
+              <Text style={styles.emptyTitle}>No discussions found</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery.trim()
+                  ? 'Try adjusting your search terms'
+                  : 'Be the first to start a conversation'}
+              </Text>
+              {!searchQuery.trim() && (
+                <Button
+                  title="Start Discussion"
+                  onPress={() => console.log('Create first post')}
+                  variant="primary"
+                  style={{ marginTop: theme.spacing.md }}
+                />
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </FadeInView>
   );
 }
 
