@@ -14,6 +14,7 @@ interface FileManagerProps {
   onSearch: (query: string) => void;
   onFilter: (filter: FileFilter) => void;
   onPulpit?: (sermon: Sermon) => void;
+  onSeriesPress?: () => void;
   loading?: boolean;
 }
 
@@ -45,6 +46,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
   onSearch,
   onFilter,
   onPulpit,
+  onSeriesPress,
   loading = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,7 +150,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
       <View style={styles.titleSection}>
         
         <Text style={styles.welcomeText}>Good morning, Arnold</Text>
-        <Text style={styles.greeting}>Welcome to SermonSpark</Text>
+        <Text style={styles.greeting}>Welcome to YouPreacher</Text>
       </View>
       
       <Pressable style={styles.profileButton}>
@@ -374,11 +376,11 @@ export const FileManager: React.FC<FileManagerProps> = ({
           <Text style={styles.quickActionLabel}>Create a Sermon</Text>
         </Pressable>
         
-        <Pressable onPress={() => console.log('Check community')} style={styles.quickActionItem}>
+        <Pressable onPress={onSeriesPress} style={styles.quickActionItem}>
           <View style={styles.quickActionIcon}>
-            <Ionicons name="people" size={20} color={theme.colors.white} />
+            <Ionicons name="library" size={20} color={theme.colors.white} />
           </View>
-          <Text style={styles.quickActionLabel}>Visit Community</Text>
+          <Text style={styles.quickActionLabel}>Manage Series</Text>
         </Pressable>
         
         <Pressable onPress={() => console.log('Research topic')} style={styles.quickActionItem}>

@@ -4,9 +4,12 @@ export interface Sermon {
   content: string;
   outline?: string;
   scripture?: string;
+  scriptureReferences?: string[];
   tags: string[];
-  series?: string;
+  seriesId?: string;
+  orderInSeries?: number;
   date: Date;
+  preachedDate?: Date;
   lastModified: Date;
   wordCount: number;
   readingTime: number;
@@ -17,13 +20,18 @@ export interface Sermon {
 
 export interface SermonSeries {
   id: string;
-  name: string;
-  description: string;
-  sermons: string[]; // sermon IDs
-  startDate: Date;
+  title: string;
+  description?: string;
+  theme?: string;
+  startDate?: Date;
   endDate?: Date;
-  image?: string;
+  imageUrl?: string;
   color: string;
+  sermonCount: number;
+  isActive: boolean;
+  isCompleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface FileCategory {

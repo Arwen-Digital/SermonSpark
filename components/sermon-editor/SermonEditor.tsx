@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Modal, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { RichTextEditor } from './RichTextEditor';
 import { theme } from '@/constants/Theme';
-import { Sermon } from '@/types';
+import { Sermon, SermonSeries } from '@/types';
+import { mockSermonSeries } from '@/data/mockData';
 
 interface SermonEditorProps {
   sermon?: Sermon;
@@ -23,8 +24,9 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [outline, setOutline] = useState(sermon?.outline || '');
   const [scripture, setScripture] = useState(sermon?.scripture || '');
   const [tags, setTags] = useState<string[]>(sermon?.tags || []);
-  const [series, setSeries] = useState(sermon?.series || '');
+  const [seriesId, setSeriesId] = useState(sermon?.seriesId || '');
   const [notes, setNotes] = useState(sermon?.notes || '');
+  const [showSeriesModal, setShowSeriesModal] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes'>('content');
   const [showMetaModal, setShowMetaModal] = useState(false);
   const [newTag, setNewTag] = useState('');
@@ -44,7 +46,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   // Track changes
   useEffect(() => {
     setHasUnsavedChanges(true);
-  }, [title, content, outline, scripture, tags, series, notes]);
+  }, [title, content, outline, scripture, tags, seriesId, notes]);
 
   const handleAutoSave = () => {
     const sermonData = {
@@ -54,7 +56,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       outline,
       scripture,
       tags,
-      series,
+      seriesId,
       notes,
       lastModified: new Date(),
       wordCount: content.trim().split(/\s+/).filter(word => word.length > 0).length,
@@ -79,7 +81,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       outline,
       scripture,
       tags,
-      series,
+      seriesId,
       notes,
       date: sermon?.date || new Date(),
       lastModified: new Date(),
@@ -144,6 +146,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           variant="primary"
           size="sm"
         />
+        
       </View>
     </View>
   );
@@ -326,13 +329,45 @@ IV. Conclusion
           
           <View style={styles.formSection}>
             <Text style={styles.formLabel}>Series</Text>
-            <TextInput
-              style={styles.formInput}
-              value={series}
-              onChangeText={setSeries}
-              placeholder="e.g., Gospel of John"
-              placeholderTextColor={theme.colors.textTertiary}
-            />
+            <Pressable
+              style={styles.seriesSelector}
+              onPress={() => {
+                setShowMetaModal(false); // Close meta modal first
+                setTimeout(() => {
+                  setShowSeriesModal(true); // Then open series modal
+                }, 100);
+              }}
+            >
+              <View style={styles.seriesSelectorContent}>
+                <View style={styles.seriesSelectorText}>
+                  {seriesId ? (
+                    <>
+                      <View 
+                        style={[
+                          styles.seriesColorIndicator, 
+                          { backgroundColor: mockSermonSeries.find(s => s.id === seriesId)?.color || theme.colors.primary }
+                        ]} 
+                      />
+                      <Text style={styles.selectedSeriesTitle}>
+                        {mockSermonSeries.find(s => s.id === seriesId)?.title || 'Unknown Series'}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.seriesPlaceholder}>Select a series...</Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.colors.gray500} />
+              </View>
+            </Pressable>
+            {seriesId && (
+              <Pressable
+                style={styles.clearSeriesButton}
+                onPress={() => setSeriesId('')}
+              >
+                <Ionicons name="close-circle" size={16} color={theme.colors.gray500} />
+                <Text style={styles.clearSeriesText}>Clear selection</Text>
+              </Pressable>
+            )}
           </View>
           
           <View style={styles.formSection}>
@@ -382,6 +417,97 @@ IV. Conclusion
     </Modal>
   );
 
+  const renderSeriesModal = () => {
+    if (!showSeriesModal) return null;
+    
+    return (
+      <Modal
+        visible={true}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowSeriesModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+          <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Select Series</Text>
+          <Pressable
+            onPress={() => {
+              setShowSeriesModal(false);
+              setTimeout(() => {
+                setShowMetaModal(true); // Reopen meta modal
+              }, 100);
+            }}
+            style={styles.modalCloseButton}
+          >
+            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+          </Pressable>
+        </View>
+        
+        <ScrollView style={styles.modalContent}>
+          <View style={styles.seriesOption}>
+            <Pressable
+              style={styles.seriesOptionButton}
+              onPress={() => {
+                setSeriesId('');
+                setShowSeriesModal(false);
+                setTimeout(() => {
+                  setShowMetaModal(true); // Reopen meta modal
+                }, 100);
+              }}
+            >
+              <View style={styles.seriesOptionContent}>
+                <Ionicons name="remove-circle-outline" size={24} color={theme.colors.gray500} />
+                <Text style={styles.seriesOptionText}>No Series</Text>
+              </View>
+              {!seriesId && (
+                <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+              )}
+            </Pressable>
+          </View>
+          
+          {mockSermonSeries.map((series) => (
+            <View key={series.id} style={styles.seriesOption}>
+              <Pressable
+                style={styles.seriesOptionButton}
+                onPress={() => {
+                  setSeriesId(series.id);
+                  setShowSeriesModal(false);
+                  setTimeout(() => {
+                    setShowMetaModal(true); // Reopen meta modal
+                  }, 100);
+                }}
+              >
+                <View style={styles.seriesOptionContent}>
+                  <View style={[styles.seriesColorIndicator, { backgroundColor: series.color }]} />
+                  <View style={styles.seriesOptionInfo}>
+                    <Text style={styles.seriesOptionTitle}>{series.title}</Text>
+                    <Text style={styles.seriesOptionDescription} numberOfLines={2}>
+                      {series.description}
+                    </Text>
+                    <View style={styles.seriesOptionMeta}>
+                      <Text style={styles.seriesOptionMetaText}>
+                        {series.sermonCount} sermon{series.sermonCount !== 1 ? 's' : ''}
+                      </Text>
+                      {series.isActive && (
+                        <View style={styles.seriesActiveBadge}>
+                          <Text style={styles.seriesActiveBadgeText}>Active</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+                {seriesId === series.id && (
+                  <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+                )}
+              </Pressable>
+            </View>
+          ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {renderHeader()}
@@ -391,6 +517,7 @@ IV. Conclusion
         {renderContent()}
       </View>
       {renderMetaModal()}
+      {renderSeriesModal()}
     </View>
   );
 };
@@ -565,5 +692,109 @@ const styles = StyleSheet.create({
   },
   tagRemove: {
     padding: 2,
+  },
+  
+  // Series selector styles
+  seriesSelector: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+  },
+  seriesSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  seriesSelectorText: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  seriesColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: theme.spacing.sm,
+  },
+  selectedSeriesTitle: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+  },
+  seriesPlaceholder: {
+    ...theme.typography.body1,
+    color: theme.colors.textTertiary,
+  },
+  clearSeriesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: theme.spacing.xs,
+    gap: theme.spacing.xs,
+  },
+  clearSeriesText: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+  },
+  
+  // Series modal styles
+  seriesOption: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
+  },
+  seriesOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  seriesOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  seriesOptionText: {
+    ...theme.typography.body1,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.sm,
+  },
+  seriesOptionInfo: {
+    flex: 1,
+    marginLeft: theme.spacing.sm,
+  },
+  seriesOptionTitle: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  seriesOptionDescription: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+    lineHeight: 16,
+  },
+  seriesOptionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  seriesOptionMetaText: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+  },
+  seriesActiveBadge: {
+    backgroundColor: theme.colors.success + '20',
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 1,
+    borderRadius: theme.borderRadius.sm,
+  },
+  seriesActiveBadgeText: {
+    ...theme.typography.caption,
+    color: theme.colors.success,
+    fontSize: 10,
+    fontWeight: '600',
   },
 });

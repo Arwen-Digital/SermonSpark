@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
+    overflow: 'hidden',
     ...theme.shadows.sm,
   },
   outlined: {
