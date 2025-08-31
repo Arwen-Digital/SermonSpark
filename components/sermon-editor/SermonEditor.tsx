@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Modal, SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Card } from '../common/Card';
-import { Button } from '../common/Button';
-import { RichTextEditor } from './RichTextEditor';
 import { theme } from '@/constants/Theme';
-import { Sermon, SermonSeries } from '@/types';
 import { mockSermonSeries } from '@/data/mockData';
+import { Sermon } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button } from '../common/Button';
+import { WysiwygEditor } from './WysiwygEditor';
 
 interface SermonEditorProps {
   sermon?: Sermon;
@@ -27,10 +26,10 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [seriesId, setSeriesId] = useState(sermon?.seriesId || '');
   const [notes, setNotes] = useState(sermon?.notes || '');
   const [showSeriesModal, setShowSeriesModal] = useState(false);
-  const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes'>('content');
-  const [showMetaModal, setShowMetaModal] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
   const [newTag, setNewTag] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [textSelection, setTextSelection] = useState({ start: 0, end: 0 });
 
   // Auto-save timer
   useEffect(() => {
@@ -121,6 +120,28 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  const insertFormatting = (before: string, after: string) => {
+    const { start, end } = textSelection;
+    const selectedText = content.substring(start, end);
+    
+    let newContent;
+    if (selectedText) {
+      // Wrap selected text
+      newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);
+    } else {
+      // Insert at cursor position or append
+      const insertPosition = start > 0 ? start : content.length;
+      newContent = content.substring(0, insertPosition) + before + after + content.substring(insertPosition);
+    }
+    
+    setContent(newContent);
+  };
+
+  const handleSelectionChange = (event: any) => {
+    const { start, end } = event.nativeEvent.selection;
+    setTextSelection({ start, end });
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
@@ -133,20 +154,12 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       </View>
       
       <View style={styles.headerRight}>
-        <Pressable
-          onPress={() => setShowMetaModal(true)}
-          style={styles.headerButton}
-        >
-          <Ionicons name="information-circle-outline" size={24} color={theme.colors.textSecondary} />
-        </Pressable>
-        
         <Button
           title="Save"
           onPress={handleSave}
           variant="primary"
           size="sm"
         />
-        
       </View>
     </View>
   );
@@ -173,7 +186,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       >
         <Ionicons
           name="document-text"
-          size={16}
+          size={14}
           color={currentTab === 'content' ? theme.colors.primary : theme.colors.gray600}
         />
         <Text
@@ -192,7 +205,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       >
         <Ionicons
           name="list"
-          size={16}
+          size={14}
           color={currentTab === 'outline' ? theme.colors.primary : theme.colors.gray600}
         />
         <Text
@@ -211,7 +224,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       >
         <Ionicons
           name="create"
-          size={16}
+          size={14}
           color={currentTab === 'notes' ? theme.colors.primary : theme.colors.gray600}
         />
         <Text
@@ -223,6 +236,25 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           Notes
         </Text>
       </Pressable>
+      
+      <Pressable
+        style={[styles.tab, currentTab === 'details' && styles.tabActive]}
+        onPress={() => setCurrentTab('details')}
+      >
+        <Ionicons
+          name="information-circle"
+          size={14}
+          color={currentTab === 'details' ? theme.colors.primary : theme.colors.gray600}
+        />
+        <Text
+          style={[
+            styles.tabText,
+            currentTab === 'details' && styles.tabTextActive,
+          ]}
+        >
+          Details
+        </Text>
+      </Pressable>
     </View>
   );
 
@@ -230,11 +262,58 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     switch (currentTab) {
       case 'content':
         return (
-          <RichTextEditor
-            content={content}
-            onContentChange={setContent}
-            placeholder="Start writing your sermon content..."
-          />
+          <View style={styles.contentEditorContainer}>
+            <View style={styles.formattingToolbar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.toolbarButtons}>
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('**', '**')}>
+                    <Text style={styles.boldButtonText}>B</Text>
+                  </Pressable>
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('*', '*')}>
+                    <Text style={styles.italicButtonText}>I</Text>
+                  </Pressable>
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('## ', '')}>
+                    <Text style={styles.headingButtonText}>H2</Text>
+                  </Pressable>
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('### ', '')}>
+                    <Text style={styles.headingButtonText}>H3</Text>
+                  </Pressable>
+                  <View style={styles.toolbarSeparator} />
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('- ', '')}>
+                    <Ionicons name="list" size={16} color={theme.colors.textPrimary} />
+                  </Pressable>
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('1. ', '')}>
+                    <Ionicons name="list-outline" size={16} color={theme.colors.textPrimary} />
+                  </Pressable>
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('> ', '')}>
+                    <Ionicons name="chatbox-outline" size={16} color={theme.colors.textPrimary} />
+                  </Pressable>
+                  <View style={styles.toolbarSeparator} />
+                  <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('==', '==')}>
+                    <Ionicons name="color-fill" size={16} color={theme.colors.warning} />
+                  </Pressable>
+                </View>
+              </ScrollView>
+            </View>
+            <WysiwygEditor
+              style={styles.contentTextInput}
+              value={content}
+              onChangeText={setContent}
+              onSelectionChange={handleSelectionChange}
+              placeholder="Start writing your sermon content...
+
+Use the formatting buttons above or type directly:
+• **bold text** for bold
+• *italic text* for italics  
+• ## Heading for large headings
+• ### Subheading for smaller headings
+• - List item for bullet points
+• 1. List item for numbered lists
+• > Quote for blockquotes
+• ==highlight== for highlighting"
+              placeholderTextColor={theme.colors.textTertiary}
+            />
+          </View>
         );
       
       case 'outline':
@@ -293,129 +372,102 @@ IV. Conclusion
           </View>
         );
       
+      case 'details':
+        return (
+          <ScrollView style={styles.detailsContainer}>
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Scripture Reference</Text>
+              <TextInput
+                style={styles.formInput}
+                value={scripture}
+                onChangeText={setScripture}
+                placeholder="e.g., John 3:16-21"
+                placeholderTextColor={theme.colors.textTertiary}
+              />
+            </View>
+            
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Series</Text>
+              <Pressable
+                style={styles.seriesSelector}
+                onPress={() => {
+                  setShowSeriesModal(true);
+                }}
+              >
+                <View style={styles.seriesSelectorContent}>
+                  <View style={styles.seriesSelectorText}>
+                    {seriesId ? (
+                      <>
+                        <View 
+                          style={[
+                            styles.seriesColorIndicator, 
+                            { backgroundColor: mockSermonSeries.find(s => s.id === seriesId)?.color || theme.colors.primary }
+                          ]} 
+                        />
+                        <Text style={styles.selectedSeriesTitle}>
+                          {mockSermonSeries.find(s => s.id === seriesId)?.title || 'Unknown Series'}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.seriesPlaceholder}>Select a series...</Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={theme.colors.gray500} />
+                </View>
+              </Pressable>
+              {seriesId && (
+                <Pressable
+                  style={styles.clearSeriesButton}
+                  onPress={() => setSeriesId('')}
+                >
+                  <Ionicons name="close-circle" size={16} color={theme.colors.gray500} />
+                  <Text style={styles.clearSeriesText}>Clear selection</Text>
+                </Pressable>
+              )}
+            </View>
+            
+            <View style={styles.formSection}>
+              <Text style={styles.formLabel}>Tags</Text>
+              <View style={styles.tagsInputContainer}>
+                <TextInput
+                  style={styles.tagInput}
+                  value={newTag}
+                  onChangeText={setNewTag}
+                  placeholder="Add a tag..."
+                  placeholderTextColor={theme.colors.textTertiary}
+                  onSubmitEditing={addTag}
+                  returnKeyType="done"
+                />
+                <Button
+                  title="Add"
+                  onPress={addTag}
+                  variant="outline"
+                  size="sm"
+                />
+              </View>
+              
+              <View style={styles.tagsContainer}>
+                {tags.map((tag, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                    <Pressable
+                      onPress={() => removeTag(tag)}
+                      style={styles.tagRemove}
+                    >
+                      <Ionicons name="close" size={14} color={theme.colors.textSecondary} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        );
+      
       default:
         return null;
     }
   };
 
-  const renderMetaModal = () => (
-    <Modal
-      visible={showMetaModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Sermon Details</Text>
-          <Pressable
-            onPress={() => setShowMetaModal(false)}
-            style={styles.modalCloseButton}
-          >
-            <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
-          </Pressable>
-        </View>
-        
-        <ScrollView style={styles.modalContent}>
-          <View style={styles.formSection}>
-            <Text style={styles.formLabel}>Scripture Reference</Text>
-            <TextInput
-              style={styles.formInput}
-              value={scripture}
-              onChangeText={setScripture}
-              placeholder="e.g., John 3:16-21"
-              placeholderTextColor={theme.colors.textTertiary}
-            />
-          </View>
-          
-          <View style={styles.formSection}>
-            <Text style={styles.formLabel}>Series</Text>
-            <Pressable
-              style={styles.seriesSelector}
-              onPress={() => {
-                setShowMetaModal(false); // Close meta modal first
-                setTimeout(() => {
-                  setShowSeriesModal(true); // Then open series modal
-                }, 100);
-              }}
-            >
-              <View style={styles.seriesSelectorContent}>
-                <View style={styles.seriesSelectorText}>
-                  {seriesId ? (
-                    <>
-                      <View 
-                        style={[
-                          styles.seriesColorIndicator, 
-                          { backgroundColor: mockSermonSeries.find(s => s.id === seriesId)?.color || theme.colors.primary }
-                        ]} 
-                      />
-                      <Text style={styles.selectedSeriesTitle}>
-                        {mockSermonSeries.find(s => s.id === seriesId)?.title || 'Unknown Series'}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.seriesPlaceholder}>Select a series...</Text>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.gray500} />
-              </View>
-            </Pressable>
-            {seriesId && (
-              <Pressable
-                style={styles.clearSeriesButton}
-                onPress={() => setSeriesId('')}
-              >
-                <Ionicons name="close-circle" size={16} color={theme.colors.gray500} />
-                <Text style={styles.clearSeriesText}>Clear selection</Text>
-              </Pressable>
-            )}
-          </View>
-          
-          <View style={styles.formSection}>
-            <Text style={styles.formLabel}>Tags</Text>
-            <View style={styles.tagsInputContainer}>
-              <TextInput
-                style={styles.tagInput}
-                value={newTag}
-                onChangeText={setNewTag}
-                placeholder="Add a tag..."
-                placeholderTextColor={theme.colors.textTertiary}
-                onSubmitEditing={addTag}
-                returnKeyType="done"
-              />
-              <Button
-                title="Add"
-                onPress={addTag}
-                variant="outline"
-                size="sm"
-              />
-            </View>
-            
-            <View style={styles.tagsContainer}>
-              {tags.map((tag, index) => (
-                <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                  <Pressable
-                    onPress={() => removeTag(tag)}
-                    style={styles.tagRemove}
-                  >
-                    <Ionicons name="close" size={14} color={theme.colors.textSecondary} />
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
-        
-        <View style={styles.modalFooter}>
-          <Button
-            title="Done"
-            onPress={() => setShowMetaModal(false)}
-            variant="primary"
-          />
-        </View>
-      </View>
-    </Modal>
-  );
 
   const renderSeriesModal = () => {
     if (!showSeriesModal) return null;
@@ -431,12 +483,7 @@ IV. Conclusion
           <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Select Series</Text>
           <Pressable
-            onPress={() => {
-              setShowSeriesModal(false);
-              setTimeout(() => {
-                setShowMetaModal(true); // Reopen meta modal
-              }, 100);
-            }}
+            onPress={() => setShowSeriesModal(false)}
             style={styles.modalCloseButton}
           >
             <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
@@ -450,9 +497,6 @@ IV. Conclusion
               onPress={() => {
                 setSeriesId('');
                 setShowSeriesModal(false);
-                setTimeout(() => {
-                  setShowMetaModal(true); // Reopen meta modal
-                }, 100);
               }}
             >
               <View style={styles.seriesOptionContent}>
@@ -472,9 +516,6 @@ IV. Conclusion
                 onPress={() => {
                   setSeriesId(series.id);
                   setShowSeriesModal(false);
-                  setTimeout(() => {
-                    setShowMetaModal(true); // Reopen meta modal
-                  }, 100);
                 }}
               >
                 <View style={styles.seriesOptionContent}>
@@ -516,7 +557,6 @@ IV. Conclusion
       <View style={styles.contentContainer}>
         {renderContent()}
       </View>
-      {renderMetaModal()}
       {renderSeriesModal()}
     </View>
   );
@@ -571,14 +611,16 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: theme.colors.backgroundSecondary,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xs,
   },
   tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.xs,
     paddingVertical: theme.spacing.sm,
-    gap: theme.spacing.xs,
+    gap: 2,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -586,9 +628,11 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.primary,
   },
   tabText: {
-    ...theme.typography.body2,
+    ...theme.typography.caption,
     color: theme.colors.gray600,
     fontWeight: '500',
+    fontSize: 11,
+    textAlign: 'center',
   },
   tabTextActive: {
     color: theme.colors.primary,
@@ -606,6 +650,74 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlignVertical: 'top',
     flex: 1,
+  },
+  detailsContainer: {
+    flex: 1,
+    padding: theme.spacing.md,
+  },
+  
+  // Content editor styles
+  contentEditorContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  formattingToolbar: {
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
+    paddingVertical: theme.spacing.sm,
+  },
+  toolbarButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  toolbarButton: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    minWidth: 36,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+  },
+  toolbarSeparator: {
+    width: 1,
+    height: 24,
+    backgroundColor: theme.colors.gray300,
+    marginHorizontal: theme.spacing.xs,
+  },
+  boldButtonText: {
+    ...theme.typography.body1,
+    fontWeight: '900',
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+  },
+  italicButtonText: {
+    ...theme.typography.body1,
+    fontStyle: 'italic',
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+  },
+  headingButtonText: {
+    ...theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    fontSize: 11,
+  },
+  contentTextInput: {
+    flex: 1,
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    padding: theme.spacing.md,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlignVertical: 'top',
   },
   
   // Modal styles
