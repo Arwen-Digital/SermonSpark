@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
+import authService from '@/services/authService';
 
 interface AuthScreenProps {
   onAuthenticated: () => void;
@@ -27,6 +28,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
     
     try {
       if (mode === 'signup') {
+        // Validation
         if (!name.trim()) {
           Alert.alert('Validation Error', 'Please enter your name');
           return;
@@ -47,13 +49,22 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           Alert.alert('Validation Error', 'Password must be at least 6 characters');
           return;
         }
+
+        // Create username from email (before @ symbol)
+        const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
         
-        // Mock signup
-        console.log('Signing up:', { name, email, church, title });
-        setTimeout(() => {
-          Alert.alert('Welcome!', 'Account created successfully');
-          onAuthenticated();
-        }, 2000);
+        // Signup with Strapi
+        const authResponse = await authService.signup({
+          username,
+          email: email.trim(),
+          password,
+          fullName: name.trim(),
+          title: title.trim(),
+          church: church.trim(),
+        });
+        
+        Alert.alert('Welcome!', `Account created successfully! Welcome, ${authResponse.user.email}`);
+        onAuthenticated();
         
       } else if (mode === 'signin') {
         if (!email.trim()) {
@@ -65,11 +76,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           return;
         }
         
-        // Mock signin
-        console.log('Signing in:', { email });
-        setTimeout(() => {
-          onAuthenticated();
-        }, 2000);
+        // Signin with Strapi
+        const authResponse = await authService.signin({
+          identifier: email.trim(),
+          password,
+        });
+        
+        onAuthenticated();
         
       } else if (mode === 'forgot') {
         if (!email.trim()) {
@@ -77,15 +90,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           return;
         }
         
-        // Mock forgot password
-        console.log('Forgot password for:', email);
-        setTimeout(() => {
-          Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
-          setMode('signin');
-        }, 2000);
+        // Forgot password with Strapi
+        await authService.forgotPassword(email.trim());
+        Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
+        setMode('signin');
       }
-    } catch {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } catch (error) {
+      console.error('Auth error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
