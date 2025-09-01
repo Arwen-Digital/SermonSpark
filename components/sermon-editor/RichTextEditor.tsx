@@ -144,7 +144,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     // Create character-by-character styling map
     const characters = text.split('');
-    const styleMap: Array<{bold?: boolean, highlight?: HighlightColor, subheader?: boolean}> = 
+    const styleMap: {bold?: boolean, highlight?: HighlightColor, subheader?: boolean}[] = 
       new Array(characters.length).fill({});
 
     formats.forEach(format => {
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     left: theme.spacing.lg,
     right: theme.spacing.lg,
     zIndex: 1,
-    pointerEvents: 'none',
+    pointerEvents: 'none' as const,
   },
   hiddenTextInput: {
     ...theme.typography.body1,

@@ -260,13 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.25)',
     elevation: 5,
   },
   statsContainer: {
@@ -280,13 +274,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   statIconContainer: {

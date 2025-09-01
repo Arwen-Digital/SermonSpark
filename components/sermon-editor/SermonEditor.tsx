@@ -2,10 +2,43 @@ import { theme } from '@/constants/Theme';
 import { mockSermonSeries } from '@/data/mockData';
 import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Dimensions, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Button } from '../common/Button';
-import { WysiwygEditor } from './WysiwygEditor';
+import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
+
+// Mock Bible verse data
+const mockBibleVerses: Record<string, Record<string, string>> = {
+  'john 3:16': {
+    CSB: 'For God loved the world in this way: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
+    NIV: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
+    NLT: 'For this is how God loved the world: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
+    ESV: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.',
+    KJV: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'
+  },
+  'jn 3:16': {
+    CSB: 'For God loved the world in this way: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
+    NIV: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
+    NLT: 'For this is how God loved the world: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
+    ESV: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.',
+    KJV: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'
+  },
+  'romans 8:28': {
+    CSB: 'We know that all things work together for the good of those who love God, who are called according to his purpose.',
+    NIV: 'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.',
+    NLT: 'And we know that God causes everything to work together for the good of those who love God and are called according to his purpose for them.',
+    ESV: 'And we know that for those who love God all things work together for good, for those who are called according to his purpose.',
+    KJV: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.'
+  },
+  'philippians 4:13': {
+    CSB: 'I am able to do all things through him who strengthens me.',
+    NIV: 'I can do all this through him who gives me strength.',
+    NLT: 'For I can do everything through Christ, who gives me strength.',
+    ESV: 'I can do all things through him who strengthens me.',
+    KJV: 'I can do all things through Christ which strengtheneth me.'
+  }
+};
 
 interface SermonEditorProps {
   sermon?: Sermon;
@@ -26,28 +59,39 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [seriesId, setSeriesId] = useState(sermon?.seriesId || '');
   const [notes, setNotes] = useState(sermon?.notes || '');
   const [showSeriesModal, setShowSeriesModal] = useState(false);
+  const [showBibleVerseModal, setShowBibleVerseModal] = useState(false);
+  const [bibleVerse, setBibleVerse] = useState('');
+  const [bibleTranslation, setBibleTranslation] = useState('CSB');
+  const [fetchedVerseText, setFetchedVerseText] = useState('');
+  const [fetchedVerseReference, setFetchedVerseReference] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= 768; // Tablet and desktop breakpoint
+
+  // Toast notification function
+  const showToastNotification = (message: string) => {
+    console.log('showToastNotification called with:', message);
+    setToastMessage(message);
+    setShowToast(true);
+    console.log('Toast state set to true');
+    setTimeout(() => {
+      console.log('Hiding toast after 3 seconds');
+      setShowToast(false);
+    }, 3000); // Hide after 3 seconds
+  };
   const [newTag, setNewTag] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [textSelection, setTextSelection] = useState({ start: 0, end: 0 });
-
-  // Auto-save timer
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (hasUnsavedChanges && (title || content)) {
-        handleAutoSave();
-      }
-    }, 30000); // Auto-save every 30 seconds
-
-    return () => clearTimeout(timer);
-  }, [title, content, outline, hasUnsavedChanges]);
+  const wysiwygEditorRef = useRef<WysiwygEditorHandle>(null);
 
   // Track changes
   useEffect(() => {
     setHasUnsavedChanges(true);
   }, [title, content, outline, scripture, tags, seriesId, notes]);
 
-  const handleAutoSave = () => {
+  const handleAutoSave = useCallback(() => {
     const sermonData = {
       id: sermon?.id,
       title: title || 'Untitled Sermon',
@@ -65,7 +109,18 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     // In a real app, this would save to local storage or sync with backend
     console.log('Auto-saving sermon:', sermonData);
     setHasUnsavedChanges(false);
-  };
+  }, [sermon?.id, title, content, outline, scripture, tags, seriesId, notes]);
+
+  // Auto-save timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (hasUnsavedChanges && (title || content)) {
+        handleAutoSave();
+      }
+    }, 30000); // Auto-save every 30 seconds
+
+    return () => clearTimeout(timer);
+  }, [title, content, outline, hasUnsavedChanges, handleAutoSave]);
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -96,14 +151,23 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
   const handleCancel = () => {
     if (hasUnsavedChanges) {
-      Alert.alert(
-        'Unsaved Changes',
-        'You have unsaved changes. Are you sure you want to cancel?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          { text: 'Discard Changes', style: 'destructive', onPress: onCancel },
-        ]
-      );
+      // On web, use browser confirm dialog since Alert.alert doesn't work well
+      if (Platform.OS === 'web') {
+        const shouldDiscard = window.confirm('You have unsaved changes. Are you sure you want to cancel?');
+        if (shouldDiscard) {
+          onCancel();
+        }
+      } else {
+        // Use Alert.alert on mobile platforms
+        Alert.alert(
+          'Unsaved Changes',
+          'You have unsaved changes. Are you sure you want to cancel?',
+          [
+            { text: 'Keep Editing', style: 'cancel' },
+            { text: 'Discard Changes', style: 'destructive', onPress: onCancel },
+          ]
+        );
+      }
     } else {
       onCancel();
     }
@@ -125,16 +189,34 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     const selectedText = content.substring(start, end);
     
     let newContent;
+    let newCursorPosition;
+    
     if (selectedText) {
       // Wrap selected text
       newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);
+      newCursorPosition = start + before.length + selectedText.length + after.length;
     } else {
       // Insert at cursor position or append
       const insertPosition = start > 0 ? start : content.length;
       newContent = content.substring(0, insertPosition) + before + after + content.substring(insertPosition);
+      newCursorPosition = insertPosition + before.length;
     }
     
+    // Update content first
     setContent(newContent);
+    
+    // Focus the editor and set selection
+    if (wysiwygEditorRef.current?.focus) {
+      wysiwygEditorRef.current.focus();
+    }
+    
+    // Update selection to position cursor correctly with longer delay
+    setTimeout(() => {
+      if (wysiwygEditorRef.current?.setSelection) {
+        wysiwygEditorRef.current.setSelection(newCursorPosition, newCursorPosition);
+      }
+      setTextSelection({ start: newCursorPosition, end: newCursorPosition });
+    }, 100);
   };
 
   const handleSelectionChange = (event: any) => {
@@ -265,6 +347,11 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           <View style={styles.contentEditorContainer}>
             <View style={styles.formattingToolbar}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {textSelection.start !== textSelection.end && (
+                  <View style={styles.selectionIndicator}>
+                    <Text style={styles.selectionIndicatorText}>Text selected</Text>
+                  </View>
+                )}
                 <View style={styles.toolbarButtons}>
                   <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('**', '**')}>
                     <Text style={styles.boldButtonText}>B</Text>
@@ -292,10 +379,28 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                   <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('==', '==')}>
                     <Ionicons name="color-fill" size={16} color={theme.colors.warning} />
                   </Pressable>
+                  {isLargeScreen && (
+                    <>
+                      <View style={styles.toolbarSeparator} />
+                      <Pressable style={styles.toolbarBibleVerseButton} onPress={() => setShowBibleVerseModal(true)}>
+                        <Ionicons name="book" size={16} color={theme.colors.primary} />
+                        <Text style={styles.toolbarBibleVerseButtonText}>Bible Verse Finder</Text>
+                      </Pressable>
+                    </>
+                  )}
                 </View>
               </ScrollView>
             </View>
+            {!isLargeScreen && (
+              <View style={styles.bibleVerseButtonContainer}>
+                <Pressable style={styles.bibleVerseButton} onPress={() => setShowBibleVerseModal(true)}>
+                  <Ionicons name="book" size={18} color={theme.colors.primary} />
+                  <Text style={styles.bibleVerseButtonText}>Bible Verse Finder</Text>
+                </Pressable>
+              </View>
+            )}
             <WysiwygEditor
+              ref={wysiwygEditorRef}
               style={styles.contentTextInput}
               value={content}
               onChangeText={setContent}
@@ -303,14 +408,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               placeholder="Start writing your sermon content...
 
 Use the formatting buttons above or type directly:
-• **bold text** for bold
-• *italic text* for italics  
-• ## Heading for large headings
-• ### Subheading for smaller headings
-• - List item for bullet points
-• 1. List item for numbered lists
-• > Quote for blockquotes
-• ==highlight== for highlighting"
+**bold text** for bold
+*italic text* for italics  
+## Heading for large headings
+### Subheading for smaller headings
+- List item for bullet points
+1. List item for numbered lists
+> Quote for blockquotes
+==highlight== for highlighting"
               placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
@@ -549,6 +654,165 @@ IV. Conclusion
     );
   };
 
+  const renderBibleVerseModal = () => {
+    if (!showBibleVerseModal) return null;
+    
+    return (
+      <Modal
+        visible={true}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowBibleVerseModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Find A Bible Verse</Text>
+            <Pressable
+              onPress={() => setShowBibleVerseModal(false)}
+              style={styles.modalCloseButton}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
+            </Pressable>
+          </View>
+          
+          <View style={styles.bibleVerseModalContent}>
+            <View style={styles.bibleVerseInputContainer}>
+              <Text style={styles.formLabel}>Bible Reference</Text>
+              <TextInput
+                style={styles.bibleVerseInput}
+                value={bibleVerse}
+                onChangeText={(text) => {
+                  setBibleVerse(text);
+                  // Clear previous verse when user starts typing new reference
+                  if (fetchedVerseText) {
+                    setFetchedVerseText('');
+                    setFetchedVerseReference('');
+                  }
+                }}
+                placeholder="Jn 3:16"
+                placeholderTextColor={theme.colors.textTertiary}
+                autoFocus={true}
+              />
+            </View>
+            
+            <View style={styles.bibleTranslationContainer}>
+              <Text style={styles.formLabel}>Translation</Text>
+              <View style={styles.translationButtons}>
+                {['CSB', 'NIV', 'NLT', 'ESV', 'KJV'].map((translation) => (
+                  <Pressable
+                    key={translation}
+                    style={[
+                      styles.translationButton,
+                      bibleTranslation === translation && styles.translationButtonActive
+                    ]}
+                    onPress={() => setBibleTranslation(translation)}
+                  >
+                    <Text
+                      style={[
+                        styles.translationButtonText,
+                        bibleTranslation === translation && styles.translationButtonTextActive
+                      ]}
+                    >
+                      {translation}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            
+            {fetchedVerseText && (
+              <View style={styles.verseDisplayContainer}>
+                <Text style={styles.verseDisplayLabel}>Verse Text:</Text>
+                <Pressable 
+                  style={styles.verseDisplayArea}
+                  onPress={async () => {
+                    console.log('Copy button pressed, Platform:', Platform.OS);
+                    try {
+                      const textToCopy = fetchedVerseReference ? 
+                        `"${fetchedVerseText}" - ${fetchedVerseReference}` : 
+                        fetchedVerseText;
+                      
+                      console.log('Text to copy:', textToCopy);
+                      
+                      if (Platform.OS === 'web') {
+                        // Try using the native browser clipboard API first
+                        if (navigator.clipboard) {
+                          await navigator.clipboard.writeText(textToCopy);
+                          console.log('Successfully copied with navigator.clipboard');
+                        } else {
+                          // Fallback to expo-clipboard
+                          await Clipboard.setStringAsync(textToCopy);
+                          console.log('Successfully copied with expo-clipboard');
+                        }
+                        console.log('About to show toast...');
+                        showToastNotification('Bible verse copied to clipboard!');
+                      } else {
+                        await Clipboard.setStringAsync(textToCopy);
+                        Alert.alert('Copied!', 'Bible verse copied to clipboard');
+                      }
+                    } catch (error) {
+                      console.error('Copy failed:', error);
+                      if (Platform.OS === 'web') {
+                        showToastNotification('Failed to copy to clipboard');
+                      } else {
+                        Alert.alert('Error', 'Failed to copy to clipboard');
+                      }
+                    }
+                  }}
+                >
+                  <Text style={styles.verseText}>{fetchedVerseText}</Text>
+                  {fetchedVerseReference && (
+                    <Text style={styles.verseReference}>{fetchedVerseReference}</Text>
+                  )}
+                  <View style={styles.copyHint}>
+                    <Ionicons name="copy-outline" size={16} color={theme.colors.textTertiary} />
+                    <Text style={styles.copyHintText}>Tap to copy to clipboard</Text>
+                  </View>
+                </Pressable>
+              </View>
+            )}
+            
+            <View style={styles.bibleVerseModalFooter}>
+              <Button
+                title="Cancel"
+                onPress={() => setShowBibleVerseModal(false)}
+                variant="outline"
+                size="md"
+              />
+              <Button
+                title="Find Verse"
+                onPress={() => {
+                  const normalizedReference = bibleVerse.toLowerCase().trim();
+                  const verseData = mockBibleVerses[normalizedReference];
+                  
+                  if (verseData && verseData[bibleTranslation]) {
+                    setFetchedVerseText(verseData[bibleTranslation]);
+                    setFetchedVerseReference(`${bibleVerse} (${bibleTranslation})`);
+                  } else {
+                    setFetchedVerseText('Verse not found. Try "John 3:16", "Romans 8:28", or "Philippians 4:13"');
+                    setFetchedVerseReference('');
+                  }
+                }}
+                variant="primary"
+                size="md"
+              />
+            </View>
+          </View>
+          
+          {/* Toast inside modal */}
+          {showToast && Platform.OS === 'web' && (
+            <View style={styles.modalToastContainer}>
+              <View style={styles.toast}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
+                <Text style={styles.toastText}>{toastMessage}</Text>
+              </View>
+            </View>
+          )}
+        </SafeAreaView>
+      </Modal>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {renderHeader()}
@@ -558,6 +822,7 @@ IV. Conclusion
         {renderContent()}
       </View>
       {renderSeriesModal()}
+      {renderBibleVerseModal()}
     </View>
   );
 };
@@ -718,6 +983,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     textAlignVertical: 'top',
+  },
+  selectionIndicator: {
+    backgroundColor: theme.colors.primary + '20',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+    marginRight: theme.spacing.sm,
+    alignSelf: 'center',
+  },
+  selectionIndicatorText: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    fontSize: 10,
   },
   
   // Modal styles
@@ -907,6 +1186,185 @@ const styles = StyleSheet.create({
     ...theme.typography.caption,
     color: theme.colors.success,
     fontSize: 10,
+    fontWeight: '600',
+  },
+  
+  // Bible Verse Finder styles
+  bibleVerseButtonContainer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
+    alignItems: 'center',
+  },
+  bibleVerseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  bibleVerseButtonText: {
+    ...theme.typography.body2,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  toolbarBibleVerseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  toolbarBibleVerseButtonText: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  bibleVerseModalContent: {
+    flex: 1,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.lg,
+  },
+  bibleVerseInputContainer: {
+    gap: theme.spacing.sm,
+  },
+  bibleVerseInput: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    fontSize: 16,
+  },
+  bibleTranslationContainer: {
+    gap: theme.spacing.sm,
+  },
+  translationButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  translationButton: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  translationButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  translationButtonText: {
+    ...theme.typography.body2,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  translationButtonTextActive: {
+    color: theme.colors.white,
+  },
+  bibleVerseModalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.md,
+    marginTop: 'auto',
+    paddingTop: theme.spacing.lg,
+  },
+  verseDisplayContainer: {
+    gap: theme.spacing.sm,
+  },
+  verseDisplayLabel: {
+    ...theme.typography.h6,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  verseDisplayArea: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    gap: theme.spacing.sm,
+  },
+  verseText: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  verseReference: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  copyHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray200,
+    marginTop: theme.spacing.xs,
+  },
+  copyHintText: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+    fontSize: 12,
+  },
+  
+  // Toast notification styles
+  modalToastContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  },
+  toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    gap: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    maxWidth: 320,
+  },
+  toastText: {
+    ...theme.typography.body2,
+    color: theme.colors.white,
     fontWeight: '600',
   },
 });

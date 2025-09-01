@@ -10,11 +10,29 @@ export default function CreateSermonPage() {
     console.log('Saving new sermon:', sermonData);
     // In a real app, this would save to local storage or API
     // Then navigate back to sermons list
-    router.back();
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      router.push('/');
+    }
   };
 
   const handleCancel = () => {
-    router.back();
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      router.push('/');
+    }
   };
 
   return (

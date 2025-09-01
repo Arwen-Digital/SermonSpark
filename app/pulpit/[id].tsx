@@ -198,10 +198,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray200,
-    shadowColor: theme.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
     elevation: 3,
   },
   backButton: {

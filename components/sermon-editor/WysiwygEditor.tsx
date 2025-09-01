@@ -1,6 +1,6 @@
 import { theme } from '@/constants/Theme';
-import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Dimensions, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface WysiwygEditorProps {
   value: string;
@@ -9,6 +9,11 @@ interface WysiwygEditorProps {
   placeholder?: string;
   placeholderTextColor?: string;
   style?: any;
+}
+
+export interface WysiwygEditorHandle {
+  focus: () => void;
+  setSelection: (start: number, end: number) => void;
 }
 
 interface ParsedSegment {
@@ -22,289 +27,424 @@ interface ParsedSegment {
   numberedList?: boolean;
 }
 
-export const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
-  value,
-  onChangeText,
-  onSelectionChange,
-  placeholder,
-  placeholderTextColor,
-  style,
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const textInputRef = useRef<TextInput>(null);
+export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(
+  (
+    {
+      value,
+      onChangeText,
+      onSelectionChange,
+      placeholder,
+      placeholderTextColor,
+      style,
+    },
+    ref
+  ) => {
+    const [isFocused, setIsFocused] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [selection, setSelection] = useState({ start: 0, end: 0 });
+    const [scrollY, setScrollY] = useState(0);
+    const [hasSelection, setHasSelection] = useState(false);
+    const textInputRef = useRef<TextInput>(null);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const containerRef = useRef<View>(null);
+    
+    // Get screen dimensions
+    const screenHeight = Dimensions.get('window').height;
 
-  // Focus the hidden input when component receives focus
-  useEffect(() => {
-    if (isFocused && textInputRef.current) {
-      textInputRef.current.focus();
-    }
-  }, [isFocused]);
+    // Keyboard event listeners
+    useEffect(() => {
+      const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      });
+      
+      const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+        setKeyboardHeight(0);
+      });
+      
+      return () => {
+        keyboardDidShowListener.remove();
+        keyboardDidHideListener.remove();
+      };
+    }, []);
 
-  const parseMarkdown = (text: string): ParsedSegment[] => {
-    if (!text) return [];
-
-    const lines = text.split('\n');
-    const segments: ParsedSegment[] = [];
-
-    lines.forEach((line, lineIndex) => {
-      if (lineIndex > 0) {
-        // Add line break
-        segments.push({ text: '\n' });
-      }
-
-      // Handle empty lines
-      if (line.trim() === '') {
-        segments.push({ text: '' });
+    const scrollToKeepCursorVisible = useCallback(() => {
+      if (!containerRef.current || !textInputRef.current || keyboardHeight === 0) {
         return;
       }
+      
+      // Calculate approximate cursor position based on text length and selection
+      const lineHeight = 24;
+      const padding = 16;
+      const textBeforeCursor = value.substring(0, selection.start);
+      const lines = textBeforeCursor.split('\n').length;
+      const approximateCursorY = (lines - 1) * lineHeight + padding;
+      
+      // Calculate available space above keyboard (conservative estimate)
+      const headerHeight = 120; // Approximate header height
+      const toolbarHeight = 50; // Formatting toolbar height
+      const safetyMargin = 80; // Extra margin for safety
+      const availableHeight = screenHeight - keyboardHeight - headerHeight - toolbarHeight - safetyMargin;
+      
+      // Calculate cursor screen position relative to current scroll
+      const cursorScreenPosition = approximateCursorY - scrollY;
+      
+      // If cursor is below the visible area or too close to keyboard
+      if (cursorScreenPosition > availableHeight || cursorScreenPosition < 0) {
+        const targetScrollY = Math.max(0, approximateCursorY - availableHeight + 50);
+        scrollViewRef.current?.scrollTo({
+          y: targetScrollY,
+          animated: true,
+        });
+        setScrollY(targetScrollY);
+      }
+    }, [keyboardHeight, selection, value, screenHeight, scrollY]);
+    
+    // Auto-scroll when selection changes and keyboard is visible
+    useEffect(() => {
+      if (isFocused && keyboardHeight > 0 && textInputRef.current) {
+        // Delay to ensure layout has updated
+        setTimeout(() => {
+          scrollToKeepCursorVisible();
+        }, 100);
+      }
+    }, [selection, isFocused, keyboardHeight, scrollToKeepCursorVisible]);
 
-      // Check for headings (must be at start of line)
-      if (line.startsWith('### ')) {
-        const headingText = line.substring(4);
-        if (headingText.trim()) {
-          segments.push({ text: headingText, heading: 3 });
+    // Expose methods to parent component
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          setIsFocused(true);
+          // Small delay to ensure component re-renders with TextInput
+          setTimeout(() => {
+            textInputRef.current?.focus();
+          }, 10);
+        },
+        setSelection: (start: number, end: number) => {
+          setSelection({ start, end });
+          setHasSelection(start !== end);
+          // Ensure we're in editing mode to apply selection
+          if (!isFocused) {
+            setIsFocused(true);
+          }
+          // Apply selection after a short delay to ensure TextInput is rendered
+          setTimeout(() => {
+            if (textInputRef.current) {
+              textInputRef.current.setSelection?.(start, end);
+            }
+          }, 50);
+        },
+      }),
+      [isFocused]
+    );
+
+    const parseMarkdown = (text: string): ParsedSegment[] => {
+      if (!text) return [];
+
+      const lines = text.split('\n');
+      const segments: ParsedSegment[] = [];
+
+      lines.forEach((line, lineIndex) => {
+        if (lineIndex > 0) {
+          segments.push({ text: '\n' });
         }
-        return;
-      }
-      if (line.startsWith('## ')) {
-        const headingText = line.substring(3);
-        if (headingText.trim()) {
-          segments.push({ text: headingText, heading: 2 });
-        }
-        return;
-      }
 
-      // Check for quotes
-      if (line.startsWith('> ')) {
-        const quoteText = line.substring(2);
-        if (quoteText.trim()) {
+        if (line.trim() === '') {
+          segments.push({ text: '' });
+          return;
+        }
+
+        // Handle headings
+        if (line.startsWith('### ')) {
+          const headingText = line.substring(4);
+          if (headingText.trim()) {
+            segments.push({ text: headingText, heading: 3 });
+          }
+          return;
+        }
+        if (line.startsWith('## ')) {
+          const headingText = line.substring(3);
+          if (headingText.trim()) {
+            segments.push({ text: headingText, heading: 2 });
+          }
+          return;
+        }
+
+        // Handle quotes
+        if (line.startsWith('> ')) {
+          const quoteText = line.substring(2);
           segments.push({ text: quoteText, quote: true });
-        } else {
-          segments.push({ text: '', quote: true });
+          return;
         }
-        return;
-      }
 
-      // Check for numbered list items
-      const numberedMatch = line.match(/^(\d+\. )(.*)/);
-      if (numberedMatch) {
-        segments.push({ text: numberedMatch[1], numberedList: true });
-        if (numberedMatch[2]) {
-          segments.push(...parseInlineMarkdown(numberedMatch[2]));
+        // Handle numbered lists
+        const numberedMatch = line.match(/^(\d+\. )(.*)/);
+        if (numberedMatch) {
+          segments.push({ text: numberedMatch[1], numberedList: true });
+          if (numberedMatch[2]) {
+            segments.push(...parseInlineMarkdown(numberedMatch[2]));
+          }
+          return;
         }
-        return;
-      }
 
-      // Check for bullet list items
-      if (line.startsWith('- ')) {
-        segments.push({ text: '• ', listItem: true });
-        const remainingText = line.substring(2);
-        if (remainingText) {
-          segments.push(...parseInlineMarkdown(remainingText));
+        // Handle bullet lists
+        if (line.startsWith('- ')) {
+          segments.push({ text: '• ', listItem: true });
+          const remainingText = line.substring(2);
+          if (remainingText) {
+            segments.push(...parseInlineMarkdown(remainingText));
+          }
+          return;
         }
-        return;
-      }
 
-      // Parse inline markdown for regular lines
-      segments.push(...parseInlineMarkdown(line));
-    });
+        segments.push(...parseInlineMarkdown(line));
+      });
 
-    return segments;
-  };
+      return segments;
+    };
 
-  const parseInlineMarkdown = (text: string): ParsedSegment[] => {
-    const segments: ParsedSegment[] = [];
-    let processedText = text;
-    
-    // Process in order of priority to avoid conflicts
-    // 1. First, handle bold (**text**)
-    processedText = processedText.replace(/\*\*(.*?)\*\*/g, (match, content) => {
-      return `__BOLD_START__${content}__BOLD_END__`;
-    });
-    
-    // 2. Then handle highlights (==text==)
-    processedText = processedText.replace(/==(.*?)==/g, (match, content) => {
-      return `__HIGHLIGHT_START__${content}__HIGHLIGHT_END__`;
-    });
-    
-    // 3. Finally handle italics (*text*) - won't conflict with bold now
-    processedText = processedText.replace(/\*([^*]+?)\*/g, (match, content) => {
-      return `__ITALIC_START__${content}__ITALIC_END__`;
-    });
+    const parseInlineMarkdown = (text: string): ParsedSegment[] => {
+      const segments: ParsedSegment[] = [];
+      let processedText = text;
 
-    // Now parse the processed text
-    let currentIndex = 0;
-    while (currentIndex < processedText.length) {
-      let nearestMarker = null;
-      let nearestIndex = processedText.length;
+      // Process bold, italic, and highlight
+      processedText = processedText.replace(/\*\*(.*?)\*\*/g, '__BOLD_START__$1__BOLD_END__');
+      processedText = processedText.replace(/==(.*?)==/g, '__HIGHLIGHT_START__$1__HIGHLIGHT_END__');
+      processedText = processedText.replace(/\*([^*]+?)\*/g, '__ITALIC_START__$1__ITALIC_END__');
 
-      // Find the nearest formatting marker
       const markers = [
         { start: '__BOLD_START__', end: '__BOLD_END__', type: 'bold' },
         { start: '__ITALIC_START__', end: '__ITALIC_END__', type: 'italic' },
         { start: '__HIGHLIGHT_START__', end: '__HIGHLIGHT_END__', type: 'highlight' },
       ];
 
-      markers.forEach(marker => {
-        const startIndex = processedText.indexOf(marker.start, currentIndex);
-        if (startIndex !== -1 && startIndex < nearestIndex) {
-          nearestIndex = startIndex;
-          nearestMarker = marker;
-        }
-      });
+      let currentIndex = 0;
+      while (currentIndex < processedText.length) {
+        let nearestMarker: typeof markers[0] | null = null;
+        let nearestIndex = processedText.length;
 
-      if (nearestMarker) {
-        // Add text before the marker
-        if (nearestIndex > currentIndex) {
-          const plainText = processedText.substring(currentIndex, nearestIndex);
-          if (plainText) {
-            segments.push({ text: plainText });
+        markers.forEach((marker) => {
+          const startIndex = processedText.indexOf(marker.start, currentIndex);
+          if (startIndex !== -1 && startIndex < nearestIndex) {
+            nearestIndex = startIndex;
+            nearestMarker = marker;
           }
-        }
+        });
 
-        // Find the end marker
-        const endMarkerIndex = processedText.indexOf(nearestMarker.end, nearestIndex + nearestMarker.start.length);
-        if (endMarkerIndex !== -1) {
-          const content = processedText.substring(
-            nearestIndex + nearestMarker.start.length,
-            endMarkerIndex
+        if (nearestMarker) {
+          if (nearestIndex > currentIndex) {
+            const plainText = processedText.substring(currentIndex, nearestIndex);
+            if (plainText) {
+              segments.push({ text: plainText });
+            }
+          }
+
+          const endMarkerIndex = processedText.indexOf(
+            nearestMarker.end,
+            nearestIndex + nearestMarker.start.length
           );
-          
-          const formatProps: any = {};
-          formatProps[nearestMarker.type] = true;
-          segments.push({ text: content, ...formatProps });
-          
-          currentIndex = endMarkerIndex + nearestMarker.end.length;
+          if (endMarkerIndex !== -1) {
+            const content = processedText.substring(
+              nearestIndex + nearestMarker.start.length,
+              endMarkerIndex
+            );
+
+            const formatProps: any = {};
+            formatProps[nearestMarker.type] = true;
+            segments.push({ text: content, ...formatProps });
+
+            currentIndex = endMarkerIndex + nearestMarker.end.length;
+          } else {
+            segments.push({ text: processedText.substring(currentIndex) });
+            break;
+          }
         } else {
-          // Malformed markup, treat as plain text
-          segments.push({ text: processedText.substring(currentIndex) });
+          const remainingText = processedText.substring(currentIndex);
+          if (remainingText) {
+            segments.push({ text: remainingText });
+          }
           break;
         }
-      } else {
-        // No more markers, add remaining text
-        const remainingText = processedText.substring(currentIndex);
-        if (remainingText) {
-          segments.push({ text: remainingText });
-        }
-        break;
       }
-    }
 
-    return segments;
-  };
+      return segments;
+    };
 
-  const getSegmentStyle = (segment: ParsedSegment) => {
-    const styles = [wysiwygStyles.baseText];
+    const getSegmentStyle = (segment: ParsedSegment) => {
+      const styles = [wysiwygStyles.baseText];
 
-    if (segment.bold) styles.push(wysiwygStyles.boldText);
-    if (segment.italic) styles.push(wysiwygStyles.italicText);
-    if (segment.highlight) styles.push(wysiwygStyles.highlightText);
-    if (segment.heading === 2) styles.push(wysiwygStyles.heading2);
-    if (segment.heading === 3) styles.push(wysiwygStyles.heading3);
-    if (segment.quote) styles.push(wysiwygStyles.quoteText);
-    if (segment.listItem || segment.numberedList) styles.push(wysiwygStyles.listText);
+      if (segment.bold) styles.push(wysiwygStyles.boldText);
+      if (segment.italic) styles.push(wysiwygStyles.italicText);
+      if (segment.highlight) styles.push(wysiwygStyles.highlightText);
+      if (segment.heading === 2) styles.push(wysiwygStyles.heading2);
+      if (segment.heading === 3) styles.push(wysiwygStyles.heading3);
+      if (segment.quote) styles.push(wysiwygStyles.quoteText);
+      if (segment.listItem || segment.numberedList) styles.push(wysiwygStyles.listText);
 
-    return styles;
-  };
+      return styles;
+    };
 
-  const handleSelectionChange = (event: any) => {
-    const { start, end } = event.nativeEvent.selection;
-    setSelection({ start, end });
-    onSelectionChange?.(event);
-  };
+    const handleFocus = () => {
+      setIsFocused(true);
+      // Small delay to ensure keyboard animation starts
+      setTimeout(() => {
+        scrollToKeepCursorVisible();
+      }, 300);
+    };
 
-  const segments = parseMarkdown(value);
+    const handleBlur = () => {
+      // Don't blur if there's an active selection (user might want to format)
+      if (!hasSelection) {
+        setIsFocused(false);
+      }
+    };
 
-  return (
-    <Pressable 
-      style={[styles.container, style]}
-      onPress={() => {
-        setIsFocused(true);
-        textInputRef.current?.focus();
-      }}
-    >
-      {/* Hidden TextInput for actual text editing */}
-      <TextInput
-        ref={textInputRef}
-        style={styles.hiddenInput}
-        value={value}
-        onChangeText={onChangeText}
-        onSelectionChange={handleSelectionChange}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        multiline
-        placeholder=""
-        textAlignVertical="top"
-        selectionColor={theme.colors.primary}
-        cursorColor={theme.colors.primary}
-        autoFocus={false}
-      />
+    const handleSelectionChange = (event: any) => {
+      const { start, end } = event.nativeEvent.selection;
+      setSelection({ start, end });
+      setHasSelection(start !== end);
+      onSelectionChange?.(event);
+      
+      // Ensure cursor stays visible when selection changes
+      if (isFocused && keyboardHeight > 0) {
+        setTimeout(() => {
+          scrollToKeepCursorVisible();
+        }, 100);
+      }
+    };
+    
+    const handleTextChange = (text: string) => {
+      onChangeText(text);
+      // Clear selection state when text changes
+      setHasSelection(false);
+      
+      // Ensure cursor stays visible when text changes
+      if (isFocused && keyboardHeight > 0) {
+        setTimeout(() => {
+          scrollToKeepCursorVisible();
+        }, 150);
+      }
+    };
 
-      {/* WYSIWYG Display */}
-      <View style={styles.content} pointerEvents="none">
-        {!value && placeholder && !isFocused && (
-          <Text style={[styles.placeholder, { color: placeholderTextColor }]}>
-            {placeholder}
-          </Text>
-        )}
-        
-        {value && segments.length > 0 && (
-          <Text style={styles.renderContainer}>
-            {segments.map((segment, index) => (
-              <Text
-                key={index}
-                style={getSegmentStyle(segment)}
-              >
-                {segment.text}
-              </Text>
-            ))}
-          </Text>
-        )}
+    const segments = parseMarkdown(value);
+
+    return (
+      <View ref={containerRef} style={[styles.container, style]}>
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 20}
+        >
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContentContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            onScroll={({ nativeEvent }) => {
+              setScrollY(nativeEvent.contentOffset.y);
+            }}
+            scrollEventThrottle={16}
+            onContentSizeChange={() => {
+              // Auto-scroll to keep cursor visible when content grows and keyboard is visible
+              if (isFocused && keyboardHeight > 0) {
+                setTimeout(() => {
+                  scrollToKeepCursorVisible();
+                }, 50);
+              }
+            }}
+          >
+            <View style={styles.textContainer}>
+              {/* Render formatted text when not focused and no selection */}
+              {!isFocused && !hasSelection && value ? (
+                <Pressable
+                  style={styles.renderContainer}
+                  onPress={() => {
+                    setIsFocused(true);
+                    textInputRef.current?.focus();
+                  }}
+                >
+                  <Text style={styles.renderedText}>
+                    {segments.map((segment, index) => (
+                      <Text key={index} style={getSegmentStyle(segment)}>
+                        {segment.text}
+                      </Text>
+                    ))}
+                  </Text>
+                </Pressable>
+              ) : (
+                /* Show TextInput when focused, has selection, or when there's no content */
+                <TextInput
+                  ref={textInputRef}
+                  value={value}
+                  onChangeText={handleTextChange}
+                  onSelectionChange={handleSelectionChange}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                  multiline
+                  placeholder={placeholder}
+                  placeholderTextColor={placeholderTextColor}
+                  textAlignVertical="top"
+                  selectionColor={theme.colors.primary}
+                  scrollEnabled={false}
+                  style={styles.textInput}
+                  blurOnSubmit={false}
+                  onKeyPress={({ nativeEvent }) => {
+                    // Auto-scroll when user is typing to keep cursor visible
+                    if (nativeEvent.key !== 'Backspace' && keyboardHeight > 0) {
+                      setTimeout(() => {
+                        scrollToKeepCursorVisible();
+                      }, 50);
+                    }
+                  }}
+                />
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
-    </Pressable>
-  );
-};
+    );
+  }
+);
+
+WysiwygEditor.displayName = 'WysiwygEditor';
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
     flex: 1,
-    minHeight: 200,
+    backgroundColor: theme.colors.background,
   },
-  hiddenInput: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    color: 'rgba(0,0,0,0.01)', // Almost transparent but not fully
-    backgroundColor: 'transparent',
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    paddingBottom: 100, // Extra padding at bottom for keyboard space
+  },
+  textContainer: {
+    flex: 1,
+    minHeight: 300,
+  },
+  renderContainer: {
+    flex: 1,
+    padding: theme.spacing.md,
+  },
+  renderedText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  textInput: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 24,
     padding: theme.spacing.md,
     textAlignVertical: 'top',
-    zIndex: 2,
-    borderWidth: 0,
-    opacity: 1, // Keep opacity at 1 to show cursor
-  },
-  content: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: theme.spacing.md,
-    zIndex: 1,
-  },
-  placeholder: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  renderContainer: {
-    fontSize: 16,
-    lineHeight: 24,
-    flex: 1,
+    color: theme.colors.textPrimary,
+    minHeight: 400,
   },
 });
 

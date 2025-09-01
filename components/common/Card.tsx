@@ -49,14 +49,16 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     overflow: 'hidden',
-    ...theme.shadows.sm,
+    boxShadow: theme.shadows.sm.boxShadow,
+    elevation: theme.shadows.sm.elevation,
   },
   outlined: {
     borderWidth: 1,
     borderColor: theme.colors.gray200,
   },
   elevated: {
-    ...theme.shadows.md,
+    boxShadow: theme.shadows.md.boxShadow,
+    elevation: theme.shadows.md.elevation,
   },
   pressed: {
     opacity: 0.95,
