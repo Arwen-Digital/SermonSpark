@@ -114,13 +114,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.logoContainer}>
-        <View style={styles.logo}>
-          <Ionicons name="book" size={32} color={theme.colors.primary} />
-        </View>
-        <Text style={styles.appName}>SermonCraft</Text>
-        <Text style={styles.tagline}>Crafting sermons with purpose</Text>
-      </View>
+      <Text style={styles.appName}>SermonCraft</Text>
+      <Text style={styles.tagline}>
+        {mode === 'signin' && 'Sign in to continue'}
+        {mode === 'signup' && 'Create your account'}
+        {mode === 'forgot' && 'Reset your password'}
+      </Text>
     </View>
   );
 
@@ -263,45 +262,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
     </Card>
   );
 
-  const renderSocialAuth = () => {
-    if (mode === 'forgot') return null;
-
-    return (
-      <View style={styles.socialSection}>
-        <View style={styles.dividerContainer}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>Or continue with</Text>
-          <View style={styles.divider} />
-        </View>
-
-        <View style={styles.socialButtons}>
-          <Pressable
-            onPress={() => handleSocialAuth('google')}
-            style={styles.socialButton}
-          >
-            <Ionicons name="logo-google" size={20} color="#DB4437" />
-            <Text style={styles.socialButtonText}>Google</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => handleSocialAuth('apple')}
-            style={styles.socialButton}
-          >
-            <Ionicons name="logo-apple" size={20} color={theme.colors.black} />
-            <Text style={styles.socialButtonText}>Apple</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => handleSocialAuth('facebook')}
-            style={styles.socialButton}
-          >
-            <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-            <Text style={styles.socialButtonText}>Facebook</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  };
+  const renderSocialAuth = () => null;
 
   const renderFooter = () => (
     <View style={styles.footer}>
@@ -380,21 +341,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.xl,
   },
-  logoContainer: {
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
-  },
   appName: {
-    ...theme.typography.h2,
+    ...theme.typography.h3,
     color: theme.colors.textPrimary,
     fontWeight: '700',
   },
@@ -402,6 +350,7 @@ const styles = StyleSheet.create({
     ...theme.typography.body2,
     color: theme.colors.textSecondary,
     textAlign: 'center',
+    marginTop: 4,
   },
   formCard: {
     marginBottom: theme.spacing.lg,

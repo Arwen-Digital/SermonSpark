@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Text, Pressable } from 'react-native';
+import { StyleSheet, View, SafeAreaView, ScrollView, Text, Pressable, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { User } from '@/types';
+import authService from '@/services/authService';
+import { router } from 'expo-router';
 
 // Mock user data
 const mockUser: User = {
@@ -72,9 +74,27 @@ export default function ProfileScreen() {
       case 'edit-profile':
         console.log('Navigate to edit profile');
         break;
-      case 'logout':
-        console.log('Show logout confirmation');
+      case 'logout': {
+        const doLogout = async () => {
+          try {
+            await authService.signout();
+            router.replace('/auth');
+          } catch (e) {
+            // Even if clear fails, force navigation; guard will handle state
+            router.replace('/auth');
+          }
+        };
+        if (Platform.OS === 'web') {
+          const confirmed = typeof window !== 'undefined' ? window.confirm('Sign out of SermonCraft?') : true;
+          if (confirmed) void doLogout();
+        } else {
+          Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign Out', style: 'destructive', onPress: () => void doLogout() },
+          ]);
+        }
         break;
+      }
       default:
         console.log('Menu item pressed:', key);
     }
