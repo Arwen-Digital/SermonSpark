@@ -1,35 +1,40 @@
 import React from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SermonSeries } from '@/types';
+import { Series } from '@/services/seriesService';
 import { theme } from '@/constants/Theme';
 
 interface SeriesCardProps {
-  series: SermonSeries;
-  onPress: (series: SermonSeries) => void;
+  series: Series;
+  onPress: (series: Series) => void;
 }
 
 export const SeriesCard: React.FC<SeriesCardProps> = ({ series, onPress }) => {
   const getStatusInfo = () => {
-    if (series.isCompleted) {
-      return { label: 'Completed', color: theme.colors.success, icon: 'checkmark-circle' as const };
+    switch (series.status) {
+      case 'completed':
+        return { label: 'Completed', color: theme.colors.success, icon: 'checkmark-circle' as const };
+      case 'active':
+        return { label: 'Active', color: theme.colors.primary, icon: 'play-circle' as const };
+      case 'archived':
+        return { label: 'Archived', color: theme.colors.gray500, icon: 'archive' as const };
+      case 'planning':
+      default:
+        return { label: 'Planning', color: theme.colors.warning, icon: 'time' as const };
     }
-    if (series.isActive) {
-      return { label: 'Active', color: theme.colors.primary, icon: 'play-circle' as const };
-    }
-    return { label: 'Planned', color: theme.colors.gray500, icon: 'time' as const };
   };
 
   const statusInfo = getStatusInfo();
   
-  const formatDate = (date?: Date) => {
-    if (!date) return '';
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
 
   return (
     <Pressable 
-      style={[styles.card, { borderLeftColor: series.color }]} 
+      style={[styles.card, { borderLeftColor: statusInfo.color }]} 
       onPress={() => onPress(series)}
     >
       <View style={styles.header}>
@@ -69,11 +74,11 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({ series, onPress }) => {
             color={theme.colors.gray500} 
           />
           <Text style={styles.metaText}>
-            {series.sermonCount} sermon{series.sermonCount !== 1 ? 's' : ''}
+            {series.sermons?.length || 0} sermon{(series.sermons?.length || 0) !== 1 ? 's' : ''}
           </Text>
         </View>
 
-        {series.theme && (
+        {series.tags && series.tags.length > 0 && (
           <View style={styles.metaItem}>
             <Ionicons 
               name="bookmark" 
@@ -81,7 +86,7 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({ series, onPress }) => {
               color={theme.colors.gray500} 
             />
             <Text style={styles.metaText}>
-              {series.theme}
+              {series.tags.slice(0, 2).join(', ')}{series.tags.length > 2 ? '...' : ''}
             </Text>
           </View>
         )}

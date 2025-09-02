@@ -1,6 +1,35 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const STRAPI_BASE_URL = 'http://localhost:1337';
+function resolveApiBase(): string {
+  // 1) Explicit env (best): EXPO_PUBLIC_API_URL
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv && typeof fromEnv === 'string' && fromEnv.trim()) {
+    return fromEnv.trim().replace(/\/$/, '');
+  }
+
+  // 2) Derive from Expo dev host (works on LAN)
+  //    In Expo Go, hostUri typically looks like "192.168.1.10:8081"
+  const hostUri = (Constants as any)?.expoConfig?.hostUri || (Constants as any)?.manifest2?.extra?.expoClient?.hostUri || (Constants as any)?.manifest?.debuggerHost;
+  if (hostUri && typeof hostUri === 'string') {
+    const host = hostUri.split(':')[0];
+    if (host && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+      return `http://${host}:1337`;
+    }
+  }
+
+  // 3) Platform-specific fallback for emulators/simulators
+  if (Platform.OS === 'android') {
+    // Android emulator maps host machine to 10.0.2.2
+    return 'http://10.0.2.2:1337';
+  }
+
+  // 4) Default (may not work on physical device)
+  return 'http://localhost:1337';
+}
+
+const STRAPI_BASE_URL = resolveApiBase();
 const API_BASE_URL = `${STRAPI_BASE_URL}/api`;
 const TOKEN_KEY = '@sermon_spark_token';
 const USER_KEY = '@sermon_spark_user';
@@ -293,14 +322,13 @@ class AuthService {
     }
   }
 
-  // Create pastor profile with user relationship (new method)
+  // Create pastor profile with user relationship
   async createPastorProfileWithUser(userId: number, profileData: {
     fullName?: string;
     title?: string;
     church?: string;
   }): Promise<any> {
     try {
-      // Try to create the pastor profile WITH the user relationship using authenticated context
       const response = await this.makeAuthenticatedRequest('/pastor-profiles', {
         method: 'POST',
         body: JSON.stringify({
@@ -312,49 +340,17 @@ class AuthService {
       });
 
       if (!response.ok) {
-        console.warn('Failed to create profile with user relationship, trying without...');
-        // Fallback to creating without user relationship
-        return await this.createPastorProfile(userId, profileData);
-      }
-
-      const profileResult = await response.json();
-      console.log('Pastor profile created successfully with user relationship:', profileResult);
-      return profileResult;
-    } catch (error) {
-      console.warn('Failed to create profile with user relationship, trying without...', error);
-      // Fallback to creating without user relationship
-      return await this.createPastorProfile(userId, profileData);
-    }
-  }
-
-  // Create pastor profile (fallback method without user relationship)
-  async createPastorProfile(userId: number, profileData: {
-    fullName?: string;
-    title?: string;
-    church?: string;
-  }): Promise<any> {
-    try {
-      // Create the pastor profile without the user relationship
-      const response = await this.makeAuthenticatedRequest('/pastor-profiles', {
-        method: 'POST',
-        body: JSON.stringify({
-          data: profileData
-        }),
-      });
-
-      if (!response.ok) {
         const errorData = await response.json();
-        console.error('Pastor profile creation error details:', {
+        console.error('Pastor profile creation error:', {
           status: response.status,
           statusText: response.statusText,
-          errorData,
-          sentData: { data: profileData }
+          errorData
         });
         throw new Error(errorData.error?.message || `Pastor profile creation failed (${response.status})`);
       }
 
       const profileResult = await response.json();
-      console.log('Pastor profile created successfully (without user relationship):', profileResult);
+      console.log('Pastor profile created successfully with user relationship:', profileResult);
       return profileResult;
     } catch (error) {
       console.error('Create pastor profile error:', error);

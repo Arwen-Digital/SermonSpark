@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -7,41 +7,65 @@ import {
   Text, 
   FlatList,
   Pressable,
-  Alert 
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { FadeInView } from '@/components/common/FadeInView';
-import { SermonCard } from '@/components/file-management/SermonCard';
 import { theme } from '@/constants/Theme';
-import { SermonSeries, Sermon } from '@/types';
-import { 
-  mockSermonSeries, 
-  mockSermons, 
-  getSermonsBySeries, 
-  getSeriesById 
-} from '@/data/mockData';
+import seriesService, { Series } from '@/services/seriesService';
 
 export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [series, setSeries] = useState<SermonSeries | undefined>(
-    getSeriesById(id!)
-  );
-  const [sermons, setSermons] = useState<Sermon[]>(
-    getSermonsBySeries(id!)
-  );
+  const [series, setSeries] = useState<Series | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const seriesStats = useMemo(() => {
-    const totalSermons = sermons.length;
-    const totalWords = sermons.reduce((sum, sermon) => sum + sermon.wordCount, 0);
-    const avgReadingTime = sermons.length > 0 
-      ? Math.round(sermons.reduce((sum, sermon) => sum + sermon.readingTime, 0) / sermons.length)
-      : 0;
-    
-    return { totalSermons, totalWords, avgReadingTime };
-  }, [sermons]);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        if (!id) throw new Error('Missing series id');
+        const s = await seriesService.getSeriesById(id);
+        if (mounted) setSeries(s);
+      } catch (e: any) {
+        if (mounted) setError(e?.message || 'Failed to load series');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
-  if (!series) {
+  const statusInfo = useMemo(() => {
+    const s = series?.status;
+    if (s === 'completed') return { label: 'Completed', color: theme.colors.primary, icon: 'checkmark-circle' as const };
+    if (s === 'active') return { label: 'Active', color: theme.colors.success, icon: 'play-circle' as const };
+    if (s === 'archived') return { label: 'Archived', color: theme.colors.gray500, icon: 'archive' as const };
+    return { label: 'Planning', color: theme.colors.warning, icon: 'calendar' as const };
+  }, [series?.status]);
+
+  const sermonCount = series?.sermons?.length || 0;
+
+  if (loading) {
+    return (
+      <FadeInView style={styles.container}>
+        <Stack.Screen options={{ title: 'Loading Series', headerShown: false }} />
+        <SafeAreaView style={styles.container}>
+          <View style={styles.notFound}>
+            <Ionicons name="sync" size={32} color={theme.colors.gray500} />
+            <Text style={styles.notFoundText}>Loading series…</Text>
+          </View>
+        </SafeAreaView>
+      </FadeInView>
+    );
+  }
+
+  if (!series || error) {
     return (
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Series Not Found', headerShown: false }} />
@@ -50,7 +74,7 @@ export default function SeriesDetailScreen() {
             <Ionicons name="library-outline" size={64} color={theme.colors.gray400} />
             <Text style={styles.notFoundTitle}>Series Not Found</Text>
             <Text style={styles.notFoundText}>
-              The requested series could not be found.
+              {error || 'The requested series could not be found.'}
             </Text>
             <Pressable 
               style={styles.backButton} 
@@ -64,20 +88,10 @@ export default function SeriesDetailScreen() {
     );
   }
 
-  const getStatusInfo = () => {
-    if (series.isCompleted) {
-      return { label: 'Completed', color: theme.colors.success, icon: 'checkmark-circle' as const };
-    }
-    if (series.isActive) {
-      return { label: 'Active', color: theme.colors.primary, icon: 'play-circle' as const };
-    }
-    return { label: 'Planned', color: theme.colors.gray500, icon: 'time' as const };
-  };
 
-  const statusInfo = getStatusInfo();
-
-  const formatDate = (date?: Date) => {
-    if (!date) return '';
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { 
       month: 'long', 
       day: 'numeric',
@@ -85,32 +99,46 @@ export default function SeriesDetailScreen() {
     });
   };
 
-  const handleSermonPress = (sermon: Sermon) => {
-    router.push(`/sermon/${sermon.id}`);
-  };
-
   const handleAddSermon = () => {
     router.push(`/sermon/create?seriesId=${series.id}`);
   };
 
   const handleEditSeries = () => {
-    router.push(`/series/${series.id}/edit`);
+    router.push(`/series/${series.documentId}/edit`);
   };
 
   const handleDeleteSeries = () => {
+    if (!series) return;
+
+    const doDelete = async () => {
+      try {
+        await seriesService.deleteSeries(series.documentId);
+        if (Platform.OS === 'web') {
+          router.replace('/series');
+        } else if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/series');
+        }
+      } catch (e: any) {
+        Alert.alert('Error', e?.message || 'Failed to delete series');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined'
+        ? window.confirm('Delete this series? This action cannot be undone.')
+        : true;
+      if (confirmed) void doDelete();
+      return;
+    }
+
     Alert.alert(
       'Delete Series',
       'Are you sure you want to delete this series? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => {
-            // Handle deletion logic here
-            router.back();
-          }
-        }
+        { text: 'Delete', style: 'destructive', onPress: () => void doDelete() },
       ]
     );
   };
@@ -136,7 +164,7 @@ export default function SeriesDetailScreen() {
   );
 
   const renderSeriesInfo = () => (
-    <View style={[styles.seriesCard, { borderLeftColor: series.color }]}>
+    <View style={[styles.seriesCard, { borderLeftColor: theme.colors.primary }] }>
       <View style={styles.seriesHeader}>
         <View style={styles.seriesTitleSection}>
           <Text style={styles.seriesTitle}>{series.title}</Text>
@@ -158,20 +186,20 @@ export default function SeriesDetailScreen() {
       )}
 
       <View style={styles.seriesMetadata}>
-        {series.theme && (
-          <View style={styles.metaItem}>
-            <Ionicons name="bookmark" size={16} color={theme.colors.gray500} />
-            <Text style={styles.metaText}>{series.theme}</Text>
-          </View>
-        )}
-        
         {series.startDate && (
           <View style={styles.metaItem}>
             <Ionicons name="calendar" size={16} color={theme.colors.gray500} />
             <Text style={styles.metaText}>
-              Started {formatDate(series.startDate)}
-              {series.endDate && ` - Ended ${formatDate(series.endDate)}`}
+              {formatDate(series.startDate)}
+              {series.endDate && ` - ${formatDate(series.endDate)}`}
             </Text>
+          </View>
+        )}
+
+        {Array.isArray(series.tags) && series.tags.length > 0 && (
+          <View style={styles.metaItem}>
+            <Ionicons name="pricetags" size={16} color={theme.colors.gray500} />
+            <Text style={styles.metaText}>{series.tags.join(', ')}</Text>
           </View>
         )}
       </View>
@@ -181,19 +209,11 @@ export default function SeriesDetailScreen() {
   const renderStats = () => (
     <View style={styles.statsContainer}>
       <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{seriesStats.totalSermons}</Text>
+        <Text style={styles.statNumber}>{sermonCount}</Text>
         <Text style={styles.statLabel}>Sermons</Text>
       </View>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>
-          {seriesStats.totalWords.toLocaleString()}
-        </Text>
-        <Text style={styles.statLabel}>Total Words</Text>
-      </View>
-      <View style={styles.statItem}>
-        <Text style={styles.statNumber}>{seriesStats.avgReadingTime}m</Text>
-        <Text style={styles.statLabel}>Avg Reading</Text>
-      </View>
+      <View style={styles.statItem} />
+      <View style={styles.statItem} />
     </View>
   );
 
@@ -201,7 +221,7 @@ export default function SeriesDetailScreen() {
     <View style={styles.sermonsSection}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          Sermons ({sermons.length})
+          Sermons ({sermonCount})
         </Text>
         <Pressable 
           style={styles.addButton} 
@@ -212,30 +232,7 @@ export default function SeriesDetailScreen() {
         </Pressable>
       </View>
 
-      {sermons.length > 0 ? (
-        <FlatList
-          data={sermons}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => (
-            <View style={styles.sermonItem}>
-              <View style={styles.sermonOrder}>
-                <Text style={styles.sermonOrderText}>{index + 1}</Text>
-              </View>
-              <View style={styles.sermonCardContainer}>
-                <SermonCard
-                  sermon={item}
-                  onPress={() => handleSermonPress(item)}
-                  onFavorite={() => console.log('Toggle favorite')}
-                  onOptions={() => console.log('Show options')}
-                  variant="list"
-                />
-              </View>
-            </View>
-          )}
-          scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
+      {sermonCount === 0 ? (
         <View style={styles.emptySermons}>
           <Ionicons name="document-outline" size={48} color={theme.colors.gray400} />
           <Text style={styles.emptyTitle}>No Sermons Yet</Text>
@@ -246,6 +243,8 @@ export default function SeriesDetailScreen() {
             <Text style={styles.emptyButtonText}>Add First Sermon</Text>
           </Pressable>
         </View>
+      ) : (
+        <Text style={styles.metaText}>Sermons: {sermonCount}</Text>
       )}
     </View>
   );

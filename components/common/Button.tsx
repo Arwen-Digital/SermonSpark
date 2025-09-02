@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/Theme';
 
 interface ButtonProps {
@@ -11,7 +12,7 @@ interface ButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -40,6 +41,13 @@ export const Button: React.FC<ButtonProps> = ({
     textStyle,
   ];
 
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (typeof icon !== 'string') return icon;
+    const color = getIconColor(variant);
+    return <Ionicons name={icon as any} size={16} color={color} />;
+  };
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -53,7 +61,7 @@ export const Button: React.FC<ButtonProps> = ({
         <ActivityIndicator color={getSpinnerColor(variant)} size="small" />
       ) : (
         <>
-          {icon}
+          {renderIcon()}
           <Text style={buttonTextStyle}>{title}</Text>
         </>
       )}
@@ -68,6 +76,19 @@ const getSpinnerColor = (variant: string) => {
       return theme.colors.white;
     case 'secondary':
       return theme.colors.white;
+    default:
+      return theme.colors.primary;
+  }
+};
+
+const getIconColor = (variant: string) => {
+  switch (variant) {
+    case 'primary':
+    case 'premium':
+    case 'secondary':
+      return theme.colors.white;
+    case 'outline':
+    case 'ghost':
     default:
       return theme.colors.primary;
   }

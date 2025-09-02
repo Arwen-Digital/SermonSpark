@@ -1,0 +1,397 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Button } from '../common/Button';
+import { Card } from '../common/Card';
+import { theme } from '@/constants/Theme';
+import seriesService, { Series } from '@/services/seriesService';
+
+interface SeriesListScreenProps {
+  onCreateSeries: () => void;
+  onEditSeries: (series: Series) => void;
+  onViewSeries: (series: Series) => void;
+}
+
+export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
+  onCreateSeries,
+  onEditSeries,
+  onViewSeries
+}) => {
+  const [series, setSeries] = useState<Series[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadSeries = useCallback(async () => {
+    try {
+      const data = await seriesService.getAllSeries();
+      setSeries(data);
+    } catch (error) {
+      console.error('Error loading series:', error);
+      Alert.alert('Error', 'Failed to load series. Please try again.');
+    }
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadSeries();
+    setRefreshing(false);
+  }, [loadSeries]);
+
+  // handleDeleteSeries defined below with cross-platform confirm
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'planning': return theme.colors.warning;
+      case 'active': return theme.colors.success;
+      case 'completed': return theme.colors.primary;
+      case 'archived': return theme.colors.textSecondary;
+      default: return theme.colors.textSecondary;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'planning': return 'calendar-outline';
+      case 'active': return 'play-circle-outline';
+      case 'completed': return 'checkmark-circle-outline';
+      case 'archived': return 'archive-outline';
+      default: return 'help-circle-outline';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Deletion is handled on the series details page
+
+  useEffect(() => {
+    const initializeData = async () => {
+      setLoading(true);
+      await loadSeries();
+      setLoading(false);
+    };
+    initializeData();
+  }, [loadSeries]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Loading series...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerTopRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />
+          </Pressable>
+        </View>
+
+        <View style={styles.header}>
+          <Text style={styles.title}>My Series</Text>
+          <Button
+            title="New Series"
+            onPress={onCreateSeries}
+            style={styles.createButton}
+            icon={<Ionicons name="add" size={16} color={theme.colors.textOnPrimary} />}
+          />
+        </View>
+      </View>
+
+      {/* Series List */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {series.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="library-outline" size={64} color={theme.colors.textSecondary} />
+            <Text style={styles.emptyTitle}>No Series Yet</Text>
+            <Text style={styles.emptyDescription}>
+              Create your first sermon series to get started organizing your messages.
+            </Text>
+            <Button
+              title="Create Your First Series"
+              onPress={onCreateSeries}
+              style={styles.emptyButton}
+            />
+          </View>
+        ) : (
+          series.map((seriesItem) => (
+            <Card key={seriesItem.documentId} style={styles.seriesCard}>
+              <Pressable
+                style={styles.cardContent}
+                onPress={() => onViewSeries(seriesItem)}
+                android_ripple={{ color: theme.colors.primary + '20' }}
+              >
+                {/* Series Header */}
+                <View style={styles.seriesHeader}>
+                  <View style={styles.seriesInfo}>
+                    <Text style={styles.seriesTitle} numberOfLines={2}>
+                      {seriesItem.title}
+                    </Text>
+                    {seriesItem.description && (
+                      <Text style={styles.seriesDescription} numberOfLines={3}>
+                        {seriesItem.description}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.seriesActions}>
+                    <Pressable
+                      style={styles.actionButton}
+                      onPress={() => onEditSeries(seriesItem)}
+                    >
+                      <Ionicons name="pencil" size={20} color={theme.colors.primary} />
+                    </Pressable>
+                    {/* Delete action moved to Series Detail screen */}
+                  </View>
+                </View>
+
+                {/* Series Meta */}
+                <View style={styles.seriesMeta}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(seriesItem.status) + '20' }]}>
+                    <Ionicons
+                      name={getStatusIcon(seriesItem.status) as any}
+                      size={12}
+                      color={getStatusColor(seriesItem.status)}
+                    />
+                    <Text style={[styles.statusText, { color: getStatusColor(seriesItem.status) }]}>
+                      {seriesItem.status}
+                    </Text>
+                  </View>
+
+                  {(seriesItem.startDate || seriesItem.endDate) && (
+                    <View style={styles.dateRange}>
+                      <Ionicons name="calendar-outline" size={12} color={theme.colors.textSecondary} />
+                      <Text style={styles.dateText}>
+                        {seriesItem.startDate && formatDate(seriesItem.startDate)}
+                        {seriesItem.startDate && seriesItem.endDate && ' - '}
+                        {seriesItem.endDate && formatDate(seriesItem.endDate)}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.sermonCount}>
+                    <Ionicons name="document-text-outline" size={12} color={theme.colors.textSecondary} />
+                    <Text style={styles.countText}>
+                      {seriesItem.sermons?.length || 0} sermons
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Tags */}
+                {seriesItem.tags && seriesItem.tags.length > 0 && (
+                  <View style={styles.tagsContainer}>
+                    {seriesItem.tags.slice(0, 3).map((tag, index) => (
+                      <View key={index} style={styles.tag}>
+                        <Text style={styles.tagText}>#{tag}</Text>
+                      </View>
+                    ))}
+                    {seriesItem.tags.length > 3 && (
+                      <Text style={styles.moreTagsText}>+{seriesItem.tags.length - 3} more</Text>
+                    )}
+                  </View>
+                )}
+              </Pressable>
+            </Card>
+          ))
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    fontSize: theme.typography.body1.fontSize,
+    color: theme.colors.textSecondary,
+  },
+  headerContainer: {
+    padding: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    
+  },
+  backButton: {
+    paddingRight: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  title: {
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  createButton: {
+    paddingHorizontal: theme.spacing.md,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: theme.spacing.lg,
+    paddingTop: 0,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl * 2,
+  },
+  emptyTitle: {
+    fontSize: theme.typography.h5.fontSize,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  emptyDescription: {
+    fontSize: theme.typography.body1.fontSize,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    lineHeight: 22,
+  },
+  emptyButton: {
+    minWidth: 200,
+  },
+  seriesCard: {
+    marginBottom: theme.spacing.md,
+  },
+  cardContent: {
+    padding: theme.spacing.lg,
+  },
+  seriesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
+  },
+  seriesInfo: {
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  seriesTitle: {
+    fontSize: theme.typography.h5.fontSize,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.xs,
+  },
+  seriesDescription: {
+    fontSize: theme.typography.body1.fontSize,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  seriesActions: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  actionButton: {
+    padding: theme.spacing.sm,
+    marginLeft: theme.spacing.xs,
+  },
+  seriesMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.md,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+  },
+  statusText: {
+    fontSize: theme.typography.caption.fontSize,
+    fontWeight: '500',
+    marginLeft: theme.spacing.xs,
+    textTransform: 'capitalize',
+  },
+  dateRange: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.xs,
+  },
+  sermonCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  countText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.xs,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: theme.spacing.sm,
+  },
+  tag: {
+    backgroundColor: theme.colors.primary + '15',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+    marginRight: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  tagText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.primary,
+    fontWeight: '500',
+  },
+  moreTagsText: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
+  },
+});
