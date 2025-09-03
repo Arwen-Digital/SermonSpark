@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
-import seriesService, { Series } from '@/services/seriesService';
+import seriesService, { Series } from '@/services/supabaseSeriesService';
 
 export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

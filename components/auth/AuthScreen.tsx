@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
-import authService from '@/services/authService';
+import authService from '@/services/supabaseAuthService';
 
 interface AuthScreenProps {
   onAuthenticated: () => void;

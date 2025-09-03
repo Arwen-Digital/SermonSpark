@@ -4,7 +4,7 @@ import { SermonEditor } from '@/components/sermon-editor/SermonEditor';
 import { theme } from '@/constants/Theme';
 import { router } from 'expo-router';
 import { Sermon } from '@/types';
-import sermonService from '@/services/sermonService';
+import sermonService from '@/services/supabaseSermonService';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function CreateSermonPage() {
@@ -14,8 +14,7 @@ export default function CreateSermonPage() {
     try {
       // Prefer selection from editor, fallback to route param
       const selectedSeries = sermonData.seriesId ?? (params.seriesId as string | undefined);
-      const useDocId = selectedSeries && isNaN(Number(selectedSeries)) ? selectedSeries : undefined;
-      const useNumId = selectedSeries && !isNaN(Number(selectedSeries)) ? Number(selectedSeries) : undefined;
+      
       await sermonService.create({
         title: sermonData.title || 'Untitled Sermon',
         content: sermonData.content,
@@ -24,8 +23,7 @@ export default function CreateSermonPage() {
         tags: sermonData.tags,
         notes: sermonData.notes,
         date: sermonData.date ? new Date(sermonData.date).toISOString() : undefined,
-        seriesDocumentId: useDocId,
-        seriesId: useNumId,
+        seriesId: selectedSeries && selectedSeries.trim() ? selectedSeries : null,
         status: 'draft',
         visibility: 'private',
       });

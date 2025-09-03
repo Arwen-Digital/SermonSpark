@@ -6,7 +6,7 @@ import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { User } from '@/types';
-import authService from '@/services/authService';
+import authService from '@/services/supabaseAuthService';
 import { router } from 'expo-router';
 
 // Mock user data

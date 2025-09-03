@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
-import seriesService, { Series } from '@/services/seriesService';
+import seriesService, { Series } from '@/services/supabaseSeriesService';
 
 interface SeriesListScreenProps {
   onCreateSeries: () => void;

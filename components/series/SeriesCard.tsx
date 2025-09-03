@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Series } from '@/services/seriesService';
+import { Series } from '@/services/supabaseSeriesService';
 import { theme } from '@/constants/Theme';
 
 interface SeriesCardProps {

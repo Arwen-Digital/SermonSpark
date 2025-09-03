@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, SafeAreaView, StyleSheet } from 'react-native';
+import { Alert, SafeAreaView, StyleSheet, Platform } from 'react-native';
 import { SermonEditor } from '@/components/sermon-editor/SermonEditor';
 import { theme } from '@/constants/Theme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Sermon } from '@/types';
-import sermonService from '@/services/sermonService';
+import sermonService from '@/services/supabaseSermonService';
 
 export default function EditSermonPage() {
   const { id } = useLocalSearchParams();
@@ -15,16 +15,19 @@ export default function EditSermonPage() {
       try {
         if (!id || Array.isArray(id)) throw new Error('Invalid sermon id');
         const s = await sermonService.getByDocumentId(id);
-        // Map DTO -> editor Sermon shape
+        // Map DTO -> editor Sermon shape  
         const mapped: Sermon = {
-          id: s.documentId,
+          id: s.id,
           title: s.title,
           content: s.content || '',
           outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
           scripture: s.scripture || '',
           tags: s.tags || [],
-          seriesId: s.series?.documentId || '',
+          seriesId: s.series?.id || '',
+          series: s.series?.title || '',
+          orderInSeries: undefined,
           date: s.date ? new Date(s.date) : new Date(),
+          preachedDate: undefined,
           lastModified: new Date(),
           wordCount: (s.content || '').trim().split(/\s+/).filter(Boolean).length,
           readingTime: Math.ceil(((s.content || '').trim().split(/\s+/).filter(Boolean).length || 0) / 150),
@@ -35,16 +38,19 @@ export default function EditSermonPage() {
         setSermon(mapped);
       } catch (e: any) {
         Alert.alert('Error', e?.message || 'Failed to load sermon');
-        router.back();
+        router.push('/');
       }
     };
     load();
   }, [id]);
 
   const handleSave = async (sermonData: Partial<Sermon>) => {
+    console.log('Edit page handleSave called with:', sermonData);
     try {
       if (!id || Array.isArray(id)) throw new Error('Invalid sermon id');
-      await sermonService.update(id as string, {
+      console.log('About to update sermon with id:', id);
+      
+      const updateData = {
         title: sermonData.title || '',
         content: sermonData.content,
         outline: sermonData.outline,
@@ -52,16 +58,38 @@ export default function EditSermonPage() {
         tags: sermonData.tags,
         notes: sermonData.notes,
         date: sermonData.date ? new Date(sermonData.date).toISOString() : undefined,
-        seriesDocumentId: sermonData.seriesId,
-      });
-      router.back();
+        seriesId: sermonData.seriesId && sermonData.seriesId.trim() ? sermonData.seriesId : null,
+      };
+      
+      console.log('Update data:', updateData);
+      await sermonService.update(id as string, updateData);
+      console.log('Update successful, navigating...');
+      
+      if (router.canGoBack()) {
+        router.back();
+      } else if (!id || Array.isArray(id)) {
+        router.replace('/');
+      } else {
+        router.replace(`/sermon/${id}`);
+      }
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to update sermon');
+      console.error('Save failed:', e);
+      if (Platform.OS === 'web') {
+        alert(`Error: ${e?.message || 'Failed to update sermon'}`);
+      } else {
+        Alert.alert('Error', e?.message || 'Failed to update sermon');
+      }
     }
   };
 
   const handleCancel = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else if (!id || Array.isArray(id)) {
+      router.replace('/');
+    } else {
+      router.replace(`/sermon/${id}`);
+    }
   };
 
   return (

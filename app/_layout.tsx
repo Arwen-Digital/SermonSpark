@@ -6,7 +6,7 @@ import 'react-native-reanimated';
 import React from 'react';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import authService from '@/services/authService';
+import authService from '@/services/supabaseAuthService';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

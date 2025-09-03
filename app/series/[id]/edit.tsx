@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
-import seriesService, { Series } from '@/services/seriesService';
+import seriesService, { Series } from '@/services/supabaseSeriesService';
 import { SeriesFormScreen } from '@/components/series/SeriesFormScreen';
 
 export default function EditSeriesScreen() {

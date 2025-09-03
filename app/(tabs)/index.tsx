@@ -1,49 +1,59 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, SafeAreaView } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { FileManager } from '@/components/file-management/FileManager';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
-import sermonService from '@/services/sermonService';
+import sermonService from '@/services/supabaseSermonService';
 
 export default function SermonsScreen() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const list = await sermonService.listMine();
-        const mapped: Sermon[] = list.map((s) => ({
-          id: s.documentId || String(s.id),
-          title: s.title || 'Untitled Sermon',
-          content: s.content || '',
-          outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
-          scripture: s.scripture || '',
-          tags: s.tags || [],
-          seriesId: s.series?.documentId || '',
-          orderInSeries: undefined,
-          date: s.date ? new Date(s.date) : new Date(),
-          preachedDate: undefined,
-          lastModified: new Date(),
-          wordCount: (s.content || '').trim().split(/\s+/).filter(Boolean).length,
-          readingTime: Math.ceil(((s.content || '').trim().split(/\s+/).filter(Boolean).length || 0) / 150),
-          isArchived: s.status === 'archived',
-          isFavorite: false,
-          notes: s.notes || '',
-          // Extra fields ignored by FileManager
-        }));
-        setSermons(mapped);
-      } catch (e) {
-        console.warn('Failed to load sermons', e);
-        setSermons([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const loadSermons = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await sermonService.listMine();
+      const mapped: Sermon[] = list.map((s) => ({
+        id: s.id,  // Now using UUID directly
+        title: s.title || 'Untitled Sermon',
+        content: s.content || '',
+        outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
+        scripture: s.scripture || '',
+        tags: s.tags || [],
+        seriesId: s.series?.id || '',  // Using id instead of documentId
+        orderInSeries: undefined,
+        date: s.date ? new Date(s.date) : new Date(),
+        preachedDate: undefined,
+        lastModified: new Date(),
+        wordCount: (s.content || '').trim().split(/\s+/).filter(Boolean).length,
+        readingTime: Math.ceil(((s.content || '').trim().split(/\s+/).filter(Boolean).length || 0) / 150),
+        isArchived: s.status === 'archived',
+        isFavorite: false,
+        notes: s.notes || '',
+        // Extra fields ignored by FileManager
+      }));
+      setSermons(mapped);
+    } catch (e) {
+      console.warn('Failed to load sermons', e);
+      setSermons([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Load sermons when component mounts
+  useEffect(() => {
+    loadSermons();
+  }, [loadSermons]);
+
+  // Refresh sermons when screen comes into focus (e.g., after creating a new sermon)
+  useFocusEffect(
+    useCallback(() => {
+      loadSermons();
+    }, [loadSermons])
+  );
 
   const handleSermonPress = (sermon: Sermon) => {
     console.log('Opening sermon:', sermon.title);

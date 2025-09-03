@@ -19,7 +19,7 @@ import { FadeInView } from '@/components/common/FadeInView';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
-import seriesService from '@/services/seriesService';
+import seriesService from '@/services/supabaseSeriesService';
 
 
 const COMMON_THEMES = [

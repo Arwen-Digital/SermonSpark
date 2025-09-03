@@ -1,5 +1,5 @@
 import { theme } from '@/constants/Theme';
-import seriesService, { CreateSeriesData, Series } from '@/services/seriesService';
+import seriesService, { CreateSeriesData, Series } from '@/services/supabaseSeriesService';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import {

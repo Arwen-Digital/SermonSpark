@@ -6,7 +6,7 @@ import { Alert, Dimensions, Modal, Platform, Pressable, SafeAreaView, ScrollView
 import * as Clipboard from 'expo-clipboard';
 import { Button } from '../common/Button';
 import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
-import seriesService from '@/services/seriesService';
+import seriesService from '@/services/supabaseSeriesService';
 
 // Mock Bible verse data
 const mockBibleVerses: Record<string, Record<string, string>> = {
@@ -160,8 +160,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   }, [title, content, outline, hasUnsavedChanges, handleAutoSave]);
 
   const handleSave = () => {
+    console.log('handleSave called');
     if (!title.trim()) {
-      Alert.alert('Title Required', 'Please enter a title for your sermon');
+      console.log('No title provided');
+      if (Platform.OS === 'web') {
+        alert('Please enter a title for your sermon');
+      } else {
+        Alert.alert('Title Required', 'Please enter a title for your sermon');
+      }
       return;
     }
 
@@ -182,8 +188,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       isFavorite: sermon?.isFavorite || false,
     };
 
-    onSave(sermonData);
-    setHasUnsavedChanges(false);
+    console.log('About to call onSave with:', sermonData);
+    try {
+      onSave(sermonData);
+      console.log('onSave called successfully');
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Error in handleSave:', error);
+    }
   };
 
   const handleCancel = () => {
