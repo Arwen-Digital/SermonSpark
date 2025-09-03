@@ -1,5 +1,4 @@
 import { theme } from '@/constants/Theme';
-import { mockSermonSeries } from '@/data/mockData';
 import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -7,6 +6,7 @@ import { Alert, Dimensions, Modal, Platform, Pressable, SafeAreaView, ScrollView
 import * as Clipboard from 'expo-clipboard';
 import { Button } from '../common/Button';
 import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
+import seriesService from '@/services/seriesService';
 
 // Mock Bible verse data
 const mockBibleVerses: Record<string, Record<string, string>> = {
@@ -46,6 +46,15 @@ interface SermonEditorProps {
   onCancel: () => void;
 }
 
+interface LocalSeriesOption {
+  id: string; // documentId for Strapi v5
+  title: string;
+  description?: string;
+  color: string;
+  sermonCount: number;
+  isActive: boolean;
+}
+
 export const SermonEditor: React.FC<SermonEditorProps> = ({
   sermon,
   onSave,
@@ -69,6 +78,34 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768; // Tablet and desktop breakpoint
+
+  // Remote series options for current user
+  const [seriesOptions, setSeriesOptions] = useState<LocalSeriesOption[]>([]);
+  const [seriesLoading, setSeriesLoading] = useState(false);
+
+  useEffect(() => {
+    const loadSeries = async () => {
+      try {
+        setSeriesLoading(true);
+        const list = await seriesService.getAllSeries();
+        const options: LocalSeriesOption[] = list.map((s: any) => ({
+          id: s.documentId || String(s.id),
+          title: s.title,
+          description: s.description,
+          color: s.status === 'active' ? theme.colors.success : theme.colors.primary,
+          sermonCount: Array.isArray(s.sermons) ? s.sermons.length : 0,
+          isActive: s.status === 'active',
+        }));
+        setSeriesOptions(options);
+      } catch (e) {
+        console.warn('Failed to load user series', e);
+        setSeriesOptions([]);
+      } finally {
+        setSeriesLoading(false);
+      }
+    };
+    loadSeries();
+  }, []);
 
   // Toast notification function
   const showToastNotification = (message: string) => {
@@ -506,11 +543,11 @@ IV. Conclusion
                         <View 
                           style={[
                             styles.seriesColorIndicator, 
-                            { backgroundColor: mockSermonSeries.find(s => s.id === seriesId)?.color || theme.colors.primary }
+                            { backgroundColor: (seriesOptions.find(s => s.id === seriesId)?.color) || theme.colors.primary }
                           ]} 
                         />
                         <Text style={styles.selectedSeriesTitle}>
-                          {mockSermonSeries.find(s => s.id === seriesId)?.title || 'Unknown Series'}
+                          {seriesOptions.find(s => s.id === seriesId)?.title || 'Unknown Series'}
                         </Text>
                       </>
                     ) : (
@@ -614,7 +651,7 @@ IV. Conclusion
             </Pressable>
           </View>
           
-          {mockSermonSeries.map((series) => (
+          {seriesOptions.map((series) => (
             <View key={series.id} style={styles.seriesOption}>
               <Pressable
                 style={styles.seriesOptionButton}

@@ -1,24 +1,38 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { SafeAreaView, StyleSheet, Alert } from 'react-native';
 import { SermonEditor } from '@/components/sermon-editor/SermonEditor';
 import { theme } from '@/constants/Theme';
 import { router } from 'expo-router';
 import { Sermon } from '@/types';
+import sermonService from '@/services/sermonService';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function CreateSermonPage() {
-  const handleSave = (sermonData: Partial<Sermon>) => {
-    console.log('Saving new sermon:', sermonData);
-    // In a real app, this would save to local storage or API
-    // Then navigate back to sermons list
+  const params = useLocalSearchParams<{ seriesId?: string }>();
+
+  const handleSave = async (sermonData: Partial<Sermon>) => {
     try {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('Navigation error:', error);
-      router.push('/');
+      // Prefer selection from editor, fallback to route param
+      const selectedSeries = sermonData.seriesId ?? (params.seriesId as string | undefined);
+      const useDocId = selectedSeries && isNaN(Number(selectedSeries)) ? selectedSeries : undefined;
+      const useNumId = selectedSeries && !isNaN(Number(selectedSeries)) ? Number(selectedSeries) : undefined;
+      await sermonService.create({
+        title: sermonData.title || 'Untitled Sermon',
+        content: sermonData.content,
+        outline: sermonData.outline,
+        scripture: sermonData.scripture,
+        tags: sermonData.tags,
+        notes: sermonData.notes,
+        date: sermonData.date ? new Date(sermonData.date).toISOString() : undefined,
+        seriesDocumentId: useDocId,
+        seriesId: useNumId,
+        status: 'draft',
+        visibility: 'private',
+      });
+      if (router.canGoBack()) router.back();
+      else router.push('/');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to create sermon');
     }
   };
 

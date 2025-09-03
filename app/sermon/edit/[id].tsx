@@ -1,39 +1,63 @@
-import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, SafeAreaView, StyleSheet } from 'react-native';
 import { SermonEditor } from '@/components/sermon-editor/SermonEditor';
 import { theme } from '@/constants/Theme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Sermon } from '@/types';
-
-// Mock sermon data - in a real app, this would come from local storage or API
-const mockSermon: Sermon = {
-  id: '1',
-  title: 'The Good Shepherd',
-  content: 'Jesus said, "I am the good shepherd. The good shepherd lays down his life for the sheep." In this passage from John 10:11, we see a beautiful picture of Christ\'s sacrificial love...',
-  outline: '1. The Shepherd\'s Heart\n2. The Shepherd\'s Sacrifice\n3. The Shepherd\'s Call',
-  scripture: 'John 10:11-16',
-  tags: ['Jesus', 'Love', 'Sacrifice', 'Shepherd'],
-  series: 'I Am Statements',
-  date: new Date('2024-01-15'),
-  lastModified: new Date('2024-01-20'),
-  wordCount: 2800,
-  readingTime: 18,
-  isArchived: false,
-  isFavorite: true,
-  notes: 'Focus on the personal nature of Christ\'s care for each believer.',
-};
+import sermonService from '@/services/sermonService';
 
 export default function EditSermonPage() {
   const { id } = useLocalSearchParams();
-  
-  // In a real app, you would fetch the sermon by ID
-  const sermon = mockSermon;
+  const [sermon, setSermon] = useState<Sermon | null>(null);
 
-  const handleSave = (sermonData: Partial<Sermon>) => {
-    console.log('Saving sermon:', sermonData);
-    // In a real app, this would update the sermon in local storage or API
-    // Then navigate back to sermons list
-    router.back();
+  useEffect(() => {
+    const load = async () => {
+      try {
+        if (!id || Array.isArray(id)) throw new Error('Invalid sermon id');
+        const s = await sermonService.getByDocumentId(id);
+        // Map DTO -> editor Sermon shape
+        const mapped: Sermon = {
+          id: s.documentId,
+          title: s.title,
+          content: s.content || '',
+          outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
+          scripture: s.scripture || '',
+          tags: s.tags || [],
+          seriesId: s.series?.documentId || '',
+          date: s.date ? new Date(s.date) : new Date(),
+          lastModified: new Date(),
+          wordCount: (s.content || '').trim().split(/\s+/).filter(Boolean).length,
+          readingTime: Math.ceil(((s.content || '').trim().split(/\s+/).filter(Boolean).length || 0) / 150),
+          isArchived: s.status === 'archived',
+          isFavorite: false,
+          notes: s.notes || '',
+        };
+        setSermon(mapped);
+      } catch (e: any) {
+        Alert.alert('Error', e?.message || 'Failed to load sermon');
+        router.back();
+      }
+    };
+    load();
+  }, [id]);
+
+  const handleSave = async (sermonData: Partial<Sermon>) => {
+    try {
+      if (!id || Array.isArray(id)) throw new Error('Invalid sermon id');
+      await sermonService.update(id as string, {
+        title: sermonData.title || '',
+        content: sermonData.content,
+        outline: sermonData.outline,
+        scripture: sermonData.scripture,
+        tags: sermonData.tags,
+        notes: sermonData.notes,
+        date: sermonData.date ? new Date(sermonData.date).toISOString() : undefined,
+        seriesDocumentId: sermonData.seriesId,
+      });
+      router.back();
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to update sermon');
+    }
   };
 
   const handleCancel = () => {
@@ -42,11 +66,13 @@ export default function EditSermonPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SermonEditor
-        sermon={sermon}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
+      {sermon && (
+        <SermonEditor
+          sermon={sermon}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      )}
     </SafeAreaView>
   );
 }

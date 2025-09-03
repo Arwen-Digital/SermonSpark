@@ -1,14 +1,49 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { FileManager } from '@/components/file-management/FileManager';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
-import { mockSermons } from '@/data/mockData';
+import sermonService from '@/services/sermonService';
 
 export default function SermonsScreen() {
-  const [sermons] = useState<Sermon[]>(mockSermons);
+  const [sermons, setSermons] = useState<Sermon[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const list = await sermonService.listMine();
+        const mapped: Sermon[] = list.map((s) => ({
+          id: s.documentId || String(s.id),
+          title: s.title || 'Untitled Sermon',
+          content: s.content || '',
+          outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
+          scripture: s.scripture || '',
+          tags: s.tags || [],
+          seriesId: s.series?.documentId || '',
+          orderInSeries: undefined,
+          date: s.date ? new Date(s.date) : new Date(),
+          preachedDate: undefined,
+          lastModified: new Date(),
+          wordCount: (s.content || '').trim().split(/\s+/).filter(Boolean).length,
+          readingTime: Math.ceil(((s.content || '').trim().split(/\s+/).filter(Boolean).length || 0) / 150),
+          isArchived: s.status === 'archived',
+          isFavorite: false,
+          notes: s.notes || '',
+          // Extra fields ignored by FileManager
+        }));
+        setSermons(mapped);
+      } catch (e) {
+        console.warn('Failed to load sermons', e);
+        setSermons([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const handleSermonPress = (sermon: Sermon) => {
     console.log('Opening sermon:', sermon.title);
@@ -51,6 +86,7 @@ export default function SermonsScreen() {
           onFilter={handleFilter}
           onPulpit={handlePulpit}
           onSeriesPress={handleSeriesPress}
+          loading={loading}
         />
       </SafeAreaView>
     </FadeInView>
