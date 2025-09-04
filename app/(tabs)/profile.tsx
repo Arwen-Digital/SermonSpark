@@ -2,23 +2,24 @@ import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import authService from '@/services/supabaseAuthService';
+import { supabase } from '@/services/supabaseClient';
 import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 
-// Mock user data
-const mockUser: User = {
-  id: '1',
-  name: 'Pastor John Smith',
-  email: 'john.smith@gracechurch.com',
+// Fallback while loading
+const emptyUser: User = {
+  id: '',
+  name: '',
+  email: '',
   avatar: '',
-  title: 'Senior Pastor',
-  church: 'Grace Community Church',
-  bio: 'Passionate about expository preaching and discipleship. Been in ministry for 15+ years, love teaching God\'s Word and equipping the saints.',
-  isPremium: true,
-  joinedDate: new Date('2023-01-15'),
+  title: '',
+  church: '',
+  bio: '',
+  isPremium: false,
+  joinedDate: new Date(),
 };
 
 const MENU_SECTIONS = [
@@ -63,7 +64,79 @@ const MENU_SECTIONS = [
 ];
 
 export default function ProfileScreen() {
-  const [user] = useState<User>(mockUser);
+  const [user, setUser] = useState<User>(emptyUser);
+  const [loading, setLoading] = useState(true);
+  const [sermonCount, setSermonCount] = useState<number | null>(null);
+  const [seriesCount, setSeriesCount] = useState<number | null>(null);
+  const [communityLikes, setCommunityLikes] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const authed = await authService.isAuthenticated();
+        if (!authed) {
+          router.replace('/auth');
+          return;
+        }
+        // Ensure profile row exists and fetch user
+        await authService.ensureProfileExists?.();
+        const u = await authService.getUser();
+        if (!u) {
+          router.replace('/auth');
+          return;
+        }
+        const mapped: User = {
+          id: u.id,
+          name: u.fullName || u.username || u.email.split('@')[0] || 'Pastor',
+          email: u.email,
+          avatar: '',
+          title: u.title || '',
+          church: u.church || '',
+          bio: '',
+          isPremium: false,
+          joinedDate: new Date(u.createdAt),
+        };
+        if (!mounted) return;
+        setUser(mapped);
+
+        // Load simple stats
+        const [{ count: sermons }, { count: series }] = await Promise.all([
+          supabase.from('sermons').select('*', { count: 'exact', head: true }),
+          supabase.from('series').select('*', { count: 'exact', head: true }),
+        ]);
+        if (mounted) {
+          setSermonCount(sermons ?? 0);
+          setSeriesCount(series ?? 0);
+        }
+
+        // Community likes on own posts
+        const { data: postIds } = await supabase
+          .from('community_posts')
+          .select('id')
+          .eq('author_id', u.id)
+          .order('created_at', { ascending: false });
+        if (postIds && postIds.length > 0) {
+          const ids = postIds.map((p) => p.id);
+          const { count } = await supabase
+            .from('community_post_likes')
+            .select('*', { count: 'exact', head: true })
+            .in('post_id', ids);
+          if (mounted) setCommunityLikes(count ?? 0);
+        } else if (mounted) {
+          setCommunityLikes(0);
+        }
+      } catch (e) {
+        console.warn('Failed to load profile:', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleMenuPress = (key: string) => {
     switch (key) {
@@ -121,9 +194,9 @@ export default function ProfileScreen() {
         </View>
         
         <View style={styles.profileInfo}>
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userTitle}>{user.title}</Text>
-          <Text style={styles.userChurch}>{user.church}</Text>
+          <Text style={styles.userName}>{user.name || 'Pastor'}</Text>
+          {!!user.title && <Text style={styles.userTitle}>{user.title}</Text>}
+          {!!user.church && <Text style={styles.userChurch}>{user.church}</Text>}
         </View>
         
         <Pressable
@@ -160,19 +233,19 @@ export default function ProfileScreen() {
       <Text style={styles.statsTitle}>Your Statistics</Text>
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>23</Text>
+          <Text style={styles.statNumber}>{sermonCount ?? '–'}</Text>
           <Text style={styles.statLabel}>Sermons</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>5</Text>
+          <Text style={styles.statNumber}>{seriesCount ?? '–'}</Text>
           <Text style={styles.statLabel}>Series</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>147</Text>
+          <Text style={styles.statNumber}>{communityLikes ?? '–'}</Text>
           <Text style={styles.statLabel}>Community Likes</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>8.2k</Text>
+          <Text style={styles.statNumber}>–</Text>
           <Text style={styles.statLabel}>Total Words</Text>
         </View>
       </View>
@@ -230,6 +303,12 @@ export default function ProfileScreen() {
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Profile</Text>
           </View>
+          {loading ? (
+            <View style={{ padding: theme.spacing.lg }}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+          ) : (
+            <>
           
           {renderProfileHeader()}
           {renderStatsCard()}
@@ -242,6 +321,8 @@ export default function ProfileScreen() {
             <Text style={styles.footerText}>YouPreacher v1.0.0</Text>
             <Text style={styles.footerText}>Made with ❤️ for pastors worldwide</Text>
           </View>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </FadeInView>
