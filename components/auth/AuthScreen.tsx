@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Button } from '../common/Button';
-import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
 import authService from '@/services/supabaseAuthService';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button } from '../common/Button';
+import { Card } from '../common/Card';
 
 interface AuthScreenProps {
   onAuthenticated: () => void;
@@ -22,31 +22,33 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const [title, setTitle] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    setErrorMessage(''); // Clear previous errors
     
     try {
       if (mode === 'signup') {
         // Validation
         if (!name.trim()) {
-          Alert.alert('Validation Error', 'Please enter your name');
+          setErrorMessage('Please enter your name');
           return;
         }
         if (!email.trim()) {
-          Alert.alert('Validation Error', 'Please enter your email');
+          setErrorMessage('Please enter your email');
           return;
         }
         if (!password.trim()) {
-          Alert.alert('Validation Error', 'Please enter a password');
+          setErrorMessage('Please enter a password');
           return;
         }
         if (password !== confirmPassword) {
-          Alert.alert('Validation Error', 'Passwords do not match');
+          setErrorMessage('Passwords do not match');
           return;
         }
         if (password.length < 6) {
-          Alert.alert('Validation Error', 'Password must be at least 6 characters');
+          setErrorMessage('Password must be at least 6 characters');
           return;
         }
 
@@ -68,11 +70,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
         
       } else if (mode === 'signin') {
         if (!email.trim()) {
-          Alert.alert('Validation Error', 'Please enter your email');
+          setErrorMessage('Please enter your email');
           return;
         }
         if (!password.trim()) {
-          Alert.alert('Validation Error', 'Please enter your password');
+          setErrorMessage('Please enter your password');
           return;
         }
         
@@ -86,7 +88,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
         
       } else if (mode === 'forgot') {
         if (!email.trim()) {
-          Alert.alert('Validation Error', 'Please enter your email');
+          setErrorMessage('Please enter your email');
           return;
         }
         
@@ -97,8 +99,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
       }
     } catch (error) {
       console.error('Auth error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-      Alert.alert('Error', errorMessage);
+      let errorMsg = 'Something went wrong. Please try again.';
+      
+      if (error instanceof Error) {
+        // More specific error messages based on common auth errors
+        if (error.message.includes('Invalid login credentials')) {
+          errorMsg = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('User not found')) {
+          errorMsg = 'No account found with this email address.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMsg = 'Too many login attempts. Please wait a few minutes before trying again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMsg = 'Please check your email and click the confirmation link before signing in.';
+        } else if (error.message.includes('User already registered')) {
+          errorMsg = 'An account with this email already exists. Try signing in instead.';
+        } else if (error.message.includes('Network')) {
+          errorMsg = 'Network error. Please check your internet connection and try again.';
+        } else {
+          errorMsg = error.message;
+        }
+      }
+      
+      setErrorMessage(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +136,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.appName}>SermonCraft</Text>
+      <Text style={styles.appName}>YouPreacher</Text>
       <Text style={styles.tagline}>
         {mode === 'signin' && 'Sign in to continue'}
         {mode === 'signup' && 'Create your account'}
@@ -133,10 +155,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
         </Text>
         <Text style={styles.formSubtitle}>
           {mode === 'signin' && 'Welcome back! Sign in to your account'}
-          {mode === 'signup' && 'Join thousands of pastors using SermonCraft'}
+          {mode === 'signup' && 'Join thousands of pastors using YouPreacher'}
           {mode === 'forgot' && 'Enter your email to reset your password'}
         </Text>
       </View>
+
+      {errorMessage ? (
+        <View style={styles.errorContainer}>
+          <View style={styles.errorIconContainer}>
+            <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
+          </View>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.form}>
         {mode === 'signup' && (
@@ -487,5 +518,24 @@ const styles = StyleSheet.create({
   legalSeparator: {
     ...theme.typography.caption,
     color: theme.colors.textTertiary,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: theme.colors.error + '10',
+    borderColor: theme.colors.error + '40',
+    borderWidth: 1,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  errorIconContainer: {
+    marginTop: 2,
+  },
+  errorText: {
+    ...theme.typography.body2,
+    color: theme.colors.error,
+    flex: 1,
+    lineHeight: 20,
   },
 });

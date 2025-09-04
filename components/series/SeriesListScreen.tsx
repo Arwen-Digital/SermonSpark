@@ -102,7 +102,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            onPress={() => router.back()}
+            onPress={() => router.push('/(tabs)')}
             style={styles.backButton}
           >
             <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />

@@ -4,6 +4,7 @@ import { theme } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
+import communityService from '@/services/supabaseCommunityService';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -63,7 +64,7 @@ export default function CreatePostPage() {
     }
   };
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!title.trim()) {
       Alert.alert('Missing Title', 'Please enter a title for your post.');
       return;
@@ -76,21 +77,14 @@ export default function CreatePostPage() {
 
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const newPost = {
-        id: Date.now().toString(),
+    try {
+      await communityService.createPost({
         title: title.trim(),
         content: content.trim(),
         tags,
-        visibility: 'community', // Default to community visibility
-        author: 'Current User', // This would come from auth context
-        createdAt: new Date(),
-      };
-      
-      console.log('Creating new post:', newPost);
-      
-      setLoading(false);
+        visibility: 'community',
+        status: 'active',
+      });
       
       Alert.alert(
         'Post Created!',
@@ -99,7 +93,18 @@ export default function CreatePostPage() {
           { text: 'OK', onPress: () => router.back() }
         ]
       );
-    }, 1000);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      Alert.alert(
+        'Error',
+        'Failed to create your post. Please try again.',
+        [
+          { text: 'OK' }
+        ]
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

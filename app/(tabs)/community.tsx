@@ -1,112 +1,13 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable, TextInput } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
-import { CommunityPost, User } from '@/types';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
 
-// Mock community data
-const mockUsers: Record<string, User> = {
-  '1': {
-    id: '1',
-    name: 'Pastor Michael',
-    email: 'michael@church.com',
-    avatar: '',
-    title: 'Lead Pastor',
-    church: 'Grace Community Church',
-    bio: 'Passionate about expository preaching and discipleship',
-    isPremium: true,
-    joinedDate: new Date('2023-01-15'),
-  },
-  '2': {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 'sarah@ministry.com',
-    avatar: '',
-    title: 'Youth Pastor',
-    church: 'City Life Church',
-    bio: 'Reaching the next generation for Christ',
-    isPremium: true,
-    joinedDate: new Date('2023-06-10'),
-  },
-  '3': {
-    id: '3',
-    name: 'Rev. David Kim',
-    email: 'david@faithchurch.org',
-    avatar: '',
-    title: 'Senior Pastor',
-    church: 'Faith Baptist Church',
-    bio: '20+ years in ministry, love teaching God\'s Word',
-    isPremium: true,
-    joinedDate: new Date('2022-11-03'),
-  },
-};
-
-const mockPosts: CommunityPost[] = [
-  {
-    id: '1',
-    authorId: '1',
-    author: mockUsers['1'],
-    title: 'Effective Illustrations for Grace',
-    content: 'I\'ve been preparing a sermon series on grace and looking for powerful illustrations that really connect with people. Has anyone come across stories or examples that have been particularly impactful? I\'m specifically looking for modern-day examples that show unmerited favor...',
-    tags: ['Grace', 'Illustrations', 'Stories'],
-    likes: 24,
-    comments: 8,
-    shares: 3,
-    isLiked: false,
-    createdAt: new Date('2024-01-20'),
-    updatedAt: new Date('2024-01-20'),
-    visibility: 'community',
-  },
-  {
-    id: '2',
-    authorId: '2',
-    author: mockUsers['2'],
-    title: 'Youth Ministry Sermon Ideas',
-    content: 'Hey everyone! I\'m working on a series for our youth group about identity in Christ. Looking for creative ways to engage teenagers with this topic. Any sermon outlines or interactive elements you\'ve used successfully?',
-    tags: ['Youth Ministry', 'Identity', 'Engagement'],
-    likes: 18,
-    comments: 12,
-    shares: 5,
-    isLiked: true,
-    createdAt: new Date('2024-01-19'),
-    updatedAt: new Date('2024-01-19'),
-    visibility: 'community',
-  },
-  {
-    id: '3',
-    authorId: '3',
-    author: mockUsers['3'],
-    title: 'Preaching Through Difficult Passages',
-    content: 'As pastors, we sometimes face challenging texts that our congregation might find difficult to understand or accept. How do you approach preaching through passages that deal with hard topics like suffering, judgment, or difficult Old Testament narratives? Looking for wisdom from fellow preachers.',
-    tags: ['Difficult Passages', 'Wisdom', 'Preaching'],
-    likes: 35,
-    comments: 15,
-    shares: 8,
-    isLiked: true,
-    createdAt: new Date('2024-01-18'),
-    updatedAt: new Date('2024-01-18'),
-    visibility: 'community',
-  },
-  {
-    id: '4',
-    authorId: '1',
-    author: mockUsers['1'],
-    title: 'Prayer Before Preaching',
-    content: 'I wanted to share something that has transformed my preaching preparation. I\'ve started spending at least 30 minutes in prayer before I even open my Bible to study. It has changed everything about how I approach the text and connect with God\'s heart for the message.',
-    tags: ['Prayer', 'Preparation', 'Testimony'],
-    likes: 42,
-    comments: 20,
-    shares: 12,
-    isLiked: false,
-    createdAt: new Date('2024-01-17'),
-    updatedAt: new Date('2024-01-17'),
-    visibility: 'community',
-  },
-];
 
 const FILTER_TABS = [
   { key: 'all', label: 'All Posts', icon: 'albums' },
@@ -118,7 +19,39 @@ const FILTER_TABS = [
 export default function CommunityScreen() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [posts] = useState<CommunityPost[]>(mockPosts);
+  const [posts, setPosts] = useState<CommunityPostDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadPosts = useCallback(async () => {
+    try {
+      const data = await communityService.getAllPosts();
+      setPosts(data);
+    } catch (error) {
+      console.error('Error loading community posts:', error);
+    }
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadPosts();
+    setRefreshing(false);
+  }, [loadPosts]);
+
+  useEffect(() => {
+    const initializeData = async () => {
+      setLoading(true);
+      await loadPosts();
+      setLoading(false);
+    };
+    initializeData();
+  }, [loadPosts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPosts();
+    }, [loadPosts])
+  );
 
   const filteredPosts = posts.filter(post => {
     // Apply search filter
@@ -133,26 +66,41 @@ export default function CommunityScreen() {
     return true;
   });
 
-  const handlePostPress = (post: CommunityPost) => {
+  const handlePostPress = (post: CommunityPostDto) => {
     router.push(`/community/${post.id}`);
   };
 
-  const handleLike = (post: CommunityPost) => {
-    console.log('Toggle like for post:', post.title);
-    // Toggle like functionality
+  const handleLike = async (post: CommunityPostDto) => {
+    try {
+      const isLiked = await communityService.togglePostLike(post.id);
+      // Update the local state
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === post.id 
+            ? { 
+                ...p, 
+                isLiked,
+                likesCount: isLiked ? (p.likesCount || 0) + 1 : Math.max(0, (p.likesCount || 0) - 1)
+              }
+            : p
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
-  const handleComment = (post: CommunityPost) => {
-    console.log('Comment on post:', post.title);
-    // Navigate to comments
+  const handleComment = (post: CommunityPostDto) => {
+    router.push(`/community/${post.id}#comments`);
   };
 
-  const handleShare = (post: CommunityPost) => {
+  const handleShare = (post: CommunityPostDto) => {
     console.log('Share post:', post.title);
-    // Share functionality
+    // Share functionality - could implement native sharing
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
@@ -238,7 +186,7 @@ export default function CommunityScreen() {
     </View>
   );
 
-  const renderPost = ({ item }: { item: CommunityPost }) => (
+  const renderPost = ({ item }: { item: CommunityPostDto }) => (
     <Card style={styles.postCard} onPress={() => handlePostPress(item)}>
       <View style={styles.postHeader}>
         <View style={styles.authorInfo}>
@@ -247,10 +195,10 @@ export default function CommunityScreen() {
           </View>
           <View style={styles.authorDetails}>
             <View style={styles.authorNameContainer}>
-              <Text style={styles.authorName}>{item.author.name}</Text>
+              <Text style={styles.authorName}>{item.author?.fullName || 'Unknown Author'}</Text>
             </View>
             <Text style={styles.authorMeta}>
-              {item.author.title} • {item.author.church}
+              {item.author?.title || 'Pastor'} • {item.author?.church || 'Church'}
             </Text>
             <Text style={styles.postTime}>{formatTimeAgo(item.createdAt)}</Text>
           </View>
@@ -290,7 +238,7 @@ export default function CommunityScreen() {
             size={20}
             color={item.isLiked ? theme.colors.error : theme.colors.gray600}
           />
-          <Text style={styles.actionText}>{item.likes}</Text>
+          <Text style={styles.actionText}>{item.likesCount || 0}</Text>
         </Pressable>
         
         <Pressable
@@ -298,7 +246,7 @@ export default function CommunityScreen() {
           onPress={() => handleComment(item)}
         >
           <Ionicons name="chatbubble-outline" size={20} color={theme.colors.gray600} />
-          <Text style={styles.actionText}>{item.comments}</Text>
+          <Text style={styles.actionText}>{item.commentsCount || 0}</Text>
         </Pressable>
         
         <Pressable
@@ -306,7 +254,7 @@ export default function CommunityScreen() {
           onPress={() => handleShare(item)}
         >
           <Ionicons name="share-outline" size={20} color={theme.colors.gray600} />
-          <Text style={styles.actionText}>{item.shares}</Text>
+          <Text style={styles.actionText}>Share</Text>
         </Pressable>
         
         <View style={styles.spacer} />
@@ -318,10 +266,29 @@ export default function CommunityScreen() {
     </Card>
   );
 
+  if (loading) {
+    return (
+      <FadeInView style={styles.container}>
+        <SafeAreaView style={styles.container}>
+          <View style={[styles.container, styles.centerContent]}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>Loading community posts...</Text>
+          </View>
+        </SafeAreaView>
+      </FadeInView>
+    );
+  }
+
   return (
     <FadeInView style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
           {renderHeader()}
           {renderSearchBar()}
           {renderTabs()}
@@ -337,7 +304,7 @@ export default function CommunityScreen() {
             />
           </View>
           
-          {filteredPosts.length === 0 && (
+          {filteredPosts.length === 0 && !loading && (
             <View style={styles.emptyContainer}>
               <Ionicons name="people-outline" size={64} color={theme.colors.gray400} />
               <Text style={styles.emptyTitle}>No discussions found</Text>
@@ -349,7 +316,7 @@ export default function CommunityScreen() {
               {!searchQuery.trim() && (
                 <Button
                   title="Start Discussion"
-                  onPress={() => console.log('Create first post')}
+                  onPress={() => router.push('/community/create')}
                   variant="primary"
                   style={{ marginTop: theme.spacing.md }}
                 />
@@ -366,6 +333,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+    fontSize: theme.typography.body1.fontSize,
+    color: theme.colors.textSecondary,
   },
   content: {
     flex: 1,

@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Text, Pressable, Alert, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
-import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
-import { User } from '@/types';
 import authService from '@/services/supabaseAuthService';
+import { User } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 // Mock user data
 const mockUser: User = {
@@ -52,7 +51,7 @@ const MENU_SECTIONS = [
     items: [
       { key: 'help', label: 'Help Center', icon: 'help-circle-outline' },
       { key: 'feedback', label: 'Send Feedback', icon: 'chatbubble-outline' },
-      { key: 'about', label: 'About SermonCraft', icon: 'information-circle-outline' },
+      { key: 'about', label: 'About YouPreacher', icon: 'information-circle-outline' },
     ],
   },
   {
@@ -85,7 +84,7 @@ export default function ProfileScreen() {
           }
         };
         if (Platform.OS === 'web') {
-          const confirmed = typeof window !== 'undefined' ? window.confirm('Sign out of SermonCraft?') : true;
+          const confirmed = typeof window !== 'undefined' ? window.confirm('Sign out of YouPreacher?') : true;
           if (confirmed) void doLogout();
         } else {
           Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -240,7 +239,7 @@ export default function ProfileScreen() {
           </View>
           
           <View style={styles.footer}>
-            <Text style={styles.footerText}>SermonCraft v1.0.0</Text>
+            <Text style={styles.footerText}>YouPreacher v1.0.0</Text>
             <Text style={styles.footerText}>Made with ❤️ for pastors worldwide</Text>
           </View>
         </ScrollView>

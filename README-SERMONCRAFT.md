@@ -1,7 +1,7 @@
-# SermonCraft - React Native App
+# YouPreacher - React Native App
 
 ## Overview
-SermonCraft is a comprehensive cross-platform mobile and web application for sermon preparation and delivery, built with React Native and Expo. This implementation focuses on the frontend with modern design methodologies and component-based architecture.
+YouPreacher is a comprehensive cross-platform mobile and web application for sermon preparation and delivery, built with React Native and Expo. This implementation focuses on the frontend with modern design methodologies and component-based architecture.
 
 ## ✅ Completed Features
 
@@ -220,4 +220,4 @@ This implementation follows modern React Native best practices:
 - **Scalability**: Architecture supports easy feature additions
 - **User Experience**: Intuitive navigation and clear value propositions
 
-The app is ready for backend integration and can serve as a strong foundation for the full SermonCraft product implementation.
+The app is ready for backend integration and can serve as a strong foundation for the full YouPreacher product implementation.
