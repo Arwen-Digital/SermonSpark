@@ -103,11 +103,19 @@ class SupabaseCommunityService {
   async getAllPosts(): Promise<CommunityPostDto[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
+    console.log('Current user for community posts:', user?.id || 'No user');
+    
+    if (!user) {
+      console.warn('No authenticated user found for community posts');
+      return [];
+    }
+    
+    // Now we can use proper joins with the new foreign key relationship
+    const { data: postsData, error: postsError } = await supabase
       .from('community_posts')
       .select(`
         *,
-        profiles (
+        author:profiles!community_posts_author_id_profiles_fkey (
           id,
           full_name,
           title,
@@ -124,14 +132,26 @@ class SupabaseCommunityService {
       .in('visibility', ['community', 'public'])
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error(`Failed to fetch community posts: ${error.message}`);
+    if (postsError) {
+      console.error('Community posts fetch error:', postsError);
+      throw new Error(`Failed to fetch community posts: ${postsError.message}`);
+    }
 
-    return (data || []).map((item: any) => ({
-      ...this.serializePost(item),
-      likesCount: item.community_post_likes?.length || 0,
-      commentsCount: item.community_post_comments?.length || 0,
-      isLiked: user ? item.community_post_likes?.some((like: any) => like.user_id === user.id) || false : false,
-    }));
+    console.log('Fetched community posts:', postsData?.length || 0);
+
+    return (postsData || []).map((item: any) => {
+      console.log(`Post "${item.title}": author=${item.author?.full_name || 'Unknown'}`);
+      
+      return {
+        ...this.serializePost({
+          ...item,
+          profiles: item.author // The join now returns data in 'author' field
+        }),
+        likesCount: item.community_post_likes?.length || 0,
+        commentsCount: item.community_post_comments?.length || 0,
+        isLiked: user ? item.community_post_likes?.some((like: any) => like.user_id === user.id) || false : false,
+      };
+    });
   }
 
   async getPostById(postId: string): Promise<CommunityPostDto> {

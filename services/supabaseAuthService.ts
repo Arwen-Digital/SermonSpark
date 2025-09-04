@@ -40,6 +40,30 @@ class SupabaseAuthService {
     return !!session;
   }
 
+  // Ensure a profile row exists for current user; create minimal if missing
+  async ensureProfileExists(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: existing, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (existing) return; // already exists
+
+    const fallbackName = user.user_metadata?.full_name || user.user_metadata?.username || (user.email ? user.email.split('@')[0] : 'Pastor');
+    const title = user.user_metadata?.title || null;
+    const church = user.user_metadata?.church || null;
+
+    const { error: insertErr } = await supabase
+      .from('profiles')
+      .insert({ id: user.id, full_name: fallbackName, title, church });
+    if (insertErr) throw insertErr;
+  }
+
   // Get current user
   async getUser(): Promise<User | null> {
     const { data: { user } } = await supabase.auth.getUser();

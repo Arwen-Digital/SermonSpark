@@ -47,7 +47,7 @@ interface SermonEditorProps {
 }
 
 interface LocalSeriesOption {
-  id: string; // documentId for Strapi v5
+  id: string; // series documentId/UUID
   title: string;
   description?: string;
   color: string;

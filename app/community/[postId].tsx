@@ -1,186 +1,108 @@
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
-import { Comment, CommunityPost, User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, Platform, KeyboardAvoidingView } from 'react-native';
+import communityService, { CommunityCommentDto, CommunityPostDto } from '@/services/supabaseCommunityService';
 
-// Mock data - in real app this would come from API
-const mockUsers: Record<string, User> = {
-  '1': {
-    id: '1',
-    name: 'Pastor Michael',
-    email: 'michael@church.com',
-    avatar: '',
-    title: 'Lead Pastor',
-    church: 'Grace Community Church',
-    bio: 'Passionate about expository preaching and discipleship',
-    isPremium: true,
-    joinedDate: new Date('2023-01-15'),
-  },
-  '2': {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 'sarah@ministry.com',
-    avatar: '',
-    title: 'Youth Pastor',
-    church: 'City Life Church',
-    bio: 'Reaching the next generation for Christ',
-    isPremium: true,
-    joinedDate: new Date('2023-06-10'),
-  },
-  '3': {
-    id: '3',
-    name: 'Rev. David Kim',
-    email: 'david@faithchurch.org',
-    avatar: '',
-    title: 'Senior Pastor',
-    church: 'Faith Baptist Church',
-    bio: '20+ years in ministry, love teaching God\'s Word',
-    isPremium: true,
-    joinedDate: new Date('2022-11-03'),
-  },
-  '4': {
-    id: '4',
-    name: 'Pastor Jennifer',
-    email: 'jennifer@newlife.org',
-    avatar: '',
-    title: 'Associate Pastor',
-    church: 'New Life Fellowship',
-    bio: 'Passionate about worship and community',
-    isPremium: false,
-    joinedDate: new Date('2023-09-20'),
-  },
-  '5': {
-    id: '5',
-    name: 'Rev. Thomas',
-    email: 'thomas@riverside.church',
-    avatar: '',
-    title: 'Senior Pastor',
-    church: 'Riverside Church',
-    bio: 'Building bridges through biblical teaching',
-    isPremium: true,
-    joinedDate: new Date('2023-03-12'),
-  },
+type UiComment = {
+  id: string;
+  content: string;
+  likes: number;
+  isLiked: boolean;
+  createdAt: Date;
+  authorName: string;
+  authorTitle?: string;
+  replies: UiComment[];
 };
-
-const mockPosts: Record<string, CommunityPost> = {
-  '1': {
-    id: '1',
-    authorId: '1',
-    author: mockUsers['1'],
-    title: 'Effective Illustrations for Grace',
-    content: `I've been preparing a sermon series on grace and looking for powerful illustrations that really connect with people. Has anyone come across stories or examples that have been particularly impactful? 
-
-I'm specifically looking for modern-day examples that show unmerited favor. I've used the typical parables and biblical examples, but I want something that will help my congregation see grace in everyday life.
-
-One illustration I've been considering is about the parent who pays off their adult child's debt without them knowing, but I'm wondering if there are even more relatable examples.
-
-What has worked well in your experience? Any resources or books you'd recommend for finding fresh illustrations on grace?
-
-Thanks in advance for your wisdom!`,
-    tags: ['Grace', 'Illustrations', 'Stories'],
-    likes: 24,
-    comments: 8,
-    shares: 3,
-    isLiked: false,
-    createdAt: new Date('2024-01-20'),
-    updatedAt: new Date('2024-01-20'),
-    visibility: 'community',
-  },
-};
-
-const mockComments: Comment[] = [
-  {
-    id: '1',
-    postId: '1',
-    authorId: '2',
-    author: mockUsers['2'],
-    content: 'Great question! I recently used an illustration about a teacher who anonymously paid for students\' lunch debts. The kids had no idea who did it, but they got to eat. Really drove home the point of unmerited favor.',
-    likes: 8,
-    replies: [
-      {
-        id: '2',
-        postId: '1',
-        authorId: '1',
-        author: mockUsers['1'],
-        content: 'That\'s beautiful, Sarah! I love how it connects to their daily experience. Did you have any specific details that made it more impactful?',
-        likes: 3,
-        replies: [],
-        createdAt: new Date('2024-01-20T14:30:00'),
-        isLiked: false,
-      },
-      {
-        id: '3',
-        postId: '1',
-        authorId: '4',
-        author: mockUsers['4'],
-        content: 'I used something similar with medical debt being forgiven. Same concept but hits different age groups.',
-        likes: 5,
-        replies: [],
-        createdAt: new Date('2024-01-20T15:15:00'),
-        isLiked: true,
-      },
-    ],
-    createdAt: new Date('2024-01-20T13:45:00'),
-    isLiked: true,
-  },
-  {
-    id: '4',
-    postId: '1',
-    authorId: '3',
-    author: mockUsers['3'],
-    content: 'Check out "The Grace Stories" by Max Lucado. He has some incredible modern illustrations. Also, Tim Keller\'s sermons often have great grace illustrations that feel very contemporary.',
-    likes: 12,
-    replies: [
-      {
-        id: '5',
-        postId: '1',
-        authorId: '5',
-        author: mockUsers['5'],
-        content: 'Second the Keller recommendation. His "Prodigal God" has some amazing grace illustrations.',
-        likes: 7,
-        replies: [],
-        createdAt: new Date('2024-01-20T16:20:00'),
-        isLiked: false,
-      },
-    ],
-    createdAt: new Date('2024-01-20T14:00:00'),
-    isLiked: false,
-  },
-  {
-    id: '6',
-    postId: '1',
-    authorId: '5',
-    author: mockUsers['5'],
-    content: 'Here\'s one I\'ve used: A parking meter that\'s expired, but someone else already put money in it. You get to park without paying the penalty. Simple but effective for showing how Christ paid our debt.',
-    likes: 15,
-    replies: [],
-    createdAt: new Date('2024-01-20T15:30:00'),
-    isLiked: true,
-  },
-];
 
 export default function PostDetailPage() {
-  const { postId } = useLocalSearchParams();
-  const [post, setPost] = useState<CommunityPost | null>(mockPosts[postId as string] || null);
-  const [comments, setComments] = useState<Comment[]>(mockComments);
+  const rawParams = useLocalSearchParams();
+  const postId = Array.isArray((rawParams as any).postId)
+    ? (rawParams as any).postId[0]
+    : (rawParams as any).postId;
+  const focus = Array.isArray((rawParams as any).focus)
+    ? (rawParams as any).focus[0]
+    : (rawParams as any).focus;
+  const [post, setPost] = useState<CommunityPostDto | null>(null);
+  const [commentsRaw, setCommentsRaw] = useState<CommunityCommentDto[]>([]);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [commentsY, setCommentsY] = useState(0);
+  const [openedOnFocus, setOpenedOnFocus] = useState(false);
+  const scrollToBottom = useCallback(() => {
+    if (scrollRef.current && (scrollRef.current as any).scrollToEnd) {
+      (scrollRef.current as any).scrollToEnd({ animated: true });
+    }
+  }, []);
+
+  const load = useCallback(async () => {
+    if (!postId || typeof postId !== 'string') return;
+    try {
+      const [p, c] = await Promise.all([
+        communityService.getPostById(postId),
+        communityService.getPostComments(postId),
+      ]);
+      setPost(p);
+      setCommentsRaw(c);
+    } catch (e) {
+      console.error('Failed to load post details:', e);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // If navigated with focus=comments or hash #comments (web), scroll to comments
+  useEffect(() => {
+    const wantsComments = (typeof focus === 'string' && focus.toLowerCase() === 'comments') ||
+      (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash === '#comments');
+    if (!wantsComments || openedOnFocus) return;
+    // slight delay to ensure layout calculated
+    const t = setTimeout(() => {
+      if (scrollRef.current && commentsY > 0) {
+        scrollRef.current.scrollTo({ y: Math.max(0, commentsY - 12), animated: true });
+      }
+      setShowCommentForm(true);
+      setOpenedOnFocus(true);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [focus, commentsY, openedOnFocus]);
+
+  const comments = useMemo<UiComment[]>(() => {
+    const byId = new Map<string, UiComment>();
+    const roots: UiComment[] = [];
+
+    const toUi = (c: CommunityCommentDto): UiComment => ({
+      id: c.id,
+      content: c.content,
+      likes: c.likesCount || 0,
+      isLiked: !!c.isLiked,
+      createdAt: new Date(c.createdAt),
+      authorName: c.author?.fullName || 'Anonymous',
+      authorTitle: c.author?.title || undefined,
+      replies: [],
+    });
+
+    commentsRaw.forEach((c) => byId.set(c.id, toUi(c)));
+    commentsRaw.forEach((c) => {
+      const node = byId.get(c.id)!;
+      if (c.parentCommentId) {
+        const parent = byId.get(c.parentCommentId);
+        if (parent) parent.replies.push(node);
+        else roots.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+    return roots;
+  }, [commentsRaw]);
 
   if (!post) {
     return (
@@ -204,95 +126,61 @@ export default function PostDetailPage() {
     router.back();
   };
 
-  const handleLike = () => {
-    setPost(prev => prev ? {
-      ...prev,
-      isLiked: !prev.isLiked,
-      likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1,
-    } : null);
+  const handleLike = async () => {
+    try {
+      const liked = await communityService.togglePostLike(post.id);
+      setPost(prev => prev ? {
+        ...prev,
+        isLiked: liked,
+        likesCount: liked ? (prev.likesCount || 0) + 1 : Math.max(0, (prev.likesCount || 0) - 1),
+      } : null);
+    } catch (e) {
+      console.error('Toggle like failed:', e);
+    }
   };
 
-  const handleCommentLike = (commentId: string, isReply: boolean = false, parentId?: string) => {
-    setComments(prev => 
-      prev.map(comment => {
-        if (comment.id === commentId && !isReply) {
-          return {
-            ...comment,
-            isLiked: !comment.isLiked,
-            likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
-          };
-        }
-        if (isReply && comment.id === parentId) {
-          return {
-            ...comment,
-            replies: comment.replies.map(reply => 
-              reply.id === commentId
-                ? {
-                    ...reply,
-                    isLiked: !reply.isLiked,
-                    likes: reply.isLiked ? reply.likes - 1 : reply.likes + 1,
-                  }
-                : reply
-            ),
-          };
-        }
-        return comment;
-      })
-    );
+  const handleCommentLike = async (commentId: string) => {
+    try {
+      const liked = await communityService.toggleCommentLike(commentId);
+      setCommentsRaw(prev => prev.map(c => c.id === commentId ? {
+        ...c,
+        isLiked: liked,
+        likesCount: liked ? (c.likesCount || 0) + 1 : Math.max(0, (c.likesCount || 0) - 1),
+      } : c));
+    } catch (e) {
+      console.error('Toggle comment like failed:', e);
+    }
   };
 
   const handleShare = () => {
     console.log('Share post');
-    // Implement share functionality
   };
 
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
-
     setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      const comment: Comment = {
-        id: Date.now().toString(),
+    try {
+      await communityService.createComment({
         postId: post.id,
-        authorId: '1', // Current user
-        author: mockUsers['1'],
         content: newComment.trim(),
-        likes: 0,
-        replies: [],
-        createdAt: new Date(),
-        isLiked: false,
-      };
-
-      if (replyingTo) {
-        // Add as reply
-        setComments(prev =>
-          prev.map(c => 
-            c.id === replyingTo
-              ? { ...c, replies: [...c.replies, comment] }
-              : c
-          )
-        );
-      } else {
-        // Add as new comment
-        setComments(prev => [comment, ...prev]);
-      }
-
-      // Update post comment count
-      setPost(prev => prev ? { ...prev, comments: prev.comments + 1 } : null);
-      
+        parentCommentId: replyingTo || undefined,
+      });
+      const c = await communityService.getPostComments(post.id);
+      setCommentsRaw(c);
+      setPost(prev => prev ? { ...prev, commentsCount: (prev.commentsCount || 0) + 1 } : prev);
       setNewComment('');
       setReplyingTo(null);
       setShowCommentForm(false);
+    } catch (e) {
+      console.error('Create comment failed:', e);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const formatTimeAgo = (date: Date) => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -300,7 +188,7 @@ export default function PostDetailPage() {
     return date.toLocaleDateString();
   };
 
-  const renderComment = ({ item, isReply = false, parentId }: { item: Comment; isReply?: boolean; parentId?: string }) => (
+  const renderComment = ({ item, isReply = false, parentId }: { item: UiComment; isReply?: boolean; parentId?: string }) => (
     <View style={[styles.commentContainer, isReply && styles.replyContainer]}>
       <View style={styles.commentHeader}>
         <View style={styles.commentAuthor}>
@@ -308,20 +196,20 @@ export default function PostDetailPage() {
             <Ionicons name="person" size={16} color={theme.colors.gray600} />
           </View>
           <View style={styles.commentAuthorDetails}>
-            <Text style={styles.commentAuthorName}>{item.author.name}</Text>
+            <Text style={styles.commentAuthorName}>{item.authorName}</Text>
             <Text style={styles.commentMeta}>
-              {item.author.title} • {formatTimeAgo(item.createdAt)}
+              {item.authorTitle || 'Pastor'} • {formatTimeAgo(item.createdAt)}
             </Text>
           </View>
         </View>
       </View>
-      
+
       <Text style={styles.commentText}>{item.content}</Text>
-      
+
       <View style={styles.commentActions}>
         <Pressable
           style={styles.commentActionButton}
-          onPress={() => handleCommentLike(item.id, isReply, parentId)}
+          onPress={() => handleCommentLike(item.id)}
         >
           <Ionicons
             name={item.isLiked ? 'heart' : 'heart-outline'}
@@ -330,7 +218,7 @@ export default function PostDetailPage() {
           />
           <Text style={styles.commentActionText}>{item.likes}</Text>
         </Pressable>
-        
+
         {!isReply && (
           <Pressable
             style={styles.commentActionButton}
@@ -342,27 +230,24 @@ export default function PostDetailPage() {
         )}
       </View>
 
-      {/* Replies */}
       {item.replies.length > 0 && (
         <View style={styles.repliesContainer}>
           {item.replies.map(reply => (
-            <View key={reply.id}>
-              {renderComment({ item: reply, isReply: true, parentId: item.id })}
-            </View>
+            <View key={reply.id}>{renderComment({ item: reply, isReply: true, parentId: item.id })}</View>
           ))}
         </View>
       )}
 
-      {/* Reply Input */}
       {replyingTo === item.id && (
         <View style={styles.replyInput}>
           <TextInput
             style={styles.commentInput}
-            placeholder={`Reply to ${item.author.name}...`}
+            placeholder={`Reply to ${item.authorName}...`}
             value={newComment}
             onChangeText={setNewComment}
             multiline
             autoFocus
+            onFocus={scrollToBottom}
           />
           <View style={styles.replyActions}>
             <Pressable
@@ -391,19 +276,24 @@ export default function PostDetailPage() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <Pressable style={styles.backButton} onPress={handleBack}>
+          <Ionicons name="chevron-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Discussion</Text>
+        <Text style={styles.headerTitle}>Post Details</Text>
         <View style={styles.headerRight}>
-          <Pressable style={styles.headerAction}>
-            <Ionicons name="share-outline" size={24} color={theme.colors.textSecondary} />
+          <Pressable style={styles.headerAction} onPress={handleShare}>
+            <Ionicons name="share-outline" size={22} color={theme.colors.textPrimary} />
           </Pressable>
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Post Content */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        {...(Platform.OS === 'web' ? ({} as any) : ({ automaticallyAdjustKeyboardInsets: true } as any))}
+      >
         <Card style={styles.postCard}>
           <View style={styles.postHeader}>
             <View style={styles.authorInfo}>
@@ -411,11 +301,11 @@ export default function PostDetailPage() {
                 <Ionicons name="person" size={20} color={theme.colors.gray600} />
               </View>
               <View style={styles.authorDetails}>
-                <Text style={styles.authorName}>{post.author.name}</Text>
+                <Text style={styles.authorName}>{post.author?.fullName || 'Unknown Author'}</Text>
                 <Text style={styles.authorMeta}>
-                  {post.author.title} • {post.author.church}
+                  {post.author?.title || 'Pastor'} • {post.author?.church || 'Church'}
                 </Text>
-                <Text style={styles.postTime}>{formatTimeAgo(post.createdAt)}</Text>
+                <Text style={styles.postTime}>{formatTimeAgo(new Date(post.createdAt))}</Text>
               </View>
             </View>
           </View>
@@ -425,11 +315,14 @@ export default function PostDetailPage() {
 
           {post.tags.length > 0 && (
             <View style={styles.tagsContainer}>
-              {post.tags.map((tag, index) => (
+              {post.tags.slice(0, 5).map((tag, index) => (
                 <View key={index} style={styles.tag}>
                   <Text style={styles.tagText}>#{tag}</Text>
                 </View>
               ))}
+              {post.tags.length > 5 && (
+                <Text style={styles.moreTagsText}>+{post.tags.length - 5}</Text>
+              )}
             </View>
           )}
 
@@ -440,48 +333,28 @@ export default function PostDetailPage() {
                 size={20}
                 color={post.isLiked ? theme.colors.error : theme.colors.gray600}
               />
-              <Text style={styles.actionText}>{post.likes}</Text>
+              <Text style={styles.actionText}>{post.likesCount || 0}</Text>
             </Pressable>
-            
-            <Pressable style={styles.actionButton}>
+
+            <View style={styles.actionButton}>
               <Ionicons name="chatbubble-outline" size={20} color={theme.colors.gray600} />
-              <Text style={styles.actionText}>{post.comments}</Text>
-            </Pressable>
-            
-            <Pressable style={styles.actionButton} onPress={handleShare}>
-              <Ionicons name="share-outline" size={20} color={theme.colors.gray600} />
-              <Text style={styles.actionText}>{post.shares}</Text>
-            </Pressable>
-            
-            <View style={styles.spacer} />
-            
-            <Pressable style={styles.actionButton}>
-              <Ionicons name="bookmark-outline" size={20} color={theme.colors.gray600} />
-            </Pressable>
+              <Text style={styles.actionText}>{post.commentsCount || 0}</Text>
+            </View>
           </View>
         </Card>
 
-        {/* Comments Section */}
-        <View style={styles.commentsSection}>
+        <View style={styles.commentsSection} onLayout={(e) => setCommentsY(e.nativeEvent.layout.y)}>
           <View style={styles.commentsSectionHeader}>
-            <Text style={styles.commentsSectionTitle}>
-              Comments ({comments.length})
-            </Text>
-            
-            {/* Post a Comment Link */}
+            <Text style={styles.commentsSectionTitle}>Comments ({comments.length})</Text>
+
             {!showCommentForm && !replyingTo && (
-              <Pressable
-                style={styles.postCommentLink}
-                onPress={() => setShowCommentForm(true)}
-              >
+              <Pressable style={styles.postCommentLink} onPress={() => setShowCommentForm(true)}>
                 <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
                 <Text style={styles.postCommentText}>Post a Comment</Text>
               </Pressable>
             )}
           </View>
 
-
-          {/* Comments List */}
           <View style={styles.commentsList}>
             {comments.map(comment => (
               <Card key={comment.id} style={styles.commentCard}>
@@ -492,7 +365,6 @@ export default function PostDetailPage() {
         </View>
       </ScrollView>
 
-      {/* Comment Modal */}
       <Modal
         visible={showCommentForm}
         animationType="slide"
@@ -513,53 +385,81 @@ export default function PostDetailPage() {
             >
               <Text style={styles.modalCloseText}>Cancel</Text>
             </Pressable>
-            
+
             <Text style={styles.modalTitle}>Add Comment</Text>
-            
+
             <Pressable
-              style={[
-                styles.modalSubmitButton,
-                !newComment.trim() && styles.modalSubmitButtonDisabled
-              ]}
+              style={[styles.modalSubmitButton, !newComment.trim() && styles.modalSubmitButtonDisabled]}
               onPress={handleSubmitComment}
               disabled={!newComment.trim() || loading}
             >
-              <Text style={[
-                styles.modalSubmitText,
-                !newComment.trim() && styles.modalSubmitTextDisabled
-              ]}>
+              <Text style={[styles.modalSubmitText, !newComment.trim() && styles.modalSubmitTextDisabled]}>
                 {loading ? 'Posting...' : 'Post'}
               </Text>
             </Pressable>
           </View>
 
-          <View style={styles.modalContent}>
-            <View style={styles.modalAuthorSection}>
-              <View style={styles.modalAvatar}>
-                <Ionicons name="person" size={20} color={theme.colors.gray600} />
-              </View>
-              <View>
-                <Text style={styles.modalAuthorName}>Posting as {mockUsers['1'].name}</Text>
-                <Text style={styles.modalAuthorMeta}>{mockUsers['1'].title}</Text>
-              </View>
-            </View>
+          {Platform.OS === 'web' ? (
+            <View style={{ flex: 1 }}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalAuthorSection}>
+                  <View style={styles.modalAvatar}>
+                    <Text style={{ color: theme.colors.gray600 }}>🙂</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.modalAuthorName}>Add your comment</Text>
+                    <Text style={styles.modalAuthorMeta}>Be respectful and constructive</Text>
+                  </View>
+                </View>
 
-            <TextInput
-              style={styles.modalTextInput}
-              placeholder="Share your thoughts on this discussion..."
-              value={newComment}
-              onChangeText={setNewComment}
-              multiline
-              autoFocus
-              textAlignVertical="top"
-            />
-            
-            <View style={styles.modalFooter}>
-              <Text style={styles.modalHint}>
-                Be respectful and constructive in your comments
-              </Text>
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="Share your thoughts on this discussion..."
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                  autoFocus
+                  textAlignVertical="top"
+                />
+
+                <View style={styles.modalFooter}>
+                  <Text style={styles.modalHint}>Thank you for contributing</Text>
+                </View>
+              </View>
             </View>
-          </View>
+          ) : (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+              style={{ flex: 1 }}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalAuthorSection}>
+                  <View style={styles.modalAvatar}>
+                    <Ionicons name="person" size={20} color={theme.colors.gray600} />
+                  </View>
+                  <View>
+                    <Text style={styles.modalAuthorName}>Add your comment</Text>
+                    <Text style={styles.modalAuthorMeta}>Be respectful and constructive</Text>
+                  </View>
+                </View>
+
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="Share your thoughts on this discussion..."
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                  autoFocus
+                  textAlignVertical="top"
+                />
+
+                <View style={styles.modalFooter}>
+                  <Text style={styles.modalHint}>Thank you for contributing</Text>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -602,7 +502,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.md,
   },
-  
+
   // Post styles
   postCard: {
     marginBottom: theme.spacing.lg,
@@ -660,6 +560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
+    alignItems: 'center',
     marginBottom: theme.spacing.md,
   },
   tag: {
@@ -673,6 +574,11 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 11,
     fontWeight: '500',
+  },
+  moreTagsText: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+    fontStyle: 'italic',
   },
   postActions: {
     flexDirection: 'row',
@@ -697,39 +603,113 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Comments styles
+  // Comments
   commentsSection: {
-    marginBottom: theme.spacing.xxl,
+    marginTop: theme.spacing.lg,
   },
   commentsSectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.sm,
   },
   commentsSectionTitle: {
-    ...theme.typography.h5,
+    ...theme.typography.h6,
     color: theme.colors.textPrimary,
-    fontWeight: '600',
   },
   postCommentLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.xs,
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
   },
   postCommentText: {
     ...theme.typography.body2,
     color: theme.colors.primary,
     fontWeight: '600',
   },
+  commentsList: {
+    gap: theme.spacing.sm,
+  },
+  commentCard: {
+    padding: theme.spacing.md,
+  },
+  commentContainer: {},
+  replyContainer: {
+    marginLeft: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.xs,
+  },
+  commentAuthor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  commentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentAuthorDetails: {},
+  commentAuthorName: {
+    ...theme.typography.body2,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  commentMeta: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+  },
+  commentText: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    lineHeight: 22,
+    marginTop: theme.spacing.xs,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+  },
+  commentActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  commentActionText: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  repliesContainer: {
+    marginTop: theme.spacing.sm,
+    gap: theme.spacing.sm,
+  },
+  replyInput: {
+    marginTop: theme.spacing.sm,
+    gap: theme.spacing.sm,
+  },
   commentInput: {
     ...theme.typography.body1,
     color: theme.colors.textPrimary,
-    minHeight: 60,
-    textAlignVertical: 'top',
-    marginBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    minHeight: 44,
+  },
+  replyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
   },
   submitButton: {
     backgroundColor: theme.colors.primary,
@@ -744,82 +724,6 @@ const styles = StyleSheet.create({
     ...theme.typography.body2,
     color: theme.colors.white,
     fontWeight: '600',
-  },
-  commentsList: {
-    gap: theme.spacing.sm,
-  },
-  commentCard: {
-    backgroundColor: theme.colors.surface,
-  },
-  commentContainer: {
-    paddingVertical: theme.spacing.xs,
-  },
-  replyContainer: {
-    marginLeft: theme.spacing.lg,
-    paddingLeft: theme.spacing.md,
-    borderLeftWidth: 2,
-    borderLeftColor: theme.colors.gray200,
-  },
-  commentHeader: {
-    marginBottom: theme.spacing.xs,
-  },
-  commentAuthor: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  commentAuthorDetails: {
-    flex: 1,
-  },
-  commentAuthorName: {
-    ...theme.typography.body2,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
-  commentMeta: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-  },
-  commentText: {
-    ...theme.typography.body2,
-    color: theme.colors.textPrimary,
-    lineHeight: 20,
-    marginBottom: theme.spacing.sm,
-    marginLeft: theme.spacing.xl + theme.spacing.sm,
-  },
-  commentActions: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-    marginLeft: theme.spacing.xl + theme.spacing.sm,
-  },
-  commentActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-  },
-  commentActionText: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  repliesContainer: {
-    marginTop: theme.spacing.sm,
-  },
-  replyInput: {
-    marginTop: theme.spacing.sm,
-    marginLeft: theme.spacing.xl + theme.spacing.sm,
-  },
-  replyActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing.sm,
   },
   cancelButton: {
     paddingHorizontal: theme.spacing.md,

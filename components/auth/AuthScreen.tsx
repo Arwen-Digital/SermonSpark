@@ -55,7 +55,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
         // Create username from email (before @ symbol)
         const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
         
-        // Signup with Strapi
+        // Signup with Supabase
         const authResponse = await authService.signup({
           username,
           email: email.trim(),
@@ -78,7 +78,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           return;
         }
         
-        // Signin with Strapi
+        // Signin with Supabase
         const authResponse = await authService.signin({
           identifier: email.trim(),
           password,
@@ -92,7 +92,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           return;
         }
         
-        // Forgot password with Strapi
+        // Forgot password with Supabase
         await authService.forgotPassword(email.trim());
         Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
         setMode('signin');

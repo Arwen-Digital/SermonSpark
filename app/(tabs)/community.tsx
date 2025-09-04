@@ -7,6 +7,7 @@ import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { router, useFocusEffect } from 'expo-router';
 import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
+import authService from '@/services/supabaseAuthService';
 
 
 const FILTER_TABS = [
@@ -25,10 +26,16 @@ export default function CommunityScreen() {
 
   const loadPosts = useCallback(async () => {
     try {
+      // Ensure current user has a profile so their posts show author info
+      await authService.ensureProfileExists();
+      console.log('Loading community posts...');
       const data = await communityService.getAllPosts();
+      console.log('Loaded community posts:', data.length);
       setPosts(data);
     } catch (error) {
       console.error('Error loading community posts:', error);
+      // Still set an empty array so the UI shows the empty state
+      setPosts([]);
     }
   }, []);
 
@@ -91,7 +98,7 @@ export default function CommunityScreen() {
   };
 
   const handleComment = (post: CommunityPostDto) => {
-    router.push(`/community/${post.id}#comments`);
+    router.push({ pathname: `/community/${post.id}`, params: { focus: 'comments' } });
   };
 
   const handleShare = (post: CommunityPostDto) => {
