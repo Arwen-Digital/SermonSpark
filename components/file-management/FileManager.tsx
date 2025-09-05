@@ -147,7 +147,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.titleSection}>
+      {/* <View style={styles.titleSection}>
         
         <Text style={styles.welcomeText}>Good morning, Arnold</Text>
         <Text style={styles.greeting}>Welcome to YouPreacher</Text>
@@ -157,7 +157,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
         <View style={styles.profileAvatar}>
           <Ionicons name="person" size={20} color={theme.colors.gray600} />
         </View>
-      </Pressable>
+      </Pressable> */}
     </View>
   );
 
@@ -395,13 +395,11 @@ export const FileManager: React.FC<FileManagerProps> = ({
 
   return (
     <View style={styles.container}>
-      {renderHeader()}
-      {renderQuickActions()}
-      {renderSearchBar()}
-      {renderFilters()}
+      {/* {renderHeader()} */}
+     
       <View style={styles.sermonsSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Sermons</Text>
+          <Text style={styles.headerTitle}>My Sermons</Text>
           <Pressable 
             onPress={() => {
               if (showSearchField) {
@@ -419,6 +417,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
             />
           </Pressable>
         </View>
+        {renderQuickActions()}
+      {renderSearchBar()}
+      {renderFilters()}
         {renderSermons()}
       </View>
     </View>
@@ -437,6 +438,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
     paddingTop: theme.spacing.sm,
+  },
+  headerTitle: {
+    ...theme.typography.h2,
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
   },
   titleSection: {
     flex: 1,
