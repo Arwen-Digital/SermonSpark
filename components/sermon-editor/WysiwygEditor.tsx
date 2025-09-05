@@ -30,32 +30,33 @@ interface ParsedSegment {
   numberedList?: boolean;
 }
 
-export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>(
-  (
-    {
-      value,
-      onChangeText,
-      onSelectionChange,
-      placeholder,
-      placeholderTextColor,
-      style,
-      viewMode = 'formatted',
-    },
-    ref
-  ) => {
+export const WysiwygEditor = forwardRef((
+  {
+    value,
+    onChangeText,
+    onSelectionChange,
+    placeholder,
+    placeholderTextColor,
+    style,
+    viewMode = 'formatted',
+  }: WysiwygEditorProps,
+  ref: React.Ref<WysiwygEditorHandle>
+) => {
     const [isFocused, setIsFocused] = useState(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
     const [selection, setSelection] = useState({ start: 0, end: 0 });
     const [scrollY, setScrollY] = useState(0);
     const [hasSelection, setHasSelection] = useState(false);
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
     const textInputRef = useRef<TextInput>(null);
     const scrollViewRef = useRef<ScrollView>(null);
     const containerRef = useRef<View>(null);
+    const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     
     // Get screen dimensions
     const screenHeight = Dimensions.get('window').height;
 
-    // Keyboard event listeners
+    // Keyboard event listeners and cleanup
     useEffect(() => {
       const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
         setKeyboardHeight(e.endCoordinates.height);
@@ -68,50 +69,76 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
       return () => {
         keyboardDidShowListener.remove();
         keyboardDidHideListener.remove();
+        // Clear any pending scroll timeout
+        if (userScrollTimeoutRef.current) {
+          clearTimeout(userScrollTimeoutRef.current);
+        }
       };
     }, []);
 
     const scrollToKeepCursorVisible = useCallback(() => {
-      if (!containerRef.current || !textInputRef.current || keyboardHeight === 0) {
+      // Much more restrictive conditions to prevent unwanted scrolling
+      if (!containerRef.current || 
+          !textInputRef.current || 
+          keyboardHeight === 0 || 
+          !isFocused || 
+          isUserScrolling ||
+          // Don't auto-scroll if we have selected text (formatting operations)
+          hasSelection ||
+          // Don't auto-scroll in preview mode
+          viewMode === 'formatted') {
         return;
       }
       
-      // Calculate approximate cursor position based on text length and selection
+      // Only auto-scroll when actively typing (cursor at end of text)
+      const isAtEndOfText = selection.start === value.length && selection.end === value.length;
+      if (!isAtEndOfText) {
+        return;
+      }
+      
+      // Simplified cursor visibility calculation
       const lineHeight = 24;
       const padding = 16;
       const textBeforeCursor = value.substring(0, selection.start);
       const lines = textBeforeCursor.split('\n').length;
       const approximateCursorY = (lines - 1) * lineHeight + padding;
       
-      // Calculate available space above keyboard (conservative estimate)
-      const headerHeight = 120; // Approximate header height
-      const toolbarHeight = 50; // Formatting toolbar height
-      const safetyMargin = 80; // Extra margin for safety
-      const availableHeight = screenHeight - keyboardHeight - headerHeight - toolbarHeight - safetyMargin;
+      // Much more conservative height calculation
+      const reservedHeight = 300; // More space reserved
+      const availableHeight = screenHeight - keyboardHeight - reservedHeight;
       
-      // Calculate cursor screen position relative to current scroll
+      // Only scroll if cursor is WAY out of view (bigger margin)
       const cursorScreenPosition = approximateCursorY - scrollY;
+      const margin = 100; // Bigger margin = less aggressive scrolling
       
-      // If cursor is below the visible area or too close to keyboard
-      if (cursorScreenPosition > availableHeight || cursorScreenPosition < 0) {
-        const targetScrollY = Math.max(0, approximateCursorY - availableHeight + 50);
+      // Only scroll down, never up (prevent jumping to top)
+      if (cursorScreenPosition > availableHeight - margin) {
+        const targetScrollY = approximateCursorY - availableHeight + margin;
         scrollViewRef.current?.scrollTo({
-          y: targetScrollY,
+          y: Math.max(scrollY, targetScrollY), // Never scroll up from current position
           animated: true,
         });
-        setScrollY(targetScrollY);
       }
-    }, [keyboardHeight, selection, value, screenHeight, scrollY]);
+    }, [keyboardHeight, selection.start, selection.end, value, screenHeight, scrollY, isFocused, isUserScrolling, hasSelection, viewMode]);
     
-    // Auto-scroll when selection changes and keyboard is visible
+    // Auto-scroll when selection changes and keyboard is visible (very restricted)
     useEffect(() => {
-      if (isFocused && keyboardHeight > 0 && textInputRef.current) {
-        // Delay to ensure layout has updated
-        setTimeout(() => {
+      // Only allow auto-scroll for typing at end of document
+      if (isFocused && 
+          keyboardHeight > 0 && 
+          textInputRef.current &&
+          !hasSelection &&
+          viewMode === 'markup' &&
+          !isUserScrolling) {
+        
+        // Much longer debounce to prevent interference
+        const timeoutId = setTimeout(() => {
           scrollToKeepCursorVisible();
-        }, 100);
+        }, 500);
+        
+        return () => clearTimeout(timeoutId);
       }
-    }, [selection, isFocused, keyboardHeight, scrollToKeepCursorVisible]);
+    }, [selection.start, isFocused, keyboardHeight, scrollToKeepCursorVisible, hasSelection, viewMode, isUserScrolling]);
 
     // Auto-focus/blur when switching view modes
     useEffect(() => {
@@ -338,16 +365,34 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
     const handleBlur = () => {
       // In markup mode, stay focused (always editing)
       // In preview mode, blur if no selection (return to formatted view)
+      // On mobile, delay blur to allow for formatting button presses
       if (viewMode === 'formatted' && !hasSelection) {
-        setIsFocused(false);
+        if (Platform.OS !== 'web') {
+          // On mobile, delay blur to allow formatting toolbar interaction
+          setTimeout(() => {
+            if (!hasSelection) {
+              setIsFocused(false);
+            }
+          }, 150);
+        } else {
+          setIsFocused(false);
+        }
       }
     };
 
     const handleSelectionChange = (event: any) => {
       const { start, end } = event.nativeEvent.selection;
       setSelection({ start, end });
-      setHasSelection(start !== end);
+      
+      const hasTextSelected = start !== end;
+      setHasSelection(hasTextSelected);
+      
       onSelectionChange?.(event);
+      
+      // On mobile, keep the editor focused when text is selected for formatting
+      if (Platform.OS !== 'web' && hasTextSelected) {
+        setIsFocused(true);
+      }
       
       // Ensure cursor stays visible when selection changes
       if (isFocused && keyboardHeight > 0) {
@@ -366,11 +411,16 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
         setHasSelection(false);
       }
       
-      // Ensure cursor stays visible when text changes
-      if (isFocused && keyboardHeight > 0) {
+      // Only auto-scroll when actively typing new content (not formatting)
+      if (isFocused && 
+          keyboardHeight > 0 && 
+          !hasSelection && 
+          viewMode === 'markup' &&
+          !isUserScrolling &&
+          text.length > value.length) { // Only when adding text
         setTimeout(() => {
           scrollToKeepCursorVisible();
-        }, 150);
+        }, 400);
       }
     };
 
@@ -391,15 +441,36 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
             showsVerticalScrollIndicator={true}
             automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             onScroll={({ nativeEvent }) => {
-              setScrollY(nativeEvent.contentOffset.y);
+              // Track scroll position and detect user scrolling
+              if (keyboardHeight > 0) {
+                setScrollY(nativeEvent.contentOffset.y);
+              }
+              
+              // Detect user manual scrolling
+              setIsUserScrolling(true);
+              
+              // Clear previous timeout
+              if (userScrollTimeoutRef.current) {
+                clearTimeout(userScrollTimeoutRef.current);
+              }
+              
+              // Reset user scrolling flag after user stops scrolling
+              // Longer delay to prevent auto-scroll interference
+              userScrollTimeoutRef.current = setTimeout(() => {
+                setIsUserScrolling(false);
+              }, 2000);
             }}
-            scrollEventThrottle={16}
+            scrollEventThrottle={100}
             onContentSizeChange={() => {
-              // Auto-scroll to keep cursor visible when content grows and keyboard is visible
-              if (isFocused && keyboardHeight > 0) {
+              // Very restrictive auto-scroll on content size change
+              if (isFocused && 
+                  keyboardHeight > 0 && 
+                  !hasSelection && 
+                  !isUserScrolling && 
+                  viewMode === 'markup') {
                 setTimeout(() => {
                   scrollToKeepCursorVisible();
-                }, 50);
+                }, 200);
               }
             }}
           >
@@ -420,14 +491,23 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
                   textAlignVertical="top"
                   selectionColor={theme.colors.primary}
                   scrollEnabled={false}
-                  style={styles.textInput}
+                  style={[
+                    styles.textInput,
+                    Platform.OS !== 'web' && { 
+                      // Better mobile text selection
+                      textSelectionColor: theme.colors.primary + '40',
+                    }
+                  ]}
                   blurOnSubmit={false}
+                  // Mobile-specific props for better text selection
+                  selectTextOnFocus={Platform.OS !== 'web' ? false : undefined}
+                  contextMenuHidden={Platform.OS !== 'web' ? false : undefined}
                   onKeyPress={({ nativeEvent }) => {
-                    // Auto-scroll when user is typing to keep cursor visible
-                    if (nativeEvent.key !== 'Backspace' && keyboardHeight > 0) {
+                    // Reduced frequency auto-scroll when typing
+                    if (nativeEvent.key === 'Enter' && keyboardHeight > 0) {
                       setTimeout(() => {
                         scrollToKeepCursorVisible();
-                      }, 50);
+                      }, 100);
                     }
                   }}
                 />
@@ -449,14 +529,23 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
                       textAlignVertical="top"
                       selectionColor={theme.colors.primary}
                       scrollEnabled={false}
-                      style={styles.textInput}
+                      style={[
+                        styles.textInput,
+                        Platform.OS !== 'web' && { 
+                          // Better mobile text selection
+                          textSelectionColor: theme.colors.primary + '40',
+                        }
+                      ]}
                       blurOnSubmit={false}
+                      // Mobile-specific props for better text selection
+                      selectTextOnFocus={Platform.OS !== 'web' ? false : undefined}
+                      contextMenuHidden={Platform.OS !== 'web' ? false : undefined}
                       onKeyPress={({ nativeEvent }) => {
-                        // Auto-scroll when user is typing to keep cursor visible
-                        if (nativeEvent.key !== 'Backspace' && keyboardHeight > 0) {
+                        // Reduced frequency auto-scroll when typing
+                        if (nativeEvent.key === 'Enter' && keyboardHeight > 0) {
                           setTimeout(() => {
                             scrollToKeepCursorVisible();
-                          }, 50);
+                          }, 100);
                         }
                       }}
                     />
@@ -485,8 +574,7 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
         </KeyboardAvoidingView>
       </View>
     );
-  }
-);
+});
 
 WysiwygEditor.displayName = 'WysiwygEditor';
 

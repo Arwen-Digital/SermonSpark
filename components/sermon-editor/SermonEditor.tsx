@@ -252,6 +252,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       newCursorPosition = insertPosition + before.length;
     }
     
+    // Mobile-specific: Dismiss floating toolbar by clearing selection temporarily
+    if (Platform.OS !== 'web' && selectedText) {
+      setTextSelection({ start: 0, end: 0 });
+      setTimeout(() => {
+        setTextSelection({ start: newCursorPosition, end: newCursorPosition });
+      }, 50);
+    }
+    
     // Use direct manipulation to set content and selection atomically
     if (wysiwygEditorRef.current?.setContentAndSelection) {
       // Update parent state first to prevent conflicts
@@ -273,7 +281,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
         if (wysiwygEditorRef.current?.setSelection) {
           wysiwygEditorRef.current.setSelection(newCursorPosition, newCursorPosition);
         }
-      }, 100);
+      }, Platform.OS !== 'web' ? 200 : 100);
     }
   };
 
@@ -401,11 +409,41 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const renderContent = () => {
     switch (currentTab) {
       case 'content':
+        const hasSelectedText = textSelection.start !== textSelection.end;
         return (
           <View style={styles.contentEditorContainer}>
+            {/* Mobile Floating Toolbar - appears when text is selected */}
+            {!isLargeScreen && hasSelectedText && (
+              <View style={styles.mobileFloatingToolbar}>
+                <Text style={styles.floatingToolbarTitle}>Format Selection</Text>
+                <ScrollView 
+                  horizontal 
+                  style={styles.floatingToolbarScroll}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.floatingToolbarContent}
+                >
+                  <Pressable style={styles.floatingToolbarButton} onPress={() => insertFormatting('**', '**')}>
+                    <Text style={styles.boldButtonText}>B</Text>
+                  </Pressable>
+                  <Pressable style={styles.floatingToolbarButton} onPress={() => insertFormatting('*', '*')}>
+                    <Text style={styles.italicButtonText}>I</Text>
+                  </Pressable>
+                  <Pressable style={styles.floatingToolbarButton} onPress={() => insertFormatting('==', '==')}>
+                    <Ionicons name="color-fill" size={16} color={theme.colors.warning} />
+                  </Pressable>
+                  <Pressable style={styles.floatingToolbarButton} onPress={() => insertFormatting('## ', '')}>
+                    <Text style={styles.headingButtonText}>H2</Text>
+                  </Pressable>
+                  <Pressable style={styles.floatingToolbarButton} onPress={() => insertFormatting('### ', '')}>
+                    <Text style={styles.headingButtonText}>H3</Text>
+                  </Pressable>
+                </ScrollView>
+              </View>
+            )}
+
             <View style={styles.formattingToolbar}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {textSelection.start !== textSelection.end && (
+                {hasSelectedText && isLargeScreen && (
                   <View style={styles.selectionIndicator}>
                     <Text style={styles.selectionIndicatorText}>Text selected</Text>
                   </View>
@@ -1105,6 +1143,55 @@ const styles = StyleSheet.create({
   },
   viewModeToggleTextActive: {
     color: theme.colors.primary,
+  },
+  
+  // Mobile floating toolbar styles
+  mobileFloatingToolbar: {
+    position: 'absolute',
+    top: -80,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    marginHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: theme.colors.gray200,
+  },
+  floatingToolbarTitle: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 12,
+    marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  floatingToolbarScroll: {
+    flexGrow: 0,
+  },
+  floatingToolbarContent: {
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xs,
+  },
+  floatingToolbarButton: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    marginHorizontal: theme.spacing.xs,
+    minWidth: 44,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.gray200,
   },
   
   // Modal styles

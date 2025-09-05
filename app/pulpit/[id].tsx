@@ -141,6 +141,61 @@ export default function PulpitViewPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Custom markdown rules to highlight ==text== only (preserve parent formatting via inheritedStyles)
+  const highlightRules = {
+    text: (
+      node: any,
+      _children: any,
+      _parent: any,
+      styles: any,
+      inheritedStyles: any = {}
+    ) => {
+      const content: string = node.content ?? '';
+      if (!content) return null;
+
+      // No highlight syntax: use default text rendering with inherited styles
+      if (content.indexOf('==') === -1) {
+        return (
+          <Text key={node.key} style={[inheritedStyles, styles.text]}>
+            {content}
+          </Text>
+        );
+      }
+
+      const parts: React.ReactNode[] = [];
+      let lastIndex = 0;
+      let idx = 0;
+      const regex = /==(.+?)==/g;
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(content.slice(lastIndex, match.index));
+        }
+        parts.push(
+          <Text
+            key={`h-${idx}-${match.index}`}
+            style={[inheritedStyles, styles.text, pulpitMarkdownStyles.highlight]}
+          >
+            {match[1]}
+          </Text>
+        );
+        lastIndex = match.index + match[0].length;
+        idx++;
+      }
+
+      if (lastIndex < content.length) {
+        parts.push(content.slice(lastIndex));
+      }
+
+      return (
+        <Text key={`text-${node.key || Math.random()}`} style={[inheritedStyles, styles.text]}>
+          {parts}
+        </Text>
+      );
+    },
+  } as const;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Sticky Header */}
@@ -174,7 +229,9 @@ export default function PulpitViewPage() {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Markdown style={pulpitMarkdownStyles}>{sermon.content}</Markdown>
+        <Markdown style={pulpitMarkdownStyles} rules={highlightRules}>
+          {sermon.content || ''}
+        </Markdown>
         <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
@@ -281,41 +338,37 @@ const styles = StyleSheet.create({
 });
 
 const pulpitMarkdownStyles = {
+  // Match sermon/[id] typography for consistency
   body: {
     ...theme.typography.body1,
     color: theme.colors.textPrimary,
-    lineHeight: 32,
-    fontSize: 18,
-    fontWeight: '400',
+    lineHeight: 28,
+    fontSize: 16,
   },
   heading1: {
-    ...theme.typography.h2,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.lg,
-    marginTop: theme.spacing.xl,
-    fontWeight: '700',
-  },
-  heading2: {
     ...theme.typography.h3,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
     marginTop: theme.spacing.lg,
-    fontWeight: '600',
   },
-  heading3: {
+  heading2: {
     ...theme.typography.h4,
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
-    marginTop: theme.spacing.lg,
-    fontWeight: '600',
+    marginBottom: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  heading3: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.sm,
+    marginTop: theme.spacing.md,
   },
   paragraph: {
     ...theme.typography.body1,
     color: theme.colors.textPrimary,
-    lineHeight: 32,
-    fontSize: 18,
-    marginBottom: theme.spacing.lg,
-    fontWeight: '400',
+    lineHeight: 28,
+    fontSize: 16,
+    marginBottom: theme.spacing.md,
   },
   strong: {
     fontWeight: '700',
@@ -326,17 +379,22 @@ const pulpitMarkdownStyles = {
   list_item: {
     ...theme.typography.body1,
     color: theme.colors.textPrimary,
-    lineHeight: 28,
-    fontSize: 18,
-    marginBottom: theme.spacing.sm,
+    lineHeight: 24,
+    marginBottom: theme.spacing.xs,
   },
   blockquote: {
     backgroundColor: theme.colors.gray100,
     borderLeftWidth: 4,
     borderLeftColor: theme.colors.primary,
-    paddingLeft: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    marginVertical: theme.spacing.lg,
+    paddingLeft: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    marginVertical: theme.spacing.md,
     fontStyle: 'italic',
+  },
+  // Only used for inline ==highlight== segments; does not change font size/weight
+  highlight: {
+    backgroundColor: '#FFF59D',
+    paddingHorizontal: 4,
+    borderRadius: 3,
   },
 };

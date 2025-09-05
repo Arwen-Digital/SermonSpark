@@ -112,6 +112,60 @@ export default function SermonDetailPage() {
     }
   };
 
+  // Highlight ==text== while preserving inherited formatting
+  const highlightRules = {
+    text: (
+      node: any,
+      _children: any,
+      _parent: any,
+      styles: any,
+      inheritedStyles: any = {}
+    ) => {
+      const content: string = node.content ?? '';
+      if (!content) return null;
+
+      if (content.indexOf('==') === -1) {
+        return (
+          <Text key={node.key} style={[inheritedStyles, styles.text]}>
+            {content}
+          </Text>
+        );
+      }
+
+      const parts: React.ReactNode[] = [];
+      let lastIndex = 0;
+      let idx = 0;
+      const regex = /==(.+?)==/g;
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(content.slice(lastIndex, match.index));
+        }
+        parts.push(
+          <Text
+            key={`h-${idx}-${match.index}`}
+            style={[inheritedStyles, styles.text, markdownStyles.highlight]}
+          >
+            {match[1]}
+          </Text>
+        );
+        lastIndex = match.index + match[0].length;
+        idx++;
+      }
+
+      if (lastIndex < content.length) {
+        parts.push(content.slice(lastIndex));
+      }
+
+      return (
+        <Text key={`text-${node.key || Math.random()}`} style={[inheritedStyles, styles.text]}>
+          {parts}
+        </Text>
+      );
+    },
+  } as const;
+
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
@@ -181,7 +235,9 @@ export default function SermonDetailPage() {
 
         {/* Sermon Content */}
         <Card style={styles.contentCard}>
-          <Markdown style={markdownStyles}>{sermon.content}</Markdown>
+          <Markdown style={markdownStyles} rules={highlightRules}>
+            {sermon.content || ''}
+          </Markdown>
         </Card>
 
       </ScrollView>
@@ -380,5 +436,11 @@ const markdownStyles = {
     paddingVertical: theme.spacing.sm,
     marginVertical: theme.spacing.md,
     fontStyle: 'italic',
+  },
+  // Inline highlight span for ==text==
+  highlight: {
+    backgroundColor: '#FFF59D',
+    paddingHorizontal: 4,
+    borderRadius: 3,
   },
 };
