@@ -136,12 +136,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.appName}>YouPreacher</Text>
+      {/* <Text style={styles.appName}>YouPreacher</Text>
       <Text style={styles.tagline}>
         {mode === 'signin' && 'Sign in to continue'}
         {mode === 'signup' && 'Create your account'}
         {mode === 'forgot' && 'Reset your password'}
-      </Text>
+      </Text> */}
     </View>
   );
 
