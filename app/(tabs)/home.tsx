@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Pressable, ImageBackground, Dimensions } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
-import sermonService, { SermonDto } from '@/services/supabaseSermonService';
-import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
 import authService from '@/services/supabaseAuthService';
+import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
+import sermonService, { SermonDto } from '@/services/supabaseSermonService';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, ImageBackground, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const motivationalQuotes = [
   "Preach the Word, not your opinions. God's truth transforms hearts, not clever arguments.",
@@ -134,37 +134,38 @@ export default function HomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting */}
-        <View style={styles.greetingContainer}>
-          <Ionicons name={getGreetingIcon()} size={20} color="#666" />
-          <Text style={styles.greetingText}>{getGreeting()}, {userName.toUpperCase()}</Text>
-        </View>
+        <View style={styles.contentWrapper}>
+          {/* Greeting */}
+          <View style={styles.greetingContainer}>
+            <Ionicons name={getGreetingIcon()} size={20} color="#666" />
+            <Text style={styles.greetingText}>{getGreeting()}, {userName.toUpperCase()}</Text>
+          </View>
 
-        {/* Hero Verse Card */}
-        <TouchableOpacity 
-          style={styles.heroCard}
-          onPress={() => {
+          {/* Hero Verse Card */}
+          <TouchableOpacity 
+            style={styles.heroCard}
+            onPress={() => {
             // Cycle to next image for testing
             const nextImage = (currentHeroImage + 1) % heroImages.length;
             console.log('Cycling from image', currentHeroImage, 'to image', nextImage);
             setCurrentHeroImage(nextImage);
-          }}
-        >
-          <ImageBackground 
-            source={heroImages[currentHeroImage]}
-            style={styles.heroBackground}
-            imageStyle={styles.heroBackgroundImage}
+            }}
           >
-            <View style={styles.heroOverlay}>
-              <View style={styles.quoteContainer}>
-                <Text style={styles.quoteText}>{currentQuote}</Text>
+            <ImageBackground 
+              source={heroImages[currentHeroImage]}
+              style={styles.heroBackground}
+              imageStyle={styles.heroBackgroundImage}
+            >
+              <View style={styles.heroOverlay}>
+                <View style={styles.quoteContainer}>
+                  <Text style={styles.quoteText}>{currentQuote}</Text>
+                </View>
               </View>
-            </View>
-          </ImageBackground>
-        </TouchableOpacity>
+            </ImageBackground>
+          </TouchableOpacity>
 
-        {/* Content Cards */}
-        <View style={styles.contentCards}>
+          {/* Content Cards */}
+          <View style={styles.contentCards}>
           {/* Latest Sermon */}
           {sermons.length > 0 && (
             <TouchableOpacity 
@@ -240,6 +241,7 @@ export default function HomeScreen() {
               <View style={styles.cardImage} />
             </View>
           </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -344,10 +346,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
+  contentWrapper: {
+    paddingHorizontal: 15,
+  },
   greetingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: '#f5f5f5',
   },
@@ -359,9 +363,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroCard: {
-    marginHorizontal: 15,
-    marginVertical: 10,
-    borderRadius: 20,
+    marginVertical: 0,
+    borderRadius: 10,
     overflow: 'hidden',
     elevation: 8,
     shadowColor: '#000',
@@ -380,13 +383,13 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
     borderRadius: 20,
     justifyContent: 'flex-end',
     padding: 20,
   },
   quoteContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -399,10 +402,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
     textAlign: 'center',
-    fontStyle: 'italic',
+    // fontStyle: 'italic',
   },
   contentCards: {
-    paddingHorizontal: 15,
     paddingTop: 10,
   },
   contentCard: {
