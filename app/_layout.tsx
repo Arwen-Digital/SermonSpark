@@ -4,9 +4,11 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import React from 'react';
+import { Platform, View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import authService from '@/services/supabaseAuthService';
+import { theme } from '@/constants/Theme';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -43,32 +45,50 @@ export default function RootLayout() {
     return null;
   }
 
+  const content = (
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="auth" options={{ headerShown: false }} />
+      <Stack.Screen name="sermon/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="sermon/edit/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="sermon/create" options={{ headerShown: false }} />
+      <Stack.Screen name="community/[postId]" options={{ headerShown: false }} />
+      <Stack.Screen name="community/create" options={{ headerShown: false }} />
+      <Stack.Screen name="research/sermon-title-generator" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="series/index"
+        options={{
+          headerShown: false,
+          // When we call router.replace from My Series back button,
+          // animate like a back/pop (slide to the right on iOS)
+          animationTypeForReplace: 'pop',
+        }}
+      />
+      <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="series/create" options={{ headerShown: false }} />
+      <Stack.Screen name="series/[id]/edit" options={{ headerShown: false }} />
+      <Stack.Screen name="pulpit/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="sermon/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="sermon/edit/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="sermon/create" options={{ headerShown: false }} />
-        <Stack.Screen name="community/[postId]" options={{ headerShown: false }} />
-        <Stack.Screen name="community/create" options={{ headerShown: false }} />
-        <Stack.Screen name="research/sermon-title-generator" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="series/index"
-          options={{
-            headerShown: false,
-            // When we call router.replace from My Series back button,
-            // animate like a back/pop (slide to the right on iOS)
-            animationTypeForReplace: 'pop',
-          }}
-        />
-        <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="series/create" options={{ headerShown: false }} />
-        <Stack.Screen name="series/[id]/edit" options={{ headerShown: false }} />
-        <Stack.Screen name="pulpit/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <View style={Platform.select({
+        web: { 
+          flex: 1, 
+          backgroundColor: theme.colors.background 
+        },
+        default: { flex: 1 }
+      })}>
+        {Platform.OS === 'web' ? (
+          <View style={{ flex: 1, maxWidth: 1200, alignSelf: 'center', width: '100%' }}>
+            {content}
+          </View>
+        ) : (
+          content
+        )}
+      </View>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
