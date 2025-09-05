@@ -9,11 +9,14 @@ interface WysiwygEditorProps {
   placeholder?: string;
   placeholderTextColor?: string;
   style?: any;
+  viewMode?: 'markup' | 'formatted';
 }
 
 export interface WysiwygEditorHandle {
   focus: () => void;
   setSelection: (start: number, end: number) => void;
+  getTextInputRef: () => React.RefObject<TextInput>;
+  setContentAndSelection: (content: string, selectionStart: number, selectionEnd: number) => void;
 }
 
 interface ParsedSegment {
@@ -36,6 +39,7 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
       placeholder,
       placeholderTextColor,
       style,
+      viewMode = 'formatted',
     },
     ref
   ) => {
@@ -109,6 +113,23 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
       }
     }, [selection, isFocused, keyboardHeight, scrollToKeepCursorVisible]);
 
+    // Auto-focus/blur when switching view modes
+    useEffect(() => {
+      if (viewMode === 'markup') {
+        // Switching TO markup mode - focus the TextInput
+        setIsFocused(true);
+        setTimeout(() => {
+          textInputRef.current?.focus();
+        }, 50);
+      } else if (viewMode === 'formatted') {
+        // Switching TO preview mode - blur the TextInput to show formatted view
+        setIsFocused(false);
+        setTimeout(() => {
+          textInputRef.current?.blur();
+        }, 50);
+      }
+    }, [viewMode]);
+
     // Expose methods to parent component
     useImperativeHandle(
       ref,
@@ -134,8 +155,30 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
             }
           }, 50);
         },
+        getTextInputRef: () => textInputRef,
+        setContentAndSelection: (content: string, selectionStart: number, selectionEnd: number) => {
+          // Ensure we're in editing mode
+          setIsFocused(true);
+          
+          if (textInputRef.current) {
+            // Update internal state first
+            setSelection({ start: selectionStart, end: selectionEnd });
+            setHasSelection(selectionStart !== selectionEnd);
+            
+            // Call onChangeText to update parent state immediately
+            onChangeText(content);
+            
+            // For both web and mobile, use a coordinated approach
+            // Set selection in the next microtask to ensure content is updated
+            Promise.resolve().then(() => {
+              if (textInputRef.current && textInputRef.current.setSelection) {
+                textInputRef.current.setSelection(selectionStart, selectionEnd);
+              }
+            });
+          }
+        },
       }),
-      [isFocused]
+      [isFocused, onChangeText]
     );
 
     const parseMarkdown = (text: string): ParsedSegment[] => {
@@ -293,8 +336,9 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
     };
 
     const handleBlur = () => {
-      // Don't blur if there's an active selection (user might want to format)
-      if (!hasSelection) {
+      // In markup mode, stay focused (always editing)
+      // In preview mode, blur if no selection (return to formatted view)
+      if (viewMode === 'formatted' && !hasSelection) {
         setIsFocused(false);
       }
     };
@@ -315,8 +359,12 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
     
     const handleTextChange = (text: string) => {
       onChangeText(text);
-      // Clear selection state when text changes
-      setHasSelection(false);
+      
+      // Only clear selection state for user-initiated text changes
+      // Don't clear for programmatic changes (like formatting operations)
+      if (!text || text !== value) {
+        setHasSelection(false);
+      }
       
       // Ensure cursor stays visible when text changes
       if (isFocused && keyboardHeight > 0) {
@@ -356,25 +404,9 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
             }}
           >
             <View style={styles.textContainer}>
-              {/* Render formatted text when not focused and no selection */}
-              {!isFocused && !hasSelection && value ? (
-                <Pressable
-                  style={styles.renderContainer}
-                  onPress={() => {
-                    setIsFocused(true);
-                    textInputRef.current?.focus();
-                  }}
-                >
-                  <Text style={styles.renderedText}>
-                    {segments.map((segment, index) => (
-                      <Text key={index} style={getSegmentStyle(segment)}>
-                        {segment.text}
-                      </Text>
-                    ))}
-                  </Text>
-                </Pressable>
-              ) : (
-                /* Show TextInput when focused, has selection, or when there's no content */
+              {/* Show different views based on viewMode - simplified logic */}
+              {viewMode === 'markup' ? (
+                /* MARKUP MODE: Always show raw text editor */
                 <TextInput
                   ref={textInputRef}
                   value={value}
@@ -399,6 +431,54 @@ export const WysiwygEditor = forwardRef<WysiwygEditorHandle, WysiwygEditorProps>
                     }
                   }}
                 />
+              ) : (
+                /* PREVIEW MODE: Show formatted view or editor when editing */
+                <>
+                  {(isFocused || hasSelection || !value) ? (
+                    /* Show TextInput when actively editing */
+                    <TextInput
+                      ref={textInputRef}
+                      value={value}
+                      onChangeText={handleTextChange}
+                      onSelectionChange={handleSelectionChange}
+                      onFocus={handleFocus}
+                      onBlur={handleBlur}
+                      multiline
+                      placeholder={placeholder}
+                      placeholderTextColor={placeholderTextColor}
+                      textAlignVertical="top"
+                      selectionColor={theme.colors.primary}
+                      scrollEnabled={false}
+                      style={styles.textInput}
+                      blurOnSubmit={false}
+                      onKeyPress={({ nativeEvent }) => {
+                        // Auto-scroll when user is typing to keep cursor visible
+                        if (nativeEvent.key !== 'Backspace' && keyboardHeight > 0) {
+                          setTimeout(() => {
+                            scrollToKeepCursorVisible();
+                          }, 50);
+                        }
+                      }}
+                    />
+                  ) : (
+                    /* Show formatted preview */
+                    <Pressable
+                      style={styles.renderContainer}
+                      onPress={() => {
+                        setIsFocused(true);
+                        textInputRef.current?.focus();
+                      }}
+                    >
+                      <Text style={styles.renderedText}>
+                        {segments.map((segment, index) => (
+                          <Text key={index} style={getSegmentStyle(segment)}>
+                            {segment.text}
+                          </Text>
+                        ))}
+                      </Text>
+                    </Pressable>
+                  )}
+                </>
               )}
             </View>
           </ScrollView>

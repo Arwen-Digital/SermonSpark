@@ -76,6 +76,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
+  const [viewMode, setViewMode] = useState<'markup' | 'formatted'>('formatted');
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768; // Tablet and desktop breakpoint
 
@@ -251,21 +252,29 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       newCursorPosition = insertPosition + before.length;
     }
     
-    // Update content first
-    setContent(newContent);
-    
-    // Focus the editor and set selection
-    if (wysiwygEditorRef.current?.focus) {
-      wysiwygEditorRef.current.focus();
-    }
-    
-    // Update selection to position cursor correctly with longer delay
-    setTimeout(() => {
-      if (wysiwygEditorRef.current?.setSelection) {
-        wysiwygEditorRef.current.setSelection(newCursorPosition, newCursorPosition);
-      }
+    // Use direct manipulation to set content and selection atomically
+    if (wysiwygEditorRef.current?.setContentAndSelection) {
+      // Update parent state first to prevent conflicts
+      setContent(newContent);
       setTextSelection({ start: newCursorPosition, end: newCursorPosition });
-    }, 100);
+      
+      // Then use the direct manipulation method
+      wysiwygEditorRef.current.setContentAndSelection(newContent, newCursorPosition, newCursorPosition);
+    } else {
+      // Fallback to previous approach if direct manipulation isn't available
+      setContent(newContent);
+      setTextSelection({ start: newCursorPosition, end: newCursorPosition });
+      
+      if (wysiwygEditorRef.current?.focus) {
+        wysiwygEditorRef.current.focus();
+      }
+      
+      setTimeout(() => {
+        if (wysiwygEditorRef.current?.setSelection) {
+          wysiwygEditorRef.current.setSelection(newCursorPosition, newCursorPosition);
+        }
+      }, 100);
+    }
   };
 
   const handleSelectionChange = (event: any) => {
@@ -402,6 +411,29 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                   </View>
                 )}
                 <View style={styles.toolbarButtons}>
+                  {/* View Mode Toggle */}
+                  <Pressable 
+                    style={[
+                      styles.viewModeToggle,
+                      viewMode === 'markup' && styles.viewModeToggleActive
+                    ]} 
+                    onPress={() => setViewMode(viewMode === 'markup' ? 'formatted' : 'markup')}
+                  >
+                    <Ionicons 
+                      name={viewMode === 'markup' ? 'code-outline' : 'eye-outline'} 
+                      size={16} 
+                      color={viewMode === 'markup' ? theme.colors.primary : theme.colors.textPrimary} 
+                    />
+                    <Text style={[
+                      styles.viewModeToggleText,
+                      viewMode === 'markup' && styles.viewModeToggleTextActive
+                    ]}>
+                      {viewMode === 'markup' ? 'Markup' : 'Preview'}
+                    </Text>
+                  </Pressable>
+                  
+                  <View style={styles.toolbarSeparator} />
+                  
                   <Pressable style={styles.toolbarButton} onPress={() => insertFormatting('**', '**')}>
                     <Text style={styles.boldButtonText}>B</Text>
                   </Pressable>
@@ -454,6 +486,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               value={content}
               onChangeText={setContent}
               onSelectionChange={handleSelectionChange}
+              viewMode={viewMode}
               placeholder="Start writing your sermon content...
 
 Use the formatting buttons above or type directly:
@@ -1046,6 +1079,32 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '600',
     fontSize: 10,
+  },
+  
+  // View mode toggle styles
+  viewModeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    gap: theme.spacing.xs,
+  },
+  viewModeToggleActive: {
+    backgroundColor: theme.colors.primary + '20',
+    borderColor: theme.colors.primary,
+  },
+  viewModeToggleText: {
+    ...theme.typography.caption,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  viewModeToggleTextActive: {
+    color: theme.colors.primary,
   },
   
   // Modal styles
