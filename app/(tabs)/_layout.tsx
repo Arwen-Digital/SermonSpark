@@ -29,6 +29,19 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          href: null, // Hide the index tab
+        }}
+      />
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="sermons"
+        options={{
           title: 'Sermons',
           tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />,
         }}
@@ -43,8 +56,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Community',
-          tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
+          // Hide the Community tab for now, keep route available
+          href: null,
         }}
       />
       <Tabs.Screen

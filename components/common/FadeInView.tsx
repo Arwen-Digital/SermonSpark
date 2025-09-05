@@ -12,10 +12,13 @@ export const FadeInView: React.FC<FadeInViewProps> = ({
   duration = 300, 
   style 
 }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(null);
+  if (fadeAnim.current === null) {
+    fadeAnim.current = new Animated.Value(0);
+  }
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
+    Animated.timing(fadeAnim.current, {
       toValue: 1,
       duration: duration,
       useNativeDriver: true,
@@ -23,7 +26,7 @@ export const FadeInView: React.FC<FadeInViewProps> = ({
   }, [fadeAnim, duration]);
 
   return (
-    <Animated.View style={[{ opacity: fadeAnim }, style]}>
+    <Animated.View style={[{ opacity: fadeAnim.current }, style]}>
       {children}
     </Animated.View>
   );

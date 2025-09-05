@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 export default function AuthPage() {
   const handleAuthenticated = () => {
     // Navigate to main app
-    router.replace('/(tabs)');
+    router.replace('/(tabs)/home');
   };
 
   return (

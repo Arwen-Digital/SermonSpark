@@ -29,7 +29,7 @@ export default function RootLayout() {
       if (!ok && !onAuthRoute) {
         router.replace('/auth');
       } else if (ok && onAuthRoute) {
-        router.replace('/(tabs)');
+        router.replace('/(tabs)/home');
       }
     };
     check();
