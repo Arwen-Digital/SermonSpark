@@ -5,7 +5,7 @@ import sermonService, { SermonDto } from '@/services/supabaseSermonService';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, ImageBackground, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, ImageBackground, Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const motivationalQuotes = [
   "Preach the Word, not your opinions. God's truth transforms hearts, not clever arguments.",
@@ -141,31 +141,34 @@ export default function HomeScreen() {
             <Text style={styles.greetingText}>{getGreeting()}, {userName.toUpperCase()}</Text>
           </View>
 
-          {/* Hero Verse Card */}
-          <TouchableOpacity 
-            style={styles.heroCard}
-            onPress={() => {
-            // Cycle to next image for testing
-            const nextImage = (currentHeroImage + 1) % heroImages.length;
-            console.log('Cycling from image', currentHeroImage, 'to image', nextImage);
-            setCurrentHeroImage(nextImage);
-            }}
-          >
-            <ImageBackground 
-              source={heroImages[currentHeroImage]}
-              style={styles.heroBackground}
-              imageStyle={styles.heroBackgroundImage}
-            >
-              <View style={styles.heroOverlay}>
-                <View style={styles.quoteContainer}>
-                  <Text style={styles.quoteText}>{currentQuote}</Text>
-                </View>
-              </View>
-            </ImageBackground>
-          </TouchableOpacity>
+          {/* Two Column Layout for Web */}
+          {Platform.OS === 'web' ? (
+            <View style={styles.webTwoColumnContainer}>
+              {/* Left Column - Hero Image */}
+              <TouchableOpacity 
+                style={styles.webHeroColumn}
+                onPress={() => {
+                  // Cycle to next image for testing
+                  const nextImage = (currentHeroImage + 1) % heroImages.length;
+                  console.log('Cycling from image', currentHeroImage, 'to image', nextImage);
+                  setCurrentHeroImage(nextImage);
+                }}
+              >
+                <ImageBackground 
+                  source={heroImages[currentHeroImage]}
+                  style={styles.webHeroBackground}
+                  imageStyle={styles.webHeroBackgroundImage}
+                >
+                  <View style={styles.webHeroOverlay}>
+                    <View style={styles.webQuoteContainer}>
+                      <Text style={styles.webQuoteText}>{currentQuote}</Text>
+                    </View>
+                  </View>
+                </ImageBackground>
+              </TouchableOpacity>
 
-          {/* Content Cards */}
-          <View style={styles.contentCards}>
+              {/* Right Column - Action Cards */}
+              <View style={styles.webCardsColumn}>
           {/* Latest Sermon */}
           {sermons.length > 0 && (
             <TouchableOpacity 
@@ -241,8 +244,115 @@ export default function HomeScreen() {
               <View style={styles.cardImage} />
             </View>
           </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              // Mobile/Native Layout
+              <>
+                {/* Hero Verse Card */}
+                <TouchableOpacity 
+                  style={styles.heroCard}
+                  onPress={() => {
+                  // Cycle to next image for testing
+                  const nextImage = (currentHeroImage + 1) % heroImages.length;
+                  console.log('Cycling from image', currentHeroImage, 'to image', nextImage);
+                  setCurrentHeroImage(nextImage);
+                  }}
+                >
+                  <ImageBackground 
+                    source={heroImages[currentHeroImage]}
+                    style={styles.heroBackground}
+                    imageStyle={styles.heroBackgroundImage}
+                  >
+                    <View style={styles.heroOverlay}>
+                      <View style={styles.quoteContainer}>
+                        <Text style={styles.quoteText}>{currentQuote}</Text>
+                      </View>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+
+                {/* Content Cards */}
+                <View style={styles.contentCards}>
+                  {/* Latest Sermon */}
+                  {sermons.length > 0 && (
+                    <TouchableOpacity 
+                      style={styles.contentCard}
+                      onPress={() => router.push(`/sermon/${sermons[0].id}`)}
+                    >
+                      <View style={styles.cardContent}>
+                        <View style={styles.cardLeft}>
+                          <View style={styles.dayBadge}>
+                            <Ionicons name="document-text-outline" size={16} color="#666" />
+                            <Text style={styles.dayText}>Latest Sermon</Text>
+                          </View>
+                          <Text style={styles.cardTitle}>
+                            {sermons[0].title || 'Untitled Sermon'}
+                          </Text>
+                          <View style={styles.progressIndicator} />
+                        </View>
+                        <View style={styles.cardImage} />
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Create New Sermon */}
+                  <TouchableOpacity 
+                    style={styles.contentCard}
+                    onPress={() => router.push('/sermon/create')}
+                  >
+                    <View style={styles.cardContent}>
+                      <View style={styles.cardLeft}>
+                        <View style={styles.dayBadge}>
+                          <Ionicons name="add-outline" size={16} color="#666" />
+                          <Text style={styles.dayText}>New Sermon</Text>
+                        </View>
+                        <Text style={styles.cardTitle}>Create a New Sermon</Text>
+                        <View style={styles.progressIndicator} />
+                      </View>
+                      <View style={styles.cardImage} />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Manage Series */}
+                  <TouchableOpacity 
+                    style={styles.contentCard}
+                    onPress={() => router.push('/series')}
+                  >
+                    <View style={styles.cardContent}>
+                      <View style={styles.cardLeft}>
+                        <View style={styles.dayBadge}>
+                          <Ionicons name="albums-outline" size={16} color="#666" />
+                          <Text style={styles.dayText}>Series</Text>
+                        </View>
+                        <Text style={styles.cardTitle}>Manage Your Series</Text>
+                        <View style={styles.progressIndicator} />
+                      </View>
+                      <View style={styles.cardImage} />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Research */}
+                  <TouchableOpacity 
+                    style={styles.contentCard}
+                    onPress={() => router.push('/(tabs)/research')}
+                  >
+                    <View style={styles.cardContent}>
+                      <View style={styles.cardLeft}>
+                        <View style={styles.dayBadge}>
+                          <Ionicons name="search-outline" size={16} color="#666" />
+                          <Text style={styles.dayText}>Research</Text>
+                        </View>
+                        <Text style={styles.cardTitle}>Research Your Next Sermon</Text>
+                        <View style={styles.progressIndicator} />
+                      </View>
+                      <View style={styles.cardImage} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -478,5 +588,56 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  // Web-specific styles for two-column layout
+  webTwoColumnContainer: {
+    flexDirection: 'row',
+    gap: 30,
+    marginTop: 10,
+    alignItems: 'flex-start',
+  },
+  webHeroColumn: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    aspectRatio: 1, // 1:1 aspect ratio for web hero image
+  },
+  webHeroBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  webHeroBackgroundImage: {
+    borderRadius: 20,
+    resizeMode: 'cover',
+  },
+  webHeroOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    borderRadius: 20,
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  webQuoteContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 15,
+  },
+  webQuoteText: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  webCardsColumn: {
+    flex: 1,
+    gap: 15,
   },
 });

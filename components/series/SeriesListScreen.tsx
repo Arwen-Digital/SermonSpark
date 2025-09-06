@@ -18,13 +18,11 @@ import seriesService, { Series } from '@/services/supabaseSeriesService';
 
 interface SeriesListScreenProps {
   onCreateSeries: () => void;
-  onEditSeries: (series: Series) => void;
   onViewSeries: (series: Series) => void;
 }
 
 export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   onCreateSeries,
-  onEditSeries,
   onViewSeries
 }) => {
   const [series, setSeries] = useState<Series[]>([]);
@@ -102,7 +100,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            onPress={() => router.push('/(tabs)')}
+            onPress={() => router.back()}
             style={styles.backButton}
           >
             <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />
@@ -151,25 +149,14 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
               >
                 {/* Series Header */}
                 <View style={styles.seriesHeader}>
-                  <View style={styles.seriesInfo}>
-                    <Text style={styles.seriesTitle} numberOfLines={2}>
-                      {seriesItem.title}
+                  <Text style={styles.seriesTitle} numberOfLines={2}>
+                    {seriesItem.title}
+                  </Text>
+                  {seriesItem.description && (
+                    <Text style={styles.seriesDescription} numberOfLines={3}>
+                      {seriesItem.description}
                     </Text>
-                    {seriesItem.description && (
-                      <Text style={styles.seriesDescription} numberOfLines={3}>
-                        {seriesItem.description}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.seriesActions}>
-                    <Pressable
-                      style={styles.actionButton}
-                      onPress={() => onEditSeries(seriesItem)}
-                    >
-                      <Ionicons name="pencil" size={20} color={theme.colors.primary} />
-                    </Pressable>
-                    {/* Delete action moved to Series Detail screen */}
-                  </View>
+                  )}
                 </View>
 
                 {/* Series Meta */}
@@ -302,16 +289,10 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   cardContent: {
-    padding: theme.spacing.lg,
+    padding: theme.spacing.sm,
   },
   seriesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: theme.spacing.md,
-  },
-  seriesInfo: {
-    flex: 1,
-    marginRight: theme.spacing.md,
   },
   seriesTitle: {
     fontSize: theme.typography.h5.fontSize,
@@ -323,14 +304,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body1.fontSize,
     color: theme.colors.textSecondary,
     lineHeight: 20,
-  },
-  seriesActions: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  actionButton: {
-    padding: theme.spacing.sm,
-    marginLeft: theme.spacing.xs,
   },
   seriesMeta: {
     flexDirection: 'row',

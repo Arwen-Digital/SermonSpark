@@ -217,6 +217,102 @@ export default function SeriesDetailScreen() {
     </View>
   );
 
+  const handleSermonPress = (sermon: any) => {
+    router.push(`/sermon/${sermon.id}`);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'draft': return theme.colors.gray500;
+      case 'preparing': return theme.colors.warning;
+      case 'ready': return theme.colors.success;
+      case 'delivered': return theme.colors.primary;
+      case 'archived': return theme.colors.gray400;
+      default: return theme.colors.gray500;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'draft': return 'document-outline';
+      case 'preparing': return 'construct-outline';
+      case 'ready': return 'checkmark-circle-outline';
+      case 'delivered': return 'megaphone-outline';
+      case 'archived': return 'archive-outline';
+      default: return 'document-outline';
+    }
+  };
+
+  const formatSermonDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric' 
+    });
+  };
+
+  const renderSermonItem = (sermon: any, index: number) => {
+    const isLastItem = index === (series?.sermons?.length || 0) - 1;
+    return (
+      <Pressable 
+        key={sermon.id} 
+        style={[styles.sermonItem, isLastItem && styles.sermonItemLast]}
+        onPress={() => handleSermonPress(sermon)}
+      >
+      <View style={styles.sermonOrder}>
+        <Text style={styles.sermonOrderText}>{index + 1}</Text>
+      </View>
+      <View style={styles.sermonContent}>
+        <View style={styles.sermonHeader}>
+          <Text style={styles.sermonTitle} numberOfLines={2}>
+            {sermon.title || 'Untitled Sermon'}
+          </Text>
+          <View style={[styles.sermonStatusBadge, { backgroundColor: getStatusColor(sermon.status) + '15' }]}>
+            <Ionicons 
+              name={getStatusIcon(sermon.status) as any} 
+              size={12} 
+              color={getStatusColor(sermon.status)} 
+            />
+            <Text style={[styles.sermonStatusText, { color: getStatusColor(sermon.status) }]}>
+              {sermon.status || 'draft'}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.sermonMeta}>
+          {sermon.date && (
+            <View style={styles.sermonMetaItem}>
+              <Ionicons name="calendar-outline" size={12} color={theme.colors.textSecondary} />
+              <Text style={styles.sermonMetaText}>
+                {formatSermonDate(sermon.date)}
+              </Text>
+            </View>
+          )}
+          {sermon.scripture && (
+            <View style={styles.sermonMetaItem}>
+              <Ionicons name="book-outline" size={12} color={theme.colors.textSecondary} />
+              <Text style={styles.sermonMetaText} numberOfLines={1}>
+                {sermon.scripture}
+              </Text>
+            </View>
+          )}
+          {!sermon.date && !sermon.scripture && sermon.created_at && (
+            <View style={styles.sermonMetaItem}>
+              <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
+              <Text style={styles.sermonMetaText}>
+                Created {formatSermonDate(sermon.created_at)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <View style={styles.sermonActions}>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.textSecondary} />
+      </View>
+    </Pressable>
+    );
+  };
+
   const renderSermonsSection = () => (
     <View style={styles.sermonsSection}>
       <View style={styles.sectionHeader}>
@@ -244,7 +340,11 @@ export default function SeriesDetailScreen() {
           </Pressable>
         </View>
       ) : (
-        <Text style={styles.metaText}>Sermons: {sermonCount}</Text>
+        <View style={styles.sermonsList}>
+          {(series?.sermons || []).map((sermon: any, index: number) => 
+            renderSermonItem(sermon, index)
+          )}
+        </View>
       )}
     </View>
   );
@@ -400,11 +500,23 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '600',
   },
+  sermonsList: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.sm,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+  },
   sermonItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.md,
-    gap: theme.spacing.md,
+    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
+  },
+  sermonItemLast: {
+    borderBottomWidth: 0,
   },
   sermonOrder: {
     width: 32,
@@ -413,15 +525,59 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: theme.spacing.sm,
+    marginRight: theme.spacing.md,
   },
   sermonOrderText: {
     ...theme.typography.caption,
     color: theme.colors.white,
     fontWeight: '700',
   },
-  sermonCardContainer: {
+  sermonContent: {
     flex: 1,
+    marginRight: theme.spacing.sm,
+  },
+  sermonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.xs,
+  },
+  sermonTitle: {
+    ...theme.typography.body1,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    flex: 1,
+    marginRight: theme.spacing.sm,
+  },
+  sermonStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.sm,
+    gap: 4,
+  },
+  sermonStatusText: {
+    ...theme.typography.caption,
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  sermonMeta: {
+    flexDirection: 'column',
+    gap: theme.spacing.xs / 2,
+  },
+  sermonMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  sermonMetaText: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+  },
+  sermonActions: {
+    paddingLeft: theme.spacing.sm,
   },
   emptySermons: {
     alignItems: 'center',

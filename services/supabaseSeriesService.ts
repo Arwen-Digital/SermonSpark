@@ -85,6 +85,8 @@ class SupabaseSeriesService {
           id,
           title,
           status,
+          date,
+          scripture,
           created_at
         )
       `)

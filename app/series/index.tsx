@@ -14,9 +14,6 @@ export default function SeriesScreen() {
     router.push('/series/create');
   };
 
-  const handleEditSeries = (series: Series) => {
-    router.push(`/series/${series.documentId}/edit`);
-  };
 
   return (
     <>
@@ -24,7 +21,6 @@ export default function SeriesScreen() {
       <SafeAreaView style={styles.container}>
         <SeriesListScreen
           onCreateSeries={handleCreateSeries}
-          onEditSeries={handleEditSeries}
           onViewSeries={handleSeriesPress}
         />
       </SafeAreaView>
