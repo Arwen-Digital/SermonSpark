@@ -1,5 +1,6 @@
 import { theme } from '@/constants/Theme';
-import seriesService, { CreateSeriesData, Series } from '@/services/supabaseSeriesService';
+import { seriesRepository } from '@/services/repositories';
+import type { SeriesDTO } from '@/services/repositories/types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,7 +19,7 @@ import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 
 interface SeriesFormScreenProps {
-  series?: Series; // If provided, we're editing; if not, we're creating
+  series?: SeriesDTO; // If provided, we're editing; if not, we're creating
   onSave: () => void;
   onCancel: () => void;
 }
@@ -28,7 +29,7 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
   onSave,
   onCancel
 }) => {
-  const [formData, setFormData] = useState<CreateSeriesData>({
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     startDate: '',
@@ -48,8 +49,8 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
       setFormData({
         title: series.title || '',
         description: series.description || '',
-        startDate: series.startDate || '',
-        endDate: series.endDate || '',
+        startDate: (series.startDate as string) || '',
+        endDate: (series.endDate as string) || '',
         tags: series.tags || [],
         status: series.status || 'planning'
       });
@@ -80,10 +81,10 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
     setLoading(true);
     try {
       if (isEditing && series) {
-        await seriesService.updateSeries(series.documentId, formData);
+        await seriesRepository.update(series.id, formData);
         Alert.alert('Success', 'Series updated successfully');
       } else {
-        await seriesService.createSeries(formData);
+        await seriesRepository.create(formData);
         Alert.alert('Success', 'Series created successfully');
       }
       onSave();

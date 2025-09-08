@@ -2,13 +2,17 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
 import React from 'react';
 import { Platform, View } from 'react-native';
+import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import authService from '@/services/supabaseAuthService';
 import { theme } from '@/constants/Theme';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { initDb } from '@/services/db';
+import authService from '@/services/supabaseAuthService';
+
+import { seriesRepository, sermonRepository } from '@/services/repositories';
+
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -21,8 +25,33 @@ export default function RootLayout() {
   const [isAuthed, setIsAuthed] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
+    const test = async () => {
+      try {
+        const s = await seriesRepository.create({ title: 'Offline Test Series', status: 'planning', tags: ['offline'] });
+        console.log('Created series', s.id);
+        const seriesList = await seriesRepository.list();
+        console.log('Series count (local):', seriesList.length);
+        const s2 = await seriesRepository.update(s.id, { status: 'active' });
+        console.log('Updated series status:', s2.status);
+        const sermon = await sermonRepository.create({ title: 'Offline Test Sermon', status: 'draft', visibility: 'private', seriesId: s.id });
+        console.log('Created sermon', sermon.id);
+        const sermons = await sermonRepository.list();
+        console.log('Sermons count (local):', sermons.length);
+        await seriesRepository.remove(s.id);
+        console.log('Series soft-deleted');
+      } catch (e) {
+        console.warn('Offline repo test failed', e);
+      }
+    };
+    // Uncomment to run once:
+    test();
+}, []);
+
+  React.useEffect(() => {
     let mounted = true;
     const check = async () => {
+      // Initialize local DB (native only; web no-op). Safe to call unconditionally.
+      try { await initDb(); console.log('SQLite DB initialized'); } catch (e) { console.warn('DB init failed', e); }
       const ok = await authService.isAuthenticated();
       if (!mounted) return;
       setIsAuthed(ok);

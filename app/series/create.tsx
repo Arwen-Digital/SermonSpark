@@ -19,7 +19,7 @@ import { FadeInView } from '@/components/common/FadeInView';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
-import seriesService from '@/services/supabaseSeriesService';
+import { seriesRepository } from '@/services/repositories';
 
 
 const COMMON_THEMES = [
@@ -96,7 +96,7 @@ export default function CreateSeriesScreen() {
       
       console.log('Creating new series:', newSeriesData);
       
-      await seriesService.createSeries(newSeriesData);
+      await seriesRepository.create(newSeriesData);
       
       if (Platform.OS === 'web') {
         // On web, navigate immediately for better UX

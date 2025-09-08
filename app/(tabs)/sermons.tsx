@@ -5,7 +5,7 @@ import { FileManager } from '@/components/file-management/FileManager';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
-import sermonService from '@/services/supabaseSermonService';
+import { sermonRepository } from '@/services/repositories';
 
 export default function SermonsScreen() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
@@ -14,15 +14,15 @@ export default function SermonsScreen() {
   const loadSermons = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await sermonService.listMine();
+      const list = await sermonRepository.list();
       const mapped: Sermon[] = list.map((s) => ({
-        id: s.id,  // Now using UUID directly
+        id: s.id,
         title: s.title || 'Untitled Sermon',
         content: s.content || '',
         outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
         scripture: s.scripture || '',
         tags: s.tags || [],
-        seriesId: s.series?.id || '',  // Using id instead of documentId
+        seriesId: s.seriesId || '',
         orderInSeries: undefined,
         date: s.date ? new Date(s.date) : new Date(),
         preachedDate: undefined,

@@ -4,7 +4,7 @@ import { SermonEditor } from '@/components/sermon-editor/SermonEditor';
 import { theme } from '@/constants/Theme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Sermon } from '@/types';
-import sermonService from '@/services/supabaseSermonService';
+import { sermonRepository } from '@/services/repositories';
 
 export default function EditSermonPage() {
   const { id } = useLocalSearchParams();
@@ -14,7 +14,7 @@ export default function EditSermonPage() {
     const load = async () => {
       try {
         if (!id || Array.isArray(id)) throw new Error('Invalid sermon id');
-        const s = await sermonService.getByDocumentId(id);
+        const s = await sermonRepository.get(id);
         // Map DTO -> editor Sermon shape  
         const mapped: Sermon = {
           id: s.id,
@@ -23,8 +23,8 @@ export default function EditSermonPage() {
           outline: typeof s.outline === 'string' ? s.outline : JSON.stringify(s.outline ?? ''),
           scripture: s.scripture || '',
           tags: s.tags || [],
-          seriesId: s.series?.id || '',
-          series: s.series?.title || '',
+          seriesId: (s as any).seriesId || '',
+          series: (s as any).seriesTitle || '',
           orderInSeries: undefined,
           date: s.date ? new Date(s.date) : new Date(),
           preachedDate: undefined,
@@ -62,7 +62,7 @@ export default function EditSermonPage() {
       };
       
       console.log('Update data:', updateData);
-      await sermonService.update(id as string, updateData);
+      await sermonRepository.update(id as string, updateData);
       console.log('Update successful, navigating...');
       
       if (router.canGoBack()) {

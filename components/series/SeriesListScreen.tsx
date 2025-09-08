@@ -14,25 +14,46 @@ import { router } from 'expo-router';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
-import seriesService, { Series } from '@/services/supabaseSeriesService';
+import { seriesRepository } from '@/services/repositories';
+
+type SeriesItem = {
+  id: string;
+  title: string;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  tags?: string[];
+  status: 'planning' | 'active' | 'completed' | 'archived';
+  sermonCount?: number;
+};
 
 interface SeriesListScreenProps {
   onCreateSeries: () => void;
-  onViewSeries: (series: Series) => void;
+  onViewSeries: (seriesId: string) => void;
 }
 
 export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   onCreateSeries,
   onViewSeries
 }) => {
-  const [series, setSeries] = useState<Series[]>([]);
+  const [series, setSeries] = useState<SeriesItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadSeries = useCallback(async () => {
     try {
-      const data = await seriesService.getAllSeries();
-      setSeries(data);
+      const data = await seriesRepository.list();
+      const mapped: SeriesItem[] = data.map(s => ({
+        id: s.id,
+        title: s.title,
+        description: s.description ?? undefined,
+        startDate: s.startDate ?? undefined,
+        endDate: s.endDate ?? undefined,
+        tags: s.tags ?? [],
+        status: s.status,
+        sermonCount: (s as any).sermonCount ?? 0,
+      }));
+      setSeries(mapped);
     } catch (error) {
       console.error('Error loading series:', error);
       Alert.alert('Error', 'Failed to load series. Please try again.');
@@ -141,10 +162,10 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
           </View>
         ) : (
           series.map((seriesItem) => (
-            <Card key={seriesItem.documentId} style={styles.seriesCard}>
+            <Card key={seriesItem.id} style={styles.seriesCard}>
               <Pressable
                 style={styles.cardContent}
-                onPress={() => onViewSeries(seriesItem)}
+                onPress={() => onViewSeries(seriesItem.id)}
                 android_ripple={{ color: theme.colors.primary + '20' }}
               >
                 {/* Series Header */}
@@ -186,7 +207,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
                   <View style={styles.sermonCount}>
                     <Ionicons name="document-text-outline" size={12} color={theme.colors.textSecondary} />
                     <Text style={styles.countText}>
-                      {seriesItem.sermons?.length || 0} sermons
+                      {seriesItem.sermonCount ?? 0} sermons
                     </Text>
                   </View>
                 </View>

@@ -6,7 +6,7 @@ import { Alert, Dimensions, Modal, Platform, Pressable, SafeAreaView, ScrollView
 import * as Clipboard from 'expo-clipboard';
 import { Button } from '../common/Button';
 import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
-import seriesService from '@/services/supabaseSeriesService';
+import { seriesRepository } from '@/services/repositories';
 
 // Mock Bible verse data
 const mockBibleVerses: Record<string, Record<string, string>> = {
@@ -88,13 +88,13 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     const loadSeries = async () => {
       try {
         setSeriesLoading(true);
-        const list = await seriesService.getAllSeries();
+        const list = await seriesRepository.list();
         const options: LocalSeriesOption[] = list.map((s: any) => ({
-          id: s.documentId || String(s.id),
+          id: s.id,
           title: s.title,
           description: s.description,
           color: s.status === 'active' ? theme.colors.success : theme.colors.primary,
-          sermonCount: Array.isArray(s.sermons) ? s.sermons.length : 0,
+          sermonCount: (s.sermonCount as number) ?? 0,
           isActive: s.status === 'active',
         }));
         setSeriesOptions(options);

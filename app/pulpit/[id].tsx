@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
-import sermonService from '@/services/supabaseSermonService';
+import { sermonRepository } from '@/services/repositories';
 import Markdown from 'react-native-markdown-display';
 
 
@@ -23,7 +23,7 @@ export default function PulpitViewPage() {
     setError(null);
     
     try {
-      const sermonData = await sermonService.getByDocumentId(id);
+      const sermonData = await sermonRepository.get(id);
       
       // Convert Supabase data to app Sermon format
       const mappedSermon: Sermon = {
@@ -33,8 +33,8 @@ export default function PulpitViewPage() {
         outline: typeof sermonData.outline === 'string' ? sermonData.outline : JSON.stringify(sermonData.outline ?? ''),
         scripture: sermonData.scripture || '',
         tags: sermonData.tags || [],
-        seriesId: sermonData.series?.id || '',
-        series: sermonData.series?.title || '',
+        seriesId: (sermonData as any).seriesId || '',
+        series: (sermonData as any).seriesTitle || '',
         orderInSeries: undefined,
         date: sermonData.date ? new Date(sermonData.date) : new Date(),
         preachedDate: undefined,

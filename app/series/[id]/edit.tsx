@@ -5,12 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
-import seriesService, { Series } from '@/services/supabaseSeriesService';
+import { seriesRepository } from '@/services/repositories';
+import type { SeriesDTO } from '@/services/repositories/types';
 import { SeriesFormScreen } from '@/components/series/SeriesFormScreen';
 
 export default function EditSeriesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [series, setSeries] = useState<Series | null>(null);
+  const [series, setSeries] = useState<SeriesDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +20,7 @@ export default function EditSeriesScreen() {
     const load = async () => {
       try {
         if (!id) throw new Error('Missing series id');
-        const s = await seriesService.getSeriesById(id);
+        const s = await seriesRepository.get(id);
         if (mounted) setSeries(s);
       } catch (e: any) {
         if (mounted) setError(e?.message || 'Failed to load series');
@@ -100,4 +101,3 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
   },
 });
-

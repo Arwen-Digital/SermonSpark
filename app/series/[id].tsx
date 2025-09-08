@@ -14,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
-import seriesService, { Series } from '@/services/supabaseSeriesService';
+import { seriesRepository, sermonRepository } from '@/services/repositories';
+import type { SeriesDTO, SermonDTO } from '@/services/repositories/types';
 
 export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [series, setSeries] = useState<Series | null>(null);
+  const [series, setSeries] = useState<SeriesDTO | null>(null);
+  const [sermons, setSermons] = useState<SermonDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,8 +29,15 @@ export default function SeriesDetailScreen() {
     const load = async () => {
       try {
         if (!id) throw new Error('Missing series id');
-        const s = await seriesService.getSeriesById(id);
-        if (mounted) setSeries(s);
+        const s = await seriesRepository.get(id);
+        let list: SermonDTO[] = [];
+        try {
+          const all = await sermonRepository.list();
+          list = all.filter((x) => x.seriesId === s.id);
+        } catch (e) {
+          list = [];
+        }
+        if (mounted) { setSeries(s); setSermons(list); }
       } catch (e: any) {
         if (mounted) setError(e?.message || 'Failed to load series');
       } finally {
@@ -49,7 +58,7 @@ export default function SeriesDetailScreen() {
     return { label: 'Planning', color: theme.colors.warning, icon: 'calendar' as const };
   }, [series?.status]);
 
-  const sermonCount = series?.sermons?.length || 0;
+  const sermonCount = sermons.length || 0;
 
   if (loading) {
     return (
@@ -104,7 +113,7 @@ export default function SeriesDetailScreen() {
   };
 
   const handleEditSeries = () => {
-    router.push(`/series/${series.documentId}/edit`);
+    router.push(`/series/${series.id}/edit`);
   };
 
   const handleDeleteSeries = () => {
@@ -112,7 +121,7 @@ export default function SeriesDetailScreen() {
 
     const doDelete = async () => {
       try {
-        await seriesService.deleteSeries(series.documentId);
+        await seriesRepository.remove(series.id);
         if (Platform.OS === 'web') {
           router.replace('/series');
         } else if (router.canGoBack()) {
@@ -253,7 +262,7 @@ export default function SeriesDetailScreen() {
   };
 
   const renderSermonItem = (sermon: any, index: number) => {
-    const isLastItem = index === (series?.sermons?.length || 0) - 1;
+    const isLastItem = index === sermons.length - 1;
     return (
       <Pressable 
         key={sermon.id} 
@@ -341,9 +350,7 @@ export default function SeriesDetailScreen() {
         </View>
       ) : (
         <View style={styles.sermonsList}>
-          {(series?.sermons || []).map((sermon: any, index: number) => 
-            renderSermonItem(sermon, index)
-          )}
+          {sermons.map((sermon: any, index: number) => renderSermonItem(sermon, index))}
         </View>
       )}
     </View>

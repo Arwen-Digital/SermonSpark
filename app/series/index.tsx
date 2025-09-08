@@ -3,11 +3,10 @@ import { Stack } from 'expo-router';
 import { SafeAreaView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SeriesListScreen } from '@/components/series/SeriesListScreen';
-import { Series } from '@/services/supabaseSeriesService';
 
 export default function SeriesScreen() {
-  const handleSeriesPress = (series: Series) => {
-    router.push(`/series/${series.documentId}`);
+  const handleSeriesPress = (seriesId: string) => {
+    router.push(`/series/${seriesId}`);
   };
 
   const handleCreateSeries = () => {
