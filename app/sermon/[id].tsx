@@ -112,6 +112,44 @@ export default function SermonDetailPage() {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Sermon",
+      `Are you sure you want to delete "${sermon?.title}"? This action cannot be undone.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (sermon?.id) {
+                await sermonService.delete(sermon.id);
+                Alert.alert("Success", "Sermon deleted successfully", [
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      if (router.canGoBack()) {
+                        router.back();
+                      } else {
+                        router.replace('/');
+                      }
+                    }
+                  }
+                ]);
+              }
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete sermon");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Highlight ==text== while preserving inherited formatting
   const highlightRules = {
     text: (
@@ -240,6 +278,20 @@ export default function SermonDetailPage() {
           </Markdown>
         </Card>
 
+        {/* Delete Button */}
+        <View style={styles.deleteButtonContainer}>
+          <Pressable 
+            style={({ pressed }) => [
+              styles.deleteButton,
+              pressed && styles.deleteButtonPressed
+            ]} 
+            onPress={handleDelete}
+          >
+            <Ionicons name="trash-outline" size={20} color={theme.colors.surface} />
+            <Text style={styles.deleteButtonText}>Delete Sermon</Text>
+          </Pressable>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -351,7 +403,30 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   contentCard: {
+    marginBottom: theme.spacing.lg,
+  },
+  deleteButtonContainer: {
+    marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.error,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+  },
+  deleteButtonText: {
+    color: theme.colors.surface,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  deleteButtonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   contentText: {
     ...theme.typography.body1,
