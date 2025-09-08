@@ -1,25 +1,13 @@
 // Native (iOS/Android) repository for Series using SQLite.
 import type { SeriesRepository, SeriesDTO, CreateSeriesInput, UpdateSeriesInput } from './types';
 import { initDb, exec, queryAll, queryFirst } from '@/services/db';
+import { getCurrentUserId } from '@/services/authSession';
 import UUID from 'react-native-uuid';
-import { supabase } from '@/services/supabaseClient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncSeries } from '@/services/sync/syncService';
 
 const TAG = '[SeriesRepo]';
 
-async function getCurrentUserId(): Promise<string> {
-  // Try Supabase cached user; fallback to last stored id
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.id) {
-      await AsyncStorage.setItem('offline.currentUserId', user.id);
-      return user.id;
-    }
-  } catch {}
-  const cached = await AsyncStorage.getItem('offline.currentUserId');
-  if (!cached) throw new Error('No authenticated user');
-  return cached;
-}
+// getCurrentUserId is now provided by authSession helper
 
 function safeParseJson<T>(s: string | null | undefined, fallback: T): T {
   if (!s) return fallback;
@@ -130,7 +118,8 @@ export const seriesRepository: SeriesRepository = {
   },
 
   async sync(): Promise<void> {
-    // Implemented in Steps 8-9
+    await initDb();
+    await syncSeries();
   },
 };
 

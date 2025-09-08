@@ -15,6 +15,7 @@ import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
+import { syncAll } from '@/services/sync/syncService';
 
 type SeriesItem = {
   id: string;
@@ -39,6 +40,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   const [series, setSeries] = useState<SeriesItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const loadSeries = useCallback(async () => {
     try {
@@ -65,6 +67,20 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
     await loadSeries();
     setRefreshing(false);
   }, [loadSeries]);
+
+  const handleSyncNow = useCallback(async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      await syncAll();
+      await loadSeries();
+    } catch (e: any) {
+      console.warn('Series sync failed', e);
+      Alert.alert('Sync failed', e?.message || 'Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, loadSeries]);
 
   // handleDeleteSeries defined below with cross-platform confirm
 
@@ -130,12 +146,27 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
 
         <View style={styles.header}>
           <Text style={styles.title}>My Series</Text>
-          <Button
-            title="New Series"
-            onPress={onCreateSeries}
-            style={styles.createButton}
-            icon={<Ionicons name="add" size={16} color={theme.colors.textOnPrimary} />}
-          />
+          <View style={styles.headerRightRow}>
+            <Pressable
+              onPress={handleSyncNow}
+              style={({ pressed }) => [styles.syncGhostButton, pressed && { opacity: 0.9 }]}
+              disabled={syncing}
+              accessibilityRole="button"
+              accessibilityLabel="Sync now"
+            >
+              {syncing ? (
+                <ActivityIndicator color={theme.colors.primary} />
+              ) : (
+                <Ionicons name="sync" size={18} color={theme.colors.primary} />
+              )}
+            </Pressable>
+            <Button
+              title="New Series"
+              onPress={onCreateSeries}
+              style={styles.createButton}
+              icon={<Ionicons name="add" size={16} color={theme.colors.textOnPrimary} />}
+            />
+          </View>
         </View>
       </View>
 
@@ -274,6 +305,21 @@ const styles = StyleSheet.create({
   },
   createButton: {
     paddingHorizontal: theme.spacing.md,
+  },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  syncGhostButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,

@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, SafeAreaView } from 'react-native';
+import { StyleSheet, SafeAreaView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { FileManager } from '@/components/file-management/FileManager';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 import { sermonRepository } from '@/services/repositories';
+import { syncAll } from '@/services/sync/syncService';
+ 
 
 export default function SermonsScreen() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const loadSermons = useCallback(async () => {
     setLoading(true);
@@ -85,6 +88,25 @@ export default function SermonsScreen() {
     router.push('/series');
   };
 
+  const handleSyncNow = useCallback(async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      await syncAll();
+      await loadSermons();
+      console.log('Sync complete');
+    } catch (e: any) {
+      console.warn('Sync failed', e);
+      if (typeof e?.message === 'string') {
+        Alert.alert('Sync failed', e.message);
+      } else {
+        Alert.alert('Sync failed', 'Please check your connection and try again.');
+      }
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, loadSermons]);
+
   return (
     <FadeInView style={styles.container}>
       <SafeAreaView style={styles.container}>
@@ -97,6 +119,8 @@ export default function SermonsScreen() {
           onPulpit={handlePulpit}
           onSeriesPress={handleSeriesPress}
           loading={loading}
+          onSyncNow={handleSyncNow}
+          syncing={syncing}
         />
       </SafeAreaView>
     </FadeInView>

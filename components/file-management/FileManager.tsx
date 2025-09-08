@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
 import { theme } from '../../constants/Theme';
 import { Sermon } from '../../types';
 import { Button } from '../common/Button';
@@ -16,6 +16,8 @@ interface FileManagerProps {
   onPulpit?: (sermon: Sermon) => void;
   onSeriesPress?: () => void;
   loading?: boolean;
+  onSyncNow?: () => void | Promise<void>;
+  syncing?: boolean;
 }
 
 export interface FileFilter {
@@ -48,6 +50,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
   onPulpit,
   onSeriesPress,
   loading = false,
+  onSyncNow,
+  syncing = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -400,22 +404,39 @@ export const FileManager: React.FC<FileManagerProps> = ({
       <View style={styles.sermonsSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.headerTitle}>My Sermons</Text>
-          <Pressable 
-            onPress={() => {
-              if (showSearchField) {
-                setSearchQuery('');
-                onSearch('');
-              }
-              setShowSearchField(!showSearchField);
-            }}
-            style={styles.searchIconButton}
-          >
-            <Ionicons 
-              name={showSearchField ? "close" : "search"} 
-              size={20} 
-              color={theme.colors.textSecondary} 
-            />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable 
+              onPress={() => {
+                if (showSearchField) {
+                  setSearchQuery('');
+                  onSearch('');
+                }
+                setShowSearchField(!showSearchField);
+              }}
+              style={styles.searchIconButton}
+            >
+              <Ionicons 
+                name={showSearchField ? "close" : "search"} 
+                size={20} 
+                color={theme.colors.textSecondary} 
+              />
+            </Pressable>
+            {onSyncNow && (
+              <Pressable
+                onPress={() => onSyncNow?.()}
+                style={styles.syncGhostButton}
+                disabled={syncing}
+                accessibilityRole="button"
+                accessibilityLabel="Sync now"
+              >
+                {syncing ? (
+                  <ActivityIndicator color={theme.colors.primary} />
+                ) : (
+                  <Ionicons name="sync" size={18} color={theme.colors.primary} />
+                )}
+              </Pressable>
+            )}
+          </View>
         </View>
         {renderQuickActions()}
       {renderSearchBar()}
@@ -586,6 +607,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.md,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
   sectionTitle: {
     ...theme.typography.h5,
     color: theme.colors.textPrimary,
@@ -594,6 +620,16 @@ const styles = StyleSheet.create({
   searchIconButton: {
     padding: theme.spacing.xs,
     borderRadius: theme.borderRadius.sm,
+  },
+  syncGhostButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   viewToggle: {
     flexDirection: 'row',
