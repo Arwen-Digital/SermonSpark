@@ -64,6 +64,7 @@ class SupabaseSermonService {
         )
       `)
       .eq('id', documentId)
+      .is('deleted_at', null)
       .eq('user_id', user.id)
       .single();
 
@@ -85,6 +86,7 @@ class SupabaseSermonService {
         )
       `)
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(`Failed to fetch sermons: ${error.message}`);
@@ -182,7 +184,7 @@ class SupabaseSermonService {
 
     const { error } = await supabase
       .from('sermons')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', documentId)
       .eq('user_id', user.id);
 

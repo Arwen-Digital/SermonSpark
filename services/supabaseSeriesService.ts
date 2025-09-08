@@ -66,6 +66,7 @@ class SupabaseSeriesService {
         )
       `)
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(`Failed to fetch series: ${error.message}`);
@@ -91,6 +92,7 @@ class SupabaseSeriesService {
         )
       `)
       .eq('id', documentId)
+      .is('deleted_at', null)
       .eq('user_id', user.id)
       .single();
 
@@ -173,7 +175,7 @@ class SupabaseSeriesService {
 
     const { error } = await supabase
       .from('series')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', documentId)
       .eq('user_id', user.id);
 
@@ -207,6 +209,7 @@ class SupabaseSeriesService {
       `)
       .eq('user_id', user.id)
       .eq('status', 'active')
+      .is('deleted_at', null)
       .order('start_date', { ascending: false });
 
     if (error) throw new Error(`Failed to fetch active series: ${error.message}`);

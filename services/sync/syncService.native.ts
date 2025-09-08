@@ -35,19 +35,31 @@ async function pushSeries(userId: string) {
   }));
   const deletes = rows.filter(r => r.op === 'delete').map(r => ({ id: r.id, user_id: r.user_id, deleted_at: r.deleted_at ?? nowIso(), updated_at: r.updated_at }));
 
+  const successIds: string[] = [];
   if (upserts.length > 0) {
-    const { error } = await supabase.from('series').upsert(upserts, { onConflict: 'id' });
+    const { data, error } = await supabase.from('series').upsert(upserts, { onConflict: 'id' }).select('id');
     if (error) throw error;
+    for (const r of data ?? []) successIds.push(r.id);
   }
   if (deletes.length > 0) {
     // Soft delete: set deleted_at (and updated_at) remotely
     for (const d of deletes) {
-      const { error } = await supabase.from('series').update({ deleted_at: d.deleted_at, updated_at: nowIso() }).eq('id', d.id).eq('user_id', d.user_id);
+      const { data, error } = await supabase
+        .from('series')
+        .update({ deleted_at: d.deleted_at, updated_at: nowIso() })
+        .eq('id', d.id)
+        .eq('user_id', d.user_id)
+        .select('id');
       if (error) throw error;
+      // Consider success if row updated OR already deleted (0 rows) — in both cases it's safe to clear locally
+      successIds.push(d.id);
     }
   }
 
-  await exec(`UPDATE series SET dirty = 0, synced_at = ? WHERE user_id = ? AND dirty = 1`, [nowIso(), userId]);
+  if (successIds.length > 0) {
+    const placeholders = successIds.map(() => '?').join(',');
+    await exec(`UPDATE series SET dirty = 0, synced_at = ? WHERE id IN (${placeholders})`, [nowIso(), ...successIds]);
+  }
 }
 
 async function pushSermons(userId: string) {
@@ -76,18 +88,29 @@ async function pushSermons(userId: string) {
   }));
   const deletes = rows.filter(r => r.op === 'delete').map(r => ({ id: r.id, user_id: r.user_id, deleted_at: r.deleted_at ?? nowIso(), updated_at: r.updated_at }));
 
+  const successIds: string[] = [];
   if (upserts.length > 0) {
-    const { error } = await supabase.from('sermons').upsert(upserts, { onConflict: 'id' });
+    const { data, error } = await supabase.from('sermons').upsert(upserts, { onConflict: 'id' }).select('id');
     if (error) throw error;
+    for (const r of data ?? []) successIds.push(r.id);
   }
   if (deletes.length > 0) {
     for (const d of deletes) {
-      const { error } = await supabase.from('sermons').update({ deleted_at: d.deleted_at, updated_at: nowIso() }).eq('id', d.id).eq('user_id', d.user_id);
+      const { data, error } = await supabase
+        .from('sermons')
+        .update({ deleted_at: d.deleted_at, updated_at: nowIso() })
+        .eq('id', d.id)
+        .eq('user_id', d.user_id)
+        .select('id');
       if (error) throw error;
+      successIds.push(d.id);
     }
   }
 
-  await exec(`UPDATE sermons SET dirty = 0, synced_at = ? WHERE user_id = ? AND dirty = 1`, [nowIso(), userId]);
+  if (successIds.length > 0) {
+    const placeholders = successIds.map(() => '?').join(',');
+    await exec(`UPDATE sermons SET dirty = 0, synced_at = ? WHERE id IN (${placeholders})`, [nowIso(), ...successIds]);
+  }
 }
 
 async function pullSeries(userId: string) {
@@ -102,7 +125,7 @@ async function pullSeries(userId: string) {
   const rows = data || [];
   for (const r of rows) {
     // Check local record
-    const local = await queryFirst<any>(`SELECT id, updated_at, dirty FROM series WHERE id = ?`, [r.id]);
+    const local = await queryFirst<any>(`SELECT id, updated_at, dirty, deleted_at FROM series WHERE id = ?`, [r.id]);
     const remoteUpdated = r.updated_at || r.created_at || nowIso();
     if (!local) {
       await exec(
@@ -111,7 +134,7 @@ async function pullSeries(userId: string) {
         [r.id, r.user_id, r.title, r.description ?? null, r.start_date ?? null, r.end_date ?? null, (r as any).image ?? null, JSON.stringify(r.tags ?? []), r.status ?? 'planning', r.created_at || remoteUpdated, remoteUpdated, r.deleted_at ?? null, nowIso()]
       );
     } else {
-      const keepLocal = local.dirty === 1 && local.updated_at > remoteUpdated;
+      const keepLocal = ((local.dirty === 1) || (local.deleted_at != null)) && local.updated_at >= remoteUpdated;
       if (keepLocal) continue; // local newer, push later
       await exec(
         `UPDATE series SET title = ?, description = ?, start_date = ?, end_date = ?, image_url = ?, tags = ?, status = ?, updated_at = ?, deleted_at = ?, synced_at = ?, dirty = 0, op = 'upsert' WHERE id = ?`,
@@ -133,7 +156,7 @@ async function pullSermons(userId: string) {
 
   const rows = data || [];
   for (const r of rows) {
-    const local = await queryFirst<any>(`SELECT id, updated_at, dirty FROM sermons WHERE id = ?`, [r.id]);
+    const local = await queryFirst<any>(`SELECT id, updated_at, dirty, deleted_at FROM sermons WHERE id = ?`, [r.id]);
     const remoteUpdated = r.updated_at || r.created_at || nowIso();
     if (!local) {
       await exec(
@@ -142,7 +165,7 @@ async function pullSermons(userId: string) {
         [r.id, r.user_id, r.title, r.content ?? null, JSON.stringify((r as any).outline ?? null), r.scripture ?? null, JSON.stringify(r.tags ?? []), r.status ?? 'draft', r.visibility ?? 'private', r.date ?? null, r.notes ?? null, r.series_id ?? null, r.created_at || remoteUpdated, remoteUpdated, r.deleted_at ?? null, nowIso()]
       );
     } else {
-      const keepLocal = local.dirty === 1 && local.updated_at > remoteUpdated;
+      const keepLocal = ((local.dirty === 1) || (local.deleted_at != null)) && local.updated_at >= remoteUpdated;
       if (keepLocal) continue;
       await exec(
         `UPDATE sermons SET title = ?, content = ?, outline = ?, scripture = ?, tags = ?, status = ?, visibility = ?, date = ?, notes = ?, series_id = ?, updated_at = ?, deleted_at = ?, synced_at = ?, dirty = 0, op = 'upsert' WHERE id = ?`,
@@ -172,4 +195,3 @@ export async function syncAll(): Promise<void> {
 }
 
 export default { syncAll, syncSeries, syncSermons };
-

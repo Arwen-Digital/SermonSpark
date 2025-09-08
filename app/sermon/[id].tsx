@@ -5,7 +5,7 @@ import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert, Platform } from 'react-native';
 import { sermonRepository } from '@/services/repositories';
 import Markdown from 'react-native-markdown-display';
 
@@ -113,39 +113,51 @@ export default function SermonDetailPage() {
   };
 
   const handleDelete = () => {
+    // Web: use window.confirm to get a real confirm dialog with an actionable result
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined' ? window.confirm(`Delete this sermon? This action cannot be undone.`) : false;
+      if (!confirmed) return;
+      (async () => {
+        try {
+          if (sermon?.id) {
+            await sermonRepository.remove(sermon.id);
+            if (router.canGoBack()) router.back();
+            else router.replace('/');
+          }
+        } catch (error: any) {
+          alert(error?.message || 'Failed to delete sermon');
+        }
+      })();
+      return;
+    }
+
     Alert.alert(
-      "Delete Sermon",
+      'Delete Sermon',
       `Are you sure you want to delete "${sermon?.title}"? This action cannot be undone.`,
       [
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
               if (sermon?.id) {
                 await sermonRepository.remove(sermon.id);
-                Alert.alert("Success", "Sermon deleted successfully", [
+                Alert.alert('Success', 'Sermon deleted successfully', [
                   {
-                    text: "OK",
+                    text: 'OK',
                     onPress: () => {
-                      if (router.canGoBack()) {
-                        router.back();
-                      } else {
-                        router.replace('/');
-                      }
-                    }
-                  }
+                      if (router.canGoBack()) router.back();
+                      else router.replace('/');
+                    },
+                  },
                 ]);
               }
             } catch (error: any) {
-              Alert.alert("Error", error.message || "Failed to delete sermon");
+              Alert.alert('Error', error.message || 'Failed to delete sermon');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
