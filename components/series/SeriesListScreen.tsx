@@ -16,6 +16,8 @@ import { Card } from '../common/Card';
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
 import { syncAll } from '@/services/sync/syncService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWindowDimensions } from 'react-native';
 
 type SeriesItem = {
   id: string;
@@ -41,6 +43,9 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
 
   const loadSeries = useCallback(async () => {
     try {
@@ -132,7 +137,10 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.headerContainer}>
+      <View style={[
+        styles.headerContainer,
+        { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), isLargeScreen ? theme.spacing.xl : theme.spacing.md) }
+      ]}>
         <View style={styles.headerTopRow}>
           <Pressable
             accessibilityRole="button"

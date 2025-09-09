@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, StyleSheet, ScrollView, View, Text, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView, StyleSheet, ScrollView, View, Text, Pressable, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 import { sermonRepository } from '@/services/repositories';
 import Markdown from 'react-native-markdown-display';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 export default function PulpitViewPage() {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const { id } = useLocalSearchParams<{ id: string }>();
   const [seconds, setSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -196,10 +200,12 @@ export default function PulpitViewPage() {
     },
   } as const;
 
+  const stickyTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Sticky Header */}
-      <View style={styles.stickyHeader}>
+      <View style={[styles.stickyHeader, { paddingTop: stickyTopPad }]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>

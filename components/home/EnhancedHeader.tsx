@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
 import { getContextualGreeting, getLiturgicalInfo } from '@/utils/homeUtils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface EnhancedHeaderProps {
   userName: string;
@@ -17,6 +18,9 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   onProfilePress,
   hasNotifications = false
 }) => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const { greeting, timeContext } = getContextualGreeting(userName);
   const liturgical = getLiturgicalInfo();
   const today = new Date().toLocaleDateString('en-US', { 
@@ -25,9 +29,12 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
     day: 'numeric' 
   });
 
+  const topPadBase = isLargeScreen ? theme.spacing.xl * 1.2 : theme.spacing.xl;
+  const bgPaddingTop = Math.max(insets.top + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), topPadBase);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.backgroundGradient}>
+    <View style={[styles.container, { marginTop: isLargeScreen ? theme.spacing.sm : 0 }]}>
+      <View style={[styles.backgroundGradient, { paddingTop: bgPaddingTop }]}>
         <View style={styles.mainContent}>
           <View style={styles.leftSection}>
             <Text style={styles.greeting}>{greeting}</Text>
@@ -71,12 +78,10 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: -theme.spacing.lg,
-    marginTop: -theme.spacing.sm,
     marginBottom: theme.spacing.lg,
   },
   backgroundGradient: {
     backgroundColor: '#6366f1',
-    paddingTop: theme.spacing.xl,
     paddingBottom: theme.spacing.lg,
     paddingHorizontal: theme.spacing.lg,
     borderBottomLeftRadius: 24,

@@ -7,6 +7,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Button } from '../common/Button';
 import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
 import { seriesRepository } from '@/services/repositories';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Mock Bible verse data
 const mockBibleVerses: Record<string, Record<string, string>> = {
@@ -79,6 +80,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [viewMode, setViewMode] = useState<'markup' | 'formatted'>('formatted');
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768; // Tablet and desktop breakpoint
+  const insets = useSafeAreaInsets();
 
   // Remote series options for current user
   const [seriesOptions, setSeriesOptions] = useState<LocalSeriesOption[]>([]);
@@ -291,7 +293,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), isLargeScreen ? theme.spacing.xl : theme.spacing.md) }]}>
       <View style={styles.headerLeft}>
         <Pressable onPress={handleCancel} style={styles.headerButton}>
           <Ionicons name="close" size={24} color={theme.colors.textPrimary} />

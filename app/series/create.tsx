@@ -12,6 +12,8 @@ import {
   Modal,
   Platform,
 } from 'react-native';
+import { useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -29,6 +31,9 @@ const COMMON_THEMES = [
 ];
 
 export default function CreateSeriesScreen() {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -147,7 +152,7 @@ export default function CreateSeriesScreen() {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}>
       <Pressable 
         style={({ pressed }) => [
           styles.cancelButton,

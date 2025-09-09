@@ -5,7 +5,8 @@ import sermonService, { SermonDto } from '@/services/supabaseSermonService';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, ImageBackground, Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, ImageBackground, Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const motivationalQuotes = [
   "Preach the Word, not your opinions. God's truth transforms hearts, not clever arguments.",
@@ -40,6 +41,9 @@ const heroImages = [
 ];
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const { width: winW, height: winH } = useWindowDimensions();
+  const isLargeScreen = Math.min(winW, winH) >= 768;
   const [sermons, setSermons] = useState<SermonDto[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostDto[]>([]);
   const [userName, setUserName] = useState<string>('');
@@ -111,10 +115,12 @@ export default function HomeScreen() {
     );
   }
 
+  const headerTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 16 : 8), isLargeScreen ? 28 : 12);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTopPad }]}>
         <View style={styles.tabsContainer}>
           <View style={styles.activeTab}>
             <Text style={styles.activeTabText}>Today</Text>

@@ -15,6 +15,8 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import { useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 
@@ -29,6 +31,9 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
   onSave,
   onCancel
 }) => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -144,7 +149,7 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), isLargeScreen ? theme.spacing.xl : theme.spacing.md) }]}>
         <Button
           title="Cancel"
           onPress={onCancel}

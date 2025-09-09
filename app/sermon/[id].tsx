@@ -5,11 +5,15 @@ import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sermonRepository } from '@/services/repositories';
 import Markdown from 'react-native-markdown-display';
 
 export default function SermonDetailPage() {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const { id } = useLocalSearchParams<{ id: string }>();
   const [sermon, setSermon] = useState<Sermon | null>(null);
   const [loading, setLoading] = useState(true);
@@ -225,10 +229,12 @@ export default function SermonDetailPage() {
     }).format(date);
   };
 
+  const headerTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 16 : 8), isLargeScreen ? 28 : 12);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTopPad }]}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>

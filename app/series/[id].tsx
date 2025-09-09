@@ -9,6 +9,7 @@ import {
   Pressable,
   Alert,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -16,8 +17,12 @@ import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { seriesRepository, sermonRepository } from '@/services/repositories';
 import type { SeriesDTO, SermonDTO } from '@/services/repositories/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SeriesDetailScreen() {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const { id } = useLocalSearchParams<{ id: string }>();
   const [series, setSeries] = useState<SeriesDTO | null>(null);
   const [sermons, setSermons] = useState<SermonDTO[]>([]);
@@ -356,6 +361,8 @@ export default function SeriesDetailScreen() {
     </View>
   );
 
+  const headerPadTop = Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10);
+
   return (
     <FadeInView style={styles.container}>
       <Stack.Screen options={{ 
@@ -367,7 +374,9 @@ export default function SeriesDetailScreen() {
           style={styles.content} 
           showsVerticalScrollIndicator={false}
         >
-          {renderHeader()}
+          <View style={{ paddingTop: headerPadTop }}>
+            {renderHeader()}
+          </View>
           {renderSeriesInfo()}
           {renderStats()}
           {renderSermonsSection()}

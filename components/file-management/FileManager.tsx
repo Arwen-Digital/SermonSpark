@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/Theme';
 import { Sermon } from '../../types';
 import { Button } from '../common/Button';
@@ -53,6 +54,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
   onSyncNow,
   syncing = false,
 }) => {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -397,8 +401,11 @@ export const FileManager: React.FC<FileManagerProps> = ({
     </View>
   );
 
+  const topPaddingBase = isLargeScreen ? theme.spacing.xl : theme.spacing.md;
+  const topPadding = Math.max(insets.top + (isLargeScreen ? theme.spacing.sm : 0), topPaddingBase);
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: topPadding }] }>
       {/* {renderHeader()} */}
      
       <View style={styles.sermonsSection}>

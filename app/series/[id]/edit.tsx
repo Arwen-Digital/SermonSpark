@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, Platform } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, Platform, useWindowDimensions } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,8 +8,12 @@ import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
 import type { SeriesDTO } from '@/services/repositories/types';
 import { SeriesFormScreen } from '@/components/series/SeriesFormScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EditSeriesScreen() {
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.min(width, height) >= 768;
   const { id } = useLocalSearchParams<{ id: string }>();
   const [series, setSeries] = useState<SeriesDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +56,7 @@ export default function EditSeriesScreen() {
     return (
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Loading series', headerShown: false }} />
-        <SafeAreaView style={styles.center}> 
+        <SafeAreaView style={[styles.center, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}> 
           <Ionicons name="sync" size={28} color={theme.colors.textSecondary} />
           <Text style={styles.loadingText}>Loading series…</Text>
         </SafeAreaView>
@@ -64,7 +68,7 @@ export default function EditSeriesScreen() {
     return (
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Series not found', headerShown: false }} />
-        <SafeAreaView style={styles.center}> 
+        <SafeAreaView style={[styles.center, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}> 
           <Ionicons name="alert-circle" size={36} color={theme.colors.error} />
           <Text style={styles.errorText}>{error || 'Series not found'}</Text>
         </SafeAreaView>
