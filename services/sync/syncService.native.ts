@@ -26,7 +26,8 @@ async function pushSeries(userId: string) {
     description: r.description,
     start_date: r.start_date,
     end_date: r.end_date,
-    image: r.image_url ?? null,
+    // Store image as JSONB with url if present; else null
+    image: r.image_url ? { url: r.image_url } : null,
     tags: parseJson<string[]>(r.tags, []),
     status: r.status,
     created_at: r.created_at,

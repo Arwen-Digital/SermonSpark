@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "sermon-spark",
-    "slug": "sermon-spark",
+    "name": "you-preacher",
+    "slug": "you-preacher",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "sermonspark",
+    "scheme": "youpreacher",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.youpreacher.sermon",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -38,6 +40,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "488b9145-0e90-4223-a817-f38edc1ef579"
+      }
+    },
+    "owner": "arnoldgamboa"
   }
 }
