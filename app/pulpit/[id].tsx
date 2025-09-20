@@ -1,5 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { SafeAreaView, StyleSheet, ScrollView, View, Text, Pressable, ActivityIndicator, Alert, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  useWindowDimensions,
+} from 'react-native';
+import type { TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { theme } from '@/constants/Theme';
@@ -8,6 +18,10 @@ import { sermonRepository } from '@/services/repositories';
 import Markdown from 'react-native-markdown-display';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+
+const FONT_SCALE_STEP = 0.1;
+const MIN_FONT_SCALE = 0.8;
+const MAX_FONT_SCALE = 1.5;
 
 export default function PulpitViewPage() {
   const insets = useSafeAreaInsets();
@@ -19,6 +33,14 @@ export default function PulpitViewPage() {
   const [sermon, setSermon] = useState<Sermon | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fontScale, setFontScale] = useState(1);
+
+  const markdownStyles = useMemo(() => createPulpitMarkdownStyles(fontScale), [fontScale]);
+  const baseTextStyle = useMemo(() => createBaseTextStyle(fontScale), [fontScale]);
+  const highlightRules = useMemo(
+    () => createHighlightRules(baseTextStyle, markdownStyles.highlight),
+    [baseTextStyle, markdownStyles.highlight]
+  );
   
   const loadSermon = useCallback(async () => {
     if (!id) return;
@@ -145,61 +167,24 @@ export default function PulpitViewPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleDecreaseFont = () => {
+    setFontScale(prev => {
+      const next = Math.max(MIN_FONT_SCALE, Number((prev - FONT_SCALE_STEP).toFixed(2)));
+      return next;
+    });
+  };
+
+  const handleIncreaseFont = () => {
+    setFontScale(prev => {
+      const next = Math.min(MAX_FONT_SCALE, Number((prev + FONT_SCALE_STEP).toFixed(2)));
+      return next;
+    });
+  };
+
+  const canDecreaseFont = fontScale > MIN_FONT_SCALE + 0.01;
+  const canIncreaseFont = fontScale < MAX_FONT_SCALE - 0.01;
+
   // Custom markdown rules to highlight ==text== only (preserve parent formatting via inheritedStyles)
-  const highlightRules = {
-    text: (
-      node: any,
-      _children: any,
-      _parent: any,
-      styles: any,
-      inheritedStyles: any = {}
-    ) => {
-      const content: string = node.content ?? '';
-      if (!content) return null;
-
-      // No highlight syntax: use default text rendering with inherited styles
-      if (content.indexOf('==') === -1) {
-        return (
-          <Text key={node.key} style={[inheritedStyles, styles.text]}>
-            {content}
-          </Text>
-        );
-      }
-
-      const parts: React.ReactNode[] = [];
-      let lastIndex = 0;
-      let idx = 0;
-      const regex = /==(.+?)==/g;
-      let match: RegExpExecArray | null;
-
-      while ((match = regex.exec(content)) !== null) {
-        if (match.index > lastIndex) {
-          parts.push(content.slice(lastIndex, match.index));
-        }
-        parts.push(
-          <Text
-            key={`h-${idx}-${match.index}`}
-            style={[inheritedStyles, styles.text, pulpitMarkdownStyles.highlight]}
-          >
-            {match[1]}
-          </Text>
-        );
-        lastIndex = match.index + match[0].length;
-        idx++;
-      }
-
-      if (lastIndex < content.length) {
-        parts.push(content.slice(lastIndex));
-      }
-
-      return (
-        <Text key={`text-${node.key || Math.random()}`} style={[inheritedStyles, styles.text]}>
-          {parts}
-        </Text>
-      );
-    },
-  } as const;
-
   const stickyTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10);
 
   return (
@@ -209,33 +194,64 @@ export default function PulpitViewPage() {
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>
-        
+
         <View style={styles.timerDisplay}>
           <Text style={styles.timerText}>{formatTime(seconds)}</Text>
         </View>
 
-        <View style={styles.timerControls}>
-          <Pressable 
-            onPress={handleStartTimer} 
-            style={styles.timerButton}
-          >
-            <Ionicons 
-              name={isTimerRunning ? "pause" : "play"} 
-              size={20} 
-              color={isTimerRunning ? theme.colors.error : theme.colors.primary} 
-            />
-          </Pressable>
-          {seconds > 0 && (
-            <Pressable onPress={resetTimer} style={styles.resetButton}>
-              <Ionicons name="refresh" size={18} color={theme.colors.textSecondary} />
+        <View style={styles.rightControls}>
+          <View style={styles.fontSizeControls}>
+            <Pressable
+              onPress={handleDecreaseFont}
+              disabled={!canDecreaseFont}
+              style={[styles.fontIconButton, !canDecreaseFont && styles.fontIconButtonDisabled]}
+            >
+              <Ionicons
+                name="remove-outline"
+                size={18}
+                color={theme.colors.textSecondary}
+              />
             </Pressable>
-          )}
+            <Text
+              style={[
+                styles.fontIconLabel,
+                { fontSize: Number((16 * fontScale).toFixed(0)) },
+              ]}
+            >
+              A
+            </Text>
+            <Pressable
+              onPress={handleIncreaseFont}
+              disabled={!canIncreaseFont}
+              style={[styles.fontIconButton, !canIncreaseFont && styles.fontIconButtonDisabled]}
+            >
+              <Ionicons name="add-outline" size={18} color={theme.colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          <View style={styles.timerControls}>
+            <Pressable
+              onPress={handleStartTimer}
+              style={styles.timerButton}
+            >
+              <Ionicons
+                name={isTimerRunning ? "pause" : "play"}
+                size={20}
+                color={isTimerRunning ? theme.colors.error : theme.colors.primary}
+              />
+            </Pressable>
+            {seconds > 0 && (
+              <Pressable onPress={resetTimer} style={styles.resetButton}>
+                <Ionicons name="refresh" size={18} color={theme.colors.textSecondary} />
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Markdown style={pulpitMarkdownStyles} rules={highlightRules}>
+        <Markdown style={markdownStyles} rules={highlightRules}>
           {sermon.content || ''}
         </Markdown>
         <View style={styles.bottomPadding} />
@@ -279,7 +295,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   timerControls: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -292,6 +307,33 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     padding: theme.spacing.sm,
+  },
+  rightControls: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.sm,
+  },
+  fontSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.gray100,
+    gap: theme.spacing.xs,
+  },
+  fontIconButton: {
+    padding: theme.spacing.xs,
+  },
+  fontIconButtonDisabled: {
+    opacity: 0.4,
+  },
+  fontIconLabel: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -343,7 +385,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const pulpitMarkdownStyles = {
+const baseMarkdownStyles = {
   // Match sermon/[id] typography for consistency
   body: {
     ...theme.typography.body1,
@@ -389,6 +431,7 @@ const pulpitMarkdownStyles = {
     marginBottom: theme.spacing.xs,
   },
   blockquote: {
+    ...theme.typography.body1,
     backgroundColor: theme.colors.gray100,
     borderLeftWidth: 4,
     borderLeftColor: theme.colors.primary,
@@ -403,4 +446,99 @@ const pulpitMarkdownStyles = {
     paddingHorizontal: 4,
     borderRadius: 3,
   },
+} as const;
+
+const createBaseTextStyle = (scale: number): TextStyle => ({
+  fontSize: Number((16 * scale).toFixed(1)),
+  lineHeight: Number((28 * scale).toFixed(1)),
+  color: theme.colors.textPrimary,
+  fontWeight: '400',
+});
+
+const scaleTypography = (style: TextStyle, scale: number): TextStyle => {
+  const scaled: TextStyle = { ...style };
+
+  if (typeof scaled.fontSize === 'number') {
+    scaled.fontSize = Number((scaled.fontSize * scale).toFixed(1));
+  }
+
+  if (typeof scaled.lineHeight === 'number') {
+    scaled.lineHeight = Number((scaled.lineHeight * scale).toFixed(1));
+  }
+
+  return scaled;
 };
+
+const createPulpitMarkdownStyles = (scale: number) => ({
+  body: scaleTypography(baseMarkdownStyles.body, scale),
+  heading1: scaleTypography(baseMarkdownStyles.heading1, scale),
+  heading2: scaleTypography(baseMarkdownStyles.heading2, scale),
+  heading3: scaleTypography(baseMarkdownStyles.heading3, scale),
+  paragraph: scaleTypography(baseMarkdownStyles.paragraph, scale),
+  strong: { ...baseMarkdownStyles.strong },
+  em: { ...baseMarkdownStyles.em },
+  list_item: scaleTypography(baseMarkdownStyles.list_item, scale),
+  blockquote: scaleTypography(baseMarkdownStyles.blockquote, scale),
+  highlight: baseMarkdownStyles.highlight,
+});
+
+const createHighlightRules = (baseTextStyle: TextStyle, highlightStyle: TextStyle) => ({
+  text: (
+    node: any,
+    _children: any,
+    _parent: any,
+    _styles: any,
+    inheritedStyles: any = {}
+  ) => {
+    const content: string = node.content ?? '';
+    if (!content) return null;
+
+    const textStyles: TextStyle[] = [baseTextStyle];
+
+    if (Array.isArray(inheritedStyles)) {
+      textStyles.push(...inheritedStyles);
+    } else if (inheritedStyles) {
+      textStyles.push(inheritedStyles);
+    }
+
+    if (content.indexOf('==') === -1) {
+      return (
+        <Text key={node.key} style={textStyles}>
+          {content}
+        </Text>
+      );
+    }
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let idx = 0;
+    const regex = /==(.+?)==/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+      parts.push(
+        <Text
+          key={`h-${idx}-${match.index}`}
+          style={[...textStyles, highlightStyle]}
+        >
+          {match[1]}
+        </Text>
+      );
+      lastIndex = match.index + match[0].length;
+      idx++;
+    }
+
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+
+    return (
+      <Text key={`text-${node.key || Math.random()}`} style={textStyles}>
+        {parts}
+      </Text>
+    );
+  },
+});
