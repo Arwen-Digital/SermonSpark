@@ -211,15 +211,11 @@ export default function PulpitViewPage() {
     <SafeAreaView style={styles.container}>
       {/* Sticky Header */}
       <View style={[styles.stickyHeader, { paddingTop: stickyTopPad }]}>
-        <Pressable onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
-        </Pressable>
+        <View style={styles.leftControls}>
+          <Pressable onPress={handleBack} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          </Pressable>
 
-        <View style={styles.timerDisplay}>
-          <Text style={styles.timerText}>{formatTime(seconds)}</Text>
-        </View>
-
-        <View style={styles.rightControls}>
           <View style={styles.fontSizeControls}>
             <Pressable
               onPress={handleDecreaseFont}
@@ -248,24 +244,28 @@ export default function PulpitViewPage() {
               <Ionicons name="add-outline" size={18} color={theme.colors.textSecondary} />
             </Pressable>
           </View>
+        </View>
 
-          <View style={styles.timerControls}>
-            <Pressable
-              onPress={handleStartTimer}
-              style={styles.timerButton}
-            >
-              <Ionicons
-                name={isTimerRunning ? "pause" : "play"}
-                size={20}
-                color={isTimerRunning ? theme.colors.error : theme.colors.primary}
-              />
+        <View style={styles.timerDisplay}>
+          <Text style={styles.timerText}>{formatTime(seconds)}</Text>
+        </View>
+
+        <View style={styles.timerControls}>
+          <Pressable
+            onPress={handleStartTimer}
+            style={styles.timerButton}
+          >
+            <Ionicons
+              name={isTimerRunning ? "pause" : "play"}
+              size={20}
+              color={isTimerRunning ? theme.colors.error : theme.colors.primary}
+            />
+          </Pressable>
+          {seconds > 0 && (
+            <Pressable onPress={resetTimer} style={styles.resetButton}>
+              <Ionicons name="refresh" size={18} color={theme.colors.textSecondary} />
             </Pressable>
-            {seconds > 0 && (
-              <Pressable onPress={resetTimer} style={styles.resetButton}>
-                <Ionicons name="refresh" size={18} color={theme.colors.textSecondary} />
-              </Pressable>
-            )}
-          </View>
+          )}
         </View>
       </View>
 
@@ -302,10 +302,17 @@ const styles = StyleSheet.create({
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
     elevation: 3,
   },
+  leftControls: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: theme.spacing.sm,
+  },
   backButton: {
     padding: theme.spacing.xs,
-    flex: 1,
-    alignItems: 'flex-start',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   timerDisplay: {
     flex: 2,
@@ -320,6 +327,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   timerControls: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -332,13 +340,6 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     padding: theme.spacing.sm,
-  },
-  rightControls: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: theme.spacing.sm,
   },
   fontSizeControls: {
     flexDirection: 'row',
