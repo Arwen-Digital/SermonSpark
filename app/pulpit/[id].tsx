@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  ScrollView,
-  View,
-  Text,
-  Pressable,
-  useWindowDimensions,
-} from 'react-native';
-import type { TextStyle, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import { Sermon } from '@/types';
 import { sermonRepository } from '@/services/repositories';
+import { Sermon } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent, TextStyle } from 'react-native';
+import {
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -204,7 +204,8 @@ export default function PulpitViewPage() {
   const canIncreaseFont = fontScale < MAX_FONT_SCALE - 0.01;
 
   // Custom markdown rules to highlight ==text== only (preserve parent formatting via inheritedStyles)
-  const stickyTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10);
+  // const stickyTopPad = Math.max(insets.top || 0, isLargeScreen ? 24 : 12);
+  const stickyTopPad = 0;
 
   return (
     <SafeAreaView style={styles.container}>
