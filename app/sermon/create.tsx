@@ -14,7 +14,7 @@ export default function CreateSermonPage() {
     try {
       // Prefer selection from editor, fallback to route param
       const selectedSeries = sermonData.seriesId ?? (params.seriesId as string | undefined);
-      
+
       await sermonRepository.create({
         title: sermonData.title || 'Untitled Sermon',
         content: sermonData.content,
@@ -31,6 +31,7 @@ export default function CreateSermonPage() {
       else router.push('/');
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to create sermon');
+      throw e;
     }
   };
 

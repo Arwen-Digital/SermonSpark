@@ -43,7 +43,7 @@ const mockBibleVerses: Record<string, Record<string, string>> = {
 
 interface SermonEditorProps {
   sermon?: Sermon;
-  onSave: (sermon: Partial<Sermon>) => void;
+  onSave: (sermon: Partial<Sermon>) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -76,11 +76,13 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [fetchedVerseReference, setFetchedVerseReference] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [toastContext, setToastContext] = useState<'global' | 'modal'>('global');
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
   const [viewMode, setViewMode] = useState<'markup' | 'formatted'>('formatted');
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768; // Tablet and desktop breakpoint
   const insets = useSafeAreaInsets();
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Remote series options for current user
   const [seriesOptions, setSeriesOptions] = useState<LocalSeriesOption[]>([]);
@@ -111,14 +113,19 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   }, []);
 
   // Toast notification function
-  const showToastNotification = (message: string) => {
-    console.log('showToastNotification called with:', message);
+  const showToastNotification = (message: string, context: 'global' | 'modal' = 'global') => {
+    console.log('showToastNotification called with:', message, 'context:', context);
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     setToastMessage(message);
+    setToastContext(context);
     setShowToast(true);
     console.log('Toast state set to true');
-    setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       console.log('Hiding toast after 3 seconds');
       setShowToast(false);
+      toastTimeoutRef.current = null;
     }, 3000); // Hide after 3 seconds
   };
   const [newTag, setNewTag] = useState('');
@@ -162,7 +169,16 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     return () => clearTimeout(timer);
   }, [title, content, outline, hasUnsavedChanges, handleAutoSave]);
 
-  const handleSave = () => {
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleSave = async () => {
     console.log('handleSave called');
     if (!title.trim()) {
       console.log('No title provided');
@@ -193,9 +209,10 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
     console.log('About to call onSave with:', sermonData);
     try {
-      onSave(sermonData);
+      await onSave(sermonData);
       console.log('onSave called successfully');
       setHasUnsavedChanges(false);
+      showToastNotification('Sermon saved successfully', 'global');
     } catch (error) {
       console.error('Error in handleSave:', error);
     }
@@ -867,7 +884,7 @@ IV. Conclusion
                           console.log('Successfully copied with expo-clipboard');
                         }
                         console.log('About to show toast...');
-                        showToastNotification('Bible verse copied to clipboard!');
+                        showToastNotification('Bible verse copied to clipboard!', 'modal');
                       } else {
                         await Clipboard.setStringAsync(textToCopy);
                         Alert.alert('Copied!', 'Bible verse copied to clipboard');
@@ -875,7 +892,7 @@ IV. Conclusion
                     } catch (error) {
                       console.error('Copy failed:', error);
                       if (Platform.OS === 'web') {
-                        showToastNotification('Failed to copy to clipboard');
+                        showToastNotification('Failed to copy to clipboard', 'modal');
                       } else {
                         Alert.alert('Error', 'Failed to copy to clipboard');
                       }
@@ -922,7 +939,7 @@ IV. Conclusion
           </View>
           
           {/* Toast inside modal */}
-          {showToast && Platform.OS === 'web' && (
+          {showToast && Platform.OS === 'web' && toastContext === 'modal' && (
             <View style={styles.modalToastContainer}>
               <View style={styles.toast}>
                 <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
@@ -943,6 +960,19 @@ IV. Conclusion
       <View style={styles.contentContainer}>
         {renderContent()}
       </View>
+      {showToast && toastContext === 'global' && (
+        <View
+          style={[
+            styles.globalToastContainer,
+            { top: Math.max((insets.top || 0) + theme.spacing.md, theme.spacing.xl) },
+          ]}
+        >
+          <View style={styles.toast}>
+            <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        </View>
+      )}
       {renderSeriesModal()}
       {renderBibleVerseModal()}
     </View>
@@ -1535,6 +1565,15 @@ const styles = StyleSheet.create({
   },
   
   // Toast notification styles
+  globalToastContainer: {
+    position: 'absolute',
+    top: theme.spacing.xl,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+    pointerEvents: 'none',
+  },
   modalToastContainer: {
     position: 'absolute',
     top: 20,

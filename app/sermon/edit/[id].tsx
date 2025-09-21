@@ -63,15 +63,26 @@ export default function EditSermonPage() {
       
       console.log('Update data:', updateData);
       await sermonRepository.update(id as string, updateData);
-      console.log('Update successful, navigating...');
-      
-      if (router.canGoBack()) {
-        router.back();
-      } else if (!id || Array.isArray(id)) {
-        router.replace('/');
-      } else {
-        router.replace(`/sermon/${id}`);
-      }
+      console.log('Update successful, remaining on edit page');
+
+      setSermon(prev => {
+        if (!prev) return prev;
+        const updated: Sermon = { ...prev };
+        if (sermonData.title !== undefined) updated.title = sermonData.title;
+        if (sermonData.content !== undefined) updated.content = sermonData.content;
+        if (sermonData.outline !== undefined) updated.outline = sermonData.outline;
+        if (sermonData.scripture !== undefined) updated.scripture = sermonData.scripture;
+        if (sermonData.tags !== undefined) updated.tags = sermonData.tags;
+        if (sermonData.seriesId !== undefined) updated.seriesId = sermonData.seriesId;
+        if (sermonData.notes !== undefined) updated.notes = sermonData.notes;
+        if (sermonData.date !== undefined) updated.date = sermonData.date;
+        if (sermonData.lastModified !== undefined) updated.lastModified = sermonData.lastModified;
+        if (sermonData.wordCount !== undefined) updated.wordCount = sermonData.wordCount;
+        if (sermonData.readingTime !== undefined) updated.readingTime = sermonData.readingTime;
+        if (sermonData.isArchived !== undefined) updated.isArchived = sermonData.isArchived;
+        if (sermonData.isFavorite !== undefined) updated.isFavorite = sermonData.isFavorite;
+        return updated;
+      });
     } catch (e: any) {
       console.error('Save failed:', e);
       if (Platform.OS === 'web') {
@@ -79,6 +90,7 @@ export default function EditSermonPage() {
       } else {
         Alert.alert('Error', e?.message || 'Failed to update sermon');
       }
+      throw e;
     }
   };
 
