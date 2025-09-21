@@ -454,9 +454,10 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.xl,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.xl,
   },
   errorContainer: {
     flex: 1,

@@ -57,7 +57,12 @@ export default function EditSeriesScreen() {
     return (
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Loading series', headerShown: false }} />
-        <SafeAreaView style={[styles.center, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}> 
+        <SafeAreaView
+          style={[
+            styles.loadingContainer,
+            { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) },
+          ]}
+        > 
           <LoadingIndicator size="large" />
         </SafeAreaView>
       </FadeInView>
@@ -95,6 +100,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+    paddingHorizontal: theme.spacing.lg,
   },
   errorText: {
     marginTop: 8,

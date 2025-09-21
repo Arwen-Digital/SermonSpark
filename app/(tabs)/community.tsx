@@ -278,7 +278,7 @@ export default function CommunityScreen() {
     return (
       <FadeInView style={styles.container}>
         <SafeAreaView style={styles.container}>
-          <View style={[styles.container, styles.centerContent]}>
+          <View style={styles.loadingScreen}>
             <LoadingIndicator size="large" color={theme.colors.primary} />
           </View>
         </SafeAreaView>
@@ -341,9 +341,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xl,
   },
   content: {
     flex: 1,

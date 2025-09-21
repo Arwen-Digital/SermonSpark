@@ -71,7 +71,7 @@ export default function SeriesDetailScreen() {
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Loading Series', headerShown: false }} />
         <SafeAreaView style={styles.container}>
-          <View style={styles.notFound}>
+          <View style={styles.loadingState}>
             <LoadingIndicator size="large" />
           </View>
         </SafeAreaView>
@@ -629,6 +629,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
+  },
+  loadingState: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xl,
   },
   notFoundTitle: {
     ...theme.typography.h4,

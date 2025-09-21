@@ -127,7 +127,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
+      <View style={[styles.container, styles.loadingState]}>
         <LoadingIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -277,9 +277,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingState: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xl,
   },
   headerContainer: {
     padding: theme.spacing.lg,
