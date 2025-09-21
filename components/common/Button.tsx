@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
+import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../constants/Theme';
+import { LoadingIndicator } from './LoadingIndicator';
 
 interface ButtonProps {
   title: string;
@@ -58,7 +59,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || loading}
     >
       {loading ? (
-        <ActivityIndicator color={getSpinnerColor(variant)} size="small" />
+        <LoadingIndicator color={getSpinnerColor(variant)} size="small" />
       ) : (
         <>
           {renderIcon()}

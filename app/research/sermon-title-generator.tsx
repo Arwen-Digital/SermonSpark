@@ -1,12 +1,12 @@
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -233,7 +233,7 @@ export default function SermonTitleGeneratorPage() {
             disabled={!selectedSermon || isGenerating}
             icon={
               isGenerating ? (
-                <ActivityIndicator size="small" color={theme.colors.white} />
+                <LoadingIndicator size="small" color={theme.colors.white} />
               ) : (
                 <Ionicons name="sparkles" size={16} color={theme.colors.white} />
               )

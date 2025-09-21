@@ -1,11 +1,12 @@
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, Alert, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sermonRepository } from '@/services/repositories';
 import Markdown from 'react-native-markdown-display';
@@ -69,7 +70,7 @@ export default function SermonDetailPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <LoadingIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading sermon...</Text>
         </View>
       </SafeAreaView>

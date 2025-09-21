@@ -6,12 +6,12 @@ import {
   View,
   Text,
   Pressable,
-  ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import type { TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { Sermon } from '@/types';
 import { sermonRepository } from '@/services/repositories';
@@ -102,7 +102,7 @@ export default function PulpitViewPage() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <LoadingIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Loading sermon...</Text>
         </View>
       </SafeAreaView>

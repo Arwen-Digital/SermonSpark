@@ -4,7 +4,6 @@ import type { SeriesDTO } from '@/services/repositories/types';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   ScrollView,
@@ -19,6 +18,7 @@ import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
+import { LoadingIndicator } from '../common/LoadingIndicator';
 
 interface SeriesFormScreenProps {
   series?: SeriesDTO; // If provided, we're editing; if not, we're creating
@@ -291,7 +291,7 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
 
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <LoadingIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>
               {isEditing ? 'Updating...' : 'Creating...'}
             </Text>

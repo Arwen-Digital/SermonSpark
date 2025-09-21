@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable, TextInput, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { router, useFocusEffect } from 'expo-router';
 import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
@@ -278,7 +279,7 @@ export default function CommunityScreen() {
       <FadeInView style={styles.container}>
         <SafeAreaView style={styles.container}>
           <View style={[styles.container, styles.centerContent]}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <LoadingIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Loading community posts...</Text>
           </View>
         </SafeAreaView>

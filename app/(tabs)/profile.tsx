@@ -1,5 +1,6 @@
 import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import authService from '@/services/supabaseAuthService';
 import { supabase } from '@/services/supabaseClient';
@@ -7,7 +8,7 @@ import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 // Fallback while loading
 const emptyUser: User = {
@@ -305,7 +306,7 @@ export default function ProfileScreen() {
           </View>
           {loading ? (
             <View style={{ padding: theme.spacing.lg }}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <LoadingIndicator size="large" color={theme.colors.primary} />
             </View>
           ) : (
             <>

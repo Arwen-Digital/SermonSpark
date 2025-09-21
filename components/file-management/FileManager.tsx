@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/Theme';
 import { Sermon } from '../../types';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
+import { LoadingIndicator } from '../common/LoadingIndicator';
 import { SermonCard } from './SermonCard';
 
 interface FileManagerProps {
@@ -437,7 +438,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                 accessibilityLabel="Sync now"
               >
                 {syncing ? (
-                  <ActivityIndicator color={theme.colors.primary} />
+                  <LoadingIndicator color={theme.colors.primary} size="small" />
                 ) : (
                   <Ionicons name="sync" size={18} color={theme.colors.primary} />
                 )}

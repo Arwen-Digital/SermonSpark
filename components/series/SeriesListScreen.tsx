@@ -7,12 +7,12 @@ import {
   RefreshControl,
   Pressable,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
+import { LoadingIndicator } from '../common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
 import { syncAll } from '@/services/sync/syncService';
@@ -128,7 +128,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <LoadingIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading series...</Text>
       </View>
     );
@@ -163,7 +163,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
               accessibilityLabel="Sync now"
             >
               {syncing ? (
-                <ActivityIndicator color={theme.colors.primary} />
+                <LoadingIndicator color={theme.colors.primary} size="small" />
               ) : (
                 <Ionicons name="sync" size={18} color={theme.colors.primary} />
               )}
