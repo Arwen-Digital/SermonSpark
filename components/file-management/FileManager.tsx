@@ -404,7 +404,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
   );
 
   const topPaddingBase = isLargeScreen ? theme.spacing.xl : theme.spacing.md;
-  const topPadding = Math.max(insets.top + (isLargeScreen ? theme.spacing.sm : 0), topPaddingBase);
+  // const topPadding = Math.max(insets.top || 0, topPaddingBase);
+    const topPadding = 0;
 
   return (
     <View style={[styles.container, { paddingTop: topPadding }] }>

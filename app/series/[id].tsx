@@ -1,23 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  SafeAreaView, 
-  ScrollView, 
-  Text, 
-  FlatList,
-  Pressable,
-  Alert,
-  Platform,
-  useWindowDimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { FadeInView } from '@/components/common/FadeInView';
-import { theme } from '@/constants/Theme';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
+import { theme } from '@/constants/Theme';
 import { seriesRepository, sermonRepository } from '@/services/repositories';
 import type { SeriesDTO, SermonDTO } from '@/services/repositories/types';
+import { Ionicons } from '@expo/vector-icons';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SeriesDetailScreen() {
@@ -164,6 +163,7 @@ export default function SeriesDetailScreen() {
         onPress={() => router.back()}
       >
         <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <Text style={styles.backButtonText}>Back</Text>
       </Pressable>
       
       <View style={styles.headerActions}>
@@ -361,8 +361,6 @@ export default function SeriesDetailScreen() {
     </View>
   );
 
-  const headerPadTop = Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10);
-
   return (
     <FadeInView style={styles.container}>
       <Stack.Screen options={{ 
@@ -374,9 +372,7 @@ export default function SeriesDetailScreen() {
           style={styles.content} 
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ paddingTop: headerPadTop }}>
-            {renderHeader()}
-          </View>
+          {renderHeader()}
           {renderSeriesInfo()}
           {renderStats()}
           {renderSermonsSection()}
@@ -402,7 +398,15 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: theme.spacing.xs,
+    gap: theme.spacing.xs,
+  },
+  backButtonText: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
   },
   headerActions: {
     flexDirection: 'row',

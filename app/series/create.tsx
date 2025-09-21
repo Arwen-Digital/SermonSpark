@@ -1,27 +1,27 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TextInput,
-  Pressable,
-  Alert,
-  Switch,
-  Modal,
-  Platform,
-} from 'react-native';
-import { useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { FadeInView } from '@/components/common/FadeInView';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { router, Stack } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 const COMMON_THEMES = [
@@ -152,7 +152,11 @@ export default function CreateSeriesScreen() {
   };
 
   const renderHeader = () => (
-    <View style={[styles.header, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}>
+    <View
+      style={[
+        styles.header
+      ]}
+    >
       <Pressable 
         style={({ pressed }) => [
           styles.cancelButton,

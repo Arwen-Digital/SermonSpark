@@ -115,12 +115,14 @@ export default function HomeScreen() {
     );
   }
 
-  const headerTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 16 : 8), isLargeScreen ? 28 : 12);
+  const minHeaderPad = isLargeScreen ? 28 : 12;
+  // const headerTopPad = Math.max(insets.top || 0, minHeaderPad);
+  // const headerTopPad = 0;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: headerTopPad }]}>
+      <View style={[styles.header]}>
         <View style={styles.tabsContainer}>
           <View style={styles.activeTab}>
             <Text style={styles.activeTabText}>Today</Text>

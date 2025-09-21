@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable, TextInput, RefreshControl } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import { router, useFocusEffect } from 'expo-router';
-import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
 import authService from '@/services/supabaseAuthService';
+import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 
 const FILTER_TABS = [

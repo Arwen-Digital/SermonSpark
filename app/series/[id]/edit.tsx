@@ -60,7 +60,7 @@ export default function EditSeriesScreen() {
         <SafeAreaView
           style={[
             styles.loadingContainer,
-            { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) },
+            { paddingTop: Math.max(insets.top || 0, isLargeScreen ? 24 : 10) },
           ]}
         > 
           <LoadingIndicator size="large" />
@@ -73,7 +73,12 @@ export default function EditSeriesScreen() {
     return (
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Series not found', headerShown: false }} />
-        <SafeAreaView style={[styles.center, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}> 
+        <SafeAreaView
+          style={[
+            styles.center,
+            { paddingTop: Math.max(insets.top || 0, isLargeScreen ? 24 : 10) },
+          ]}
+        > 
           <Ionicons name="alert-circle" size={36} color={theme.colors.error} />
           <Text style={styles.errorText}>{error || 'Series not found'}</Text>
         </SafeAreaView>

@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  Alert,
-  Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { Button } from '../common/Button';
-import { Card } from '../common/Card';
-import { LoadingIndicator } from '../common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
 import { syncAll } from '@/services/sync/syncService';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useWindowDimensions } from 'react-native';
+import { Button } from '../common/Button';
+import { Card } from '../common/Card';
+import { LoadingIndicator } from '../common/LoadingIndicator';
 
 type SeriesItem = {
   id: string;
@@ -138,10 +138,14 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[
-        styles.headerContainer,
-        { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), isLargeScreen ? theme.spacing.xl : theme.spacing.md) }
-      ]}>
+      <View
+        style={[
+          styles.headerContainer,
+          {
+            paddingTop: isLargeScreen ? theme.spacing.xl : theme.spacing.sm,
+          },
+        ]}
+      >
         <View style={styles.headerTopRow}>
           <Pressable
             accessibilityRole="button"
@@ -149,8 +153,9 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />
+            <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />  
           </Pressable>
+          <Text style={styles.headerTitle}>My Sermons</Text>
         </View>
 
         <View style={styles.header}>
@@ -171,12 +176,14 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
                 )}
               </Pressable>
             )}
-            <Button
-              title="New Series"
+            <Pressable
               onPress={onCreateSeries}
               style={styles.createButton}
-              icon={<Ionicons name="add" size={16} color={theme.colors.textOnPrimary} />}
-            />
+              accessibilityRole="button"
+              accessibilityLabel="Create new series"
+            >
+              <Ionicons name="add" size={24} color={theme.colors.primary} />
+            </Pressable>
           </View>
         </View>
       </View>
@@ -287,7 +294,12 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     padding: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
+  },
+   headerTitle: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    flex: 1,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -310,7 +322,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   createButton: {
-    paddingHorizontal: theme.spacing.md,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerRightRow: {
     flexDirection: 'row',

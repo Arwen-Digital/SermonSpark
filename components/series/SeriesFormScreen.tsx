@@ -5,16 +5,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
-  Modal,
-  Pressable,
 } from 'react-native';
-import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
@@ -149,7 +149,17 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), isLargeScreen ? theme.spacing.xl : theme.spacing.md) }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: Math.max(
+              insets.top || 0,
+              isLargeScreen ? theme.spacing.xl : theme.spacing.md
+            ),
+          },
+        ]}
+      >
         <Button
           title="Cancel"
           onPress={onCancel}

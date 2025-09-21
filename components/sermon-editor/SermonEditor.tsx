@@ -1,13 +1,13 @@
 import { theme } from '@/constants/Theme';
+import { seriesRepository } from '@/services/repositories';
 import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../common/Button';
 import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
-import { seriesRepository } from '@/services/repositories';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Mock Bible verse data
 const mockBibleVerses: Record<string, Record<string, string>> = {
@@ -310,7 +310,16 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   };
 
   const renderHeader = () => (
-    <View style={[styles.header, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), isLargeScreen ? theme.spacing.xl : theme.spacing.md) }]}>
+    <View
+      style={[
+        styles.header,
+        {
+          paddingTop: Math.max(
+            isLargeScreen ? theme.spacing.xl : theme.spacing.md
+          ),
+        },
+      ]}
+    >
       <View style={styles.headerLeft}>
         <Pressable onPress={handleCancel} style={styles.headerButton}>
           <Ionicons name="close" size={24} color={theme.colors.textPrimary} />

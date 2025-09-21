@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
 import { getContextualGreeting, getLiturgicalInfo } from '@/utils/homeUtils';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface EnhancedHeaderProps {
@@ -30,7 +30,8 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   });
 
   const topPadBase = isLargeScreen ? theme.spacing.xl * 1.2 : theme.spacing.xl;
-  const bgPaddingTop = Math.max(insets.top + (isLargeScreen ? theme.spacing.md : theme.spacing.sm), topPadBase);
+  // const bgPaddingTop = Math.max(insets.top || 0, topPadBase);
+  const bgPaddingTop = 0;
 
   return (
     <View style={[styles.container, { marginTop: isLargeScreen ? theme.spacing.sm : 0 }]}>

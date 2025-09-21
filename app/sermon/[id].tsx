@@ -2,14 +2,14 @@ import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
+import { sermonRepository } from '@/services/repositories';
 import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import React, { useState, useCallback } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View, Alert, Platform, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sermonRepository } from '@/services/repositories';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SermonDetailPage() {
   const insets = useSafeAreaInsets();
@@ -229,7 +229,9 @@ export default function SermonDetailPage() {
     }).format(date);
   };
 
-  const headerTopPad = Math.max((insets.top || 0) + (isLargeScreen ? 16 : 8), isLargeScreen ? 28 : 12);
+  const minHeaderPad = isLargeScreen ? 28 : 12;
+  // const headerTopPad = Math.max(insets.top || 0, minHeaderPad);
+  const headerTopPad = 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -238,7 +240,7 @@ export default function SermonDetailPage() {
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Sermon</Text>
+        <Text style={styles.headerTitle}>Sermons</Text>
         <View style={styles.headerRight}>
           <Pressable onPress={handleEdit} style={styles.headerAction}>
             <Ionicons name="create-outline" size={20} color={theme.colors.textSecondary} />
