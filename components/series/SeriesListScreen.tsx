@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Pressable,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -46,6 +47,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const isLargeScreen = Math.min(width, height) >= 768;
+  const isWeb = Platform.OS === 'web';
 
   const loadSeries = useCallback(async () => {
     try {
@@ -154,19 +156,21 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
         <View style={styles.header}>
           <Text style={styles.title}>My Series</Text>
           <View style={styles.headerRightRow}>
-            <Pressable
-              onPress={handleSyncNow}
-              style={({ pressed }) => [styles.syncGhostButton, pressed && { opacity: 0.9 }]}
-              disabled={syncing}
-              accessibilityRole="button"
-              accessibilityLabel="Sync now"
-            >
-              {syncing ? (
-                <LoadingIndicator color={theme.colors.primary} size="small" />
-              ) : (
-                <Ionicons name="sync" size={18} color={theme.colors.primary} />
-              )}
-            </Pressable>
+            {!isWeb && (
+              <Pressable
+                onPress={handleSyncNow}
+                style={({ pressed }) => [styles.syncGhostButton, pressed && { opacity: 0.9 }]}
+                disabled={syncing}
+                accessibilityRole="button"
+                accessibilityLabel="Sync now"
+              >
+                {syncing ? (
+                  <LoadingIndicator color={theme.colors.primary} size="small" />
+                ) : (
+                  <Ionicons name="sync" size={18} color={theme.colors.primary} />
+                )}
+              </Pressable>
+            )}
             <Button
               title="New Series"
               onPress={onCreateSeries}

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/Theme';
 import { Sermon } from '../../types';
@@ -68,6 +68,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
     sortOrder: 'desc',
     tags: [],
   });
+  const showSyncButton = Platform.OS !== 'web' && !!onSyncNow;
 
   const filteredSermons = useMemo(() => {
     let filtered = [...sermons];
@@ -429,7 +430,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
                 color={theme.colors.textSecondary} 
               />
             </Pressable>
-            {onSyncNow && (
+            {showSyncButton && (
               <Pressable
                 onPress={() => onSyncNow?.()}
                 style={styles.syncGhostButton}
