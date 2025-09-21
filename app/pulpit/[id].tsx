@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -8,7 +8,7 @@ import {
   Pressable,
   useWindowDimensions,
 } from 'react-native';
-import type { TextStyle } from 'react-native';
+import type { TextStyle, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
@@ -34,6 +34,8 @@ export default function PulpitViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fontScale, setFontScale] = useState(1);
+  const [hasStartedSinceReset, setHasStartedSinceReset] = useState(false);
+  const lastScrollOffset = useRef(0);
 
   const markdownStyles = useMemo(() => createPulpitMarkdownStyles(fontScale), [fontScale]);
   const baseTextStyle = useMemo(() => createBaseTextStyle(fontScale), [fontScale]);
@@ -97,6 +99,22 @@ export default function PulpitViewPage() {
     }
     return () => clearInterval(interval);
   }, [isTimerRunning]);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const currentOffsetY = event.nativeEvent.contentOffset.y;
+      const isScrollingDown = currentOffsetY > lastScrollOffset.current;
+      const crossedThreshold = currentOffsetY > 8;
+
+      if (!hasStartedSinceReset && !isTimerRunning && isScrollingDown && crossedThreshold) {
+        setIsTimerRunning(true);
+        setHasStartedSinceReset(true);
+      }
+
+      lastScrollOffset.current = currentOffsetY;
+    },
+    [hasStartedSinceReset, isTimerRunning]
+  );
   
   if (loading) {
     return (
@@ -149,6 +167,7 @@ export default function PulpitViewPage() {
       setIsTimerRunning(false);
     } else {
       setIsTimerRunning(true);
+      setHasStartedSinceReset(true);
       if (seconds === 0) {
         setSeconds(0);
       }
@@ -158,6 +177,7 @@ export default function PulpitViewPage() {
   const resetTimer = () => {
     setSeconds(0);
     setIsTimerRunning(false);
+    setHasStartedSinceReset(false);
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -249,7 +269,12 @@ export default function PulpitViewPage() {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <Markdown style={markdownStyles} rules={highlightRules}>
           {sermon.content || ''}
         </Markdown>
