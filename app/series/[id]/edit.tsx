@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { FadeInView } from '@/components/common/FadeInView';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
 import type { SeriesDTO } from '@/services/repositories/types';
@@ -57,8 +58,7 @@ export default function EditSeriesScreen() {
       <FadeInView style={styles.container}>
         <Stack.Screen options={{ title: 'Loading series', headerShown: false }} />
         <SafeAreaView style={[styles.center, { paddingTop: Math.max((insets.top || 0) + (isLargeScreen ? 12 : 6), isLargeScreen ? 24 : 10) }]}> 
-          <Ionicons name="sync" size={28} color={theme.colors.textSecondary} />
-          <Text style={styles.loadingText}>Loading series…</Text>
+          <LoadingIndicator size="large" />
         </SafeAreaView>
       </FadeInView>
     );
@@ -95,10 +95,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 8,
-    color: theme.colors.textSecondary,
   },
   errorText: {
     marginTop: 8,

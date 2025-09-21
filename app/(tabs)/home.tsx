@@ -110,7 +110,6 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading your dashboard...</Text>
         </View>
       </SafeAreaView>
     );
@@ -374,11 +373,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-    fontSize: 16,
   },
   header: {
     backgroundColor: '#f5f5f5',

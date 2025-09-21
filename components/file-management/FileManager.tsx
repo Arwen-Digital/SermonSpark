@@ -323,7 +323,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading sermons...</Text>
+          <LoadingIndicator size="large" />
         </View>
       );
     }
@@ -662,10 +662,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    ...theme.typography.body1,
-    color: theme.colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,

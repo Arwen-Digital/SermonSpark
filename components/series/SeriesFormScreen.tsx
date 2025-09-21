@@ -292,9 +292,6 @@ export const SeriesFormScreen: React.FC<SeriesFormScreenProps> = ({
         {loading && (
           <View style={styles.loadingOverlay}>
             <LoadingIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>
-              {isEditing ? 'Updating...' : 'Creating...'}
-            </Text>
           </View>
         )}
       </ScrollView>
@@ -598,11 +595,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
-  },
-  loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.typography.body1.fontSize,
-    color: theme.colors.textSecondary,
   },
   // Modal styles (copied from New Series screen)
   modalOverlay: {

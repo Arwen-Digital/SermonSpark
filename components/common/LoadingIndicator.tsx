@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { theme } from '../../constants/Theme';
 
@@ -10,79 +10,124 @@ interface LoadingIndicatorProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const BLOCK_COUNT = 3;
-const MIN_OPACITY = 0.2;
-
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   size = 'large',
-  color,
+  color: _color,
   style,
 }) => {
-  const blockColor = color ?? theme.colors.primary;
-  const blockSize = size === 'small' ? 8 : 14;
-  const blockSpacing = size === 'small' ? 4 : 6;
-  const animatedValues = useRef(
-    Array.from({ length: BLOCK_COUNT }, () => new Animated.Value(MIN_OPACITY))
-  ).current;
+  const baseColor = theme.colors.gray400;
+  const highlightColor = theme.colors.gray300;
+  void _color; // preserve prop compatibility while enforcing neutral palette
+  const shimmer = useRef(new Animated.Value(0)).current;
+  const animatedBackground = useMemo(
+    () =>
+      shimmer.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [baseColor, highlightColor, baseColor],
+      }),
+    [baseColor, highlightColor, shimmer]
+  );
 
   useEffect(() => {
-    const animations = animatedValues.map((value, index) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(index * 150),
-          Animated.timing(value, {
-            toValue: 1,
-            duration: 400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(value, {
-            toValue: MIN_OPACITY,
-            duration: 500,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      )
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.timing(shimmer, {
+          toValue: 0,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+      ])
     );
 
-    animations.forEach((animation) => animation.start());
+    animation.start();
 
     return () => {
-      animations.forEach((animation) => animation.stop());
+      animation.stop();
     };
-  }, [animatedValues]);
+  }, [shimmer]);
 
-  return (
-    <View style={[styles.container, style]}>
-      {animatedValues.map((animatedValue, index) => (
+  if (size === 'small') {
+    return (
+      <View style={[styles.smallContainer, style]}>
         <Animated.View
-          key={index}
           style={[
-            styles.block,
+            styles.smallBar,
             {
-              backgroundColor: blockColor,
-              width: blockSize,
-              height: blockSize,
-              borderRadius: blockSize / 4,
-              marginHorizontal: blockSpacing / 2,
-              opacity: animatedValue,
+              backgroundColor: animatedBackground,
             },
           ]}
         />
-      ))}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.pageContainer, style]}>
+      <Animated.View
+        style={[
+          styles.heroBlock,
+          {
+            backgroundColor: animatedBackground,
+          },
+        ]}
+      />
+      <View style={styles.cardRow}>
+        {CARD_SKELETONS.map((width, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.cardBlock,
+              {
+                width,
+                backgroundColor: animatedBackground,
+              },
+            ]}
+          />
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  smallContainer: {
+    width: 28,
+    height: 12,
+    borderRadius: theme.borderRadius.sm,
+    overflow: 'hidden',
     justifyContent: 'center',
   },
-  block: {
-    backgroundColor: theme.colors.primary,
+  smallBar: {
+    height: '100%',
+    borderRadius: theme.borderRadius.sm,
+  },
+  pageContainer: {
+    width: '100%',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    gap: theme.spacing.lg,
+  },
+  heroBlock: {
+    height: 140,
+    borderRadius: theme.borderRadius.lg,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    flexWrap: 'wrap' as const,
+  },
+  cardBlock: {
+    height: 96,
+    borderRadius: theme.borderRadius.lg,
+    flexGrow: 1,
   },
 });
 
+const CARD_SKELETONS = ['48%', '48%'];

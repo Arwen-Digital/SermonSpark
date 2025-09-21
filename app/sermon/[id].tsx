@@ -71,7 +71,6 @@ export default function SermonDetailPage() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Loading sermon...</Text>
         </View>
       </SafeAreaView>
     );
@@ -458,11 +457,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.xl,
-  },
-  loadingText: {
-    ...theme.typography.body1,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
   },
   errorContainer: {
     flex: 1,

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { FadeInView } from '@/components/common/FadeInView';
 import { theme } from '@/constants/Theme';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { seriesRepository, sermonRepository } from '@/services/repositories';
 import type { SeriesDTO, SermonDTO } from '@/services/repositories/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,8 +72,7 @@ export default function SeriesDetailScreen() {
         <Stack.Screen options={{ title: 'Loading Series', headerShown: false }} />
         <SafeAreaView style={styles.container}>
           <View style={styles.notFound}>
-            <Ionicons name="sync" size={32} color={theme.colors.gray500} />
-            <Text style={styles.notFoundText}>Loading series…</Text>
+            <LoadingIndicator size="large" />
           </View>
         </SafeAreaView>
       </FadeInView>

@@ -280,7 +280,6 @@ export default function CommunityScreen() {
         <SafeAreaView style={styles.container}>
           <View style={[styles.container, styles.centerContent]}>
             <LoadingIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Loading community posts...</Text>
           </View>
         </SafeAreaView>
       </FadeInView>
@@ -345,11 +344,6 @@ const styles = StyleSheet.create({
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: theme.typography.body1.fontSize,
-    color: theme.colors.textSecondary,
   },
   content: {
     flex: 1,
