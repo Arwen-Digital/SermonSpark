@@ -4,6 +4,7 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { Platform, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { theme } from '@/constants/Theme';
@@ -82,23 +83,25 @@ export default function RootLayout() {
   );
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={Platform.select({
-        web: { 
-          flex: 1, 
-          backgroundColor: theme.colors.background 
-        },
-        default: { flex: 1 }
-      })}>
-        {Platform.OS === 'web' ? (
-          <View style={{ flex: 1, maxWidth: 1200, alignSelf: 'center', width: '100%' }}>
-            {content}
-          </View>
-        ) : (
-          content
-        )}
-      </View>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <View style={Platform.select({
+          web: { 
+            flex: 1, 
+            backgroundColor: theme.colors.background 
+          },
+          default: { flex: 1 }
+        })}>
+          {Platform.OS === 'web' ? (
+            <View style={{ flex: 1, maxWidth: 1200, alignSelf: 'center', width: '100%' }}>
+              {content}
+            </View>
+          ) : (
+            content
+          )}
+        </View>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
