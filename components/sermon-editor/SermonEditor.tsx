@@ -4,10 +4,10 @@ import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../common/Button';
-import { WysiwygEditor, WysiwygEditorHandle } from './WysiwygEditor';
+import { MarkdownEditor, MarkdownEditorHandle } from './MarkdownEditor';
 
 // Mock Bible verse data
 const mockBibleVerses: Record<string, Record<string, string>> = {
@@ -131,7 +131,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [newTag, setNewTag] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [textSelection, setTextSelection] = useState({ start: 0, end: 0 });
-  const wysiwygEditorRef = useRef<WysiwygEditorHandle>(null);
+  const markdownEditorRef = useRef<MarkdownEditorHandle>(null);
 
   // Track changes
   useEffect(() => {
@@ -254,59 +254,13 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   };
 
   const insertFormatting = (before: string, after: string) => {
-    const { start, end } = textSelection;
-    const selectedText = content.substring(start, end);
-    
-    let newContent;
-    let newCursorPosition;
-    
-    if (selectedText) {
-      // Wrap selected text
-      newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);
-      newCursorPosition = start + before.length + selectedText.length + after.length;
-    } else {
-      // Insert at cursor position or append
-      const insertPosition = start > 0 ? start : content.length;
-      newContent = content.substring(0, insertPosition) + before + after + content.substring(insertPosition);
-      newCursorPosition = insertPosition + before.length;
-    }
-    
-    // Mobile-specific: Dismiss floating toolbar by clearing selection temporarily
-    if (Platform.OS !== 'web' && selectedText) {
-      setTextSelection({ start: 0, end: 0 });
-      setTimeout(() => {
-        setTextSelection({ start: newCursorPosition, end: newCursorPosition });
-      }, 50);
-    }
-    
-    // Use direct manipulation to set content and selection atomically
-    if (wysiwygEditorRef.current?.setContentAndSelection) {
-      // Update parent state first to prevent conflicts
-      setContent(newContent);
-      setTextSelection({ start: newCursorPosition, end: newCursorPosition });
-      
-      // Then use the direct manipulation method
-      wysiwygEditorRef.current.setContentAndSelection(newContent, newCursorPosition, newCursorPosition);
-    } else {
-      // Fallback to previous approach if direct manipulation isn't available
-      setContent(newContent);
-      setTextSelection({ start: newCursorPosition, end: newCursorPosition });
-      
-      if (wysiwygEditorRef.current?.focus) {
-        wysiwygEditorRef.current.focus();
-      }
-      
-      setTimeout(() => {
-        if (wysiwygEditorRef.current?.setSelection) {
-          wysiwygEditorRef.current.setSelection(newCursorPosition, newCursorPosition);
-        }
-      }, Platform.OS !== 'web' ? 200 : 100);
+    if (markdownEditorRef.current) {
+      markdownEditorRef.current.wrapSelection(before, after);
     }
   };
 
-  const handleSelectionChange = (event: any) => {
-    const { start, end } = event.nativeEvent.selection;
-    setTextSelection({ start, end });
+  const handleSelectionChange = (selection: { start: number; end: number }) => {
+    setTextSelection(selection);
   };
 
   const renderHeader = () => (
@@ -546,13 +500,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                 </Pressable>
               </View>
             )}
-            <WysiwygEditor
-              ref={wysiwygEditorRef}
+            <MarkdownEditor
+              ref={markdownEditorRef}
               style={styles.contentTextInput}
               value={content}
               onChangeText={setContent}
               onSelectionChange={handleSelectionChange}
               viewMode={viewMode}
+              onViewModeChange={setViewMode}
               placeholder="Start writing your sermon content...
 
 Use the formatting buttons above or type directly:
@@ -564,7 +519,6 @@ Use the formatting buttons above or type directly:
 1. List item for numbered lists
 > Quote for blockquotes
 ==highlight== for highlighting"
-              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
         );
@@ -962,7 +916,11 @@ IV. Conclusion
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       {renderHeader()}
       {renderTitleInput()}
       {renderTabs()}
@@ -984,7 +942,7 @@ IV. Conclusion
       )}
       {renderSeriesModal()}
       {renderBibleVerseModal()}
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

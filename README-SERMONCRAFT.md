@@ -106,7 +106,7 @@ sermon-spark/
 │   │   ├── FileManager.tsx
 │   │   └── SermonCard.tsx
 │   ├── sermon-editor/           # Text editing components
-│   │   ├── RichTextEditor.tsx
+│   │   ├── MarkdownEditor.tsx
 │   │   └── SermonEditor.tsx
 │   └── pulpit/                  # Presentation components
 │       └── PulpitMode.tsx
