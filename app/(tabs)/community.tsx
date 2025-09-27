@@ -8,7 +8,8 @@ import communityService, { CommunityPostDto } from '@/services/supabaseCommunity
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 const FILTER_TABS = [
@@ -19,6 +20,7 @@ const FILTER_TABS = [
 ];
 
 export default function CommunityScreen() {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [posts, setPosts] = useState<CommunityPostDto[]>([]);
@@ -274,27 +276,27 @@ export default function CommunityScreen() {
     </Card>
   );
 
+  const topPadding = Math.max(insets.top || 0, theme.spacing.md);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
+
   if (loading) {
     return (
-      <FadeInView style={styles.container}>
-        <SafeAreaView style={styles.container}>
-          <View style={styles.loadingScreen}>
-            <LoadingIndicator size="large" color={theme.colors.primary} />
-          </View>
-        </SafeAreaView>
+      <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+        <View style={styles.loadingScreen}>
+          <LoadingIndicator size="large" color={theme.colors.primary} />
+        </View>
       </FadeInView>
     );
   }
 
   return (
-    <FadeInView style={styles.container}>
-      <SafeAreaView style={styles.container}>
-        <ScrollView 
-          style={styles.content} 
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+    <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         >
           {renderHeader()}
           {renderSearchBar()}
@@ -331,7 +333,6 @@ export default function CommunityScreen() {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
     </FadeInView>
   );
 }

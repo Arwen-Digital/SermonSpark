@@ -7,7 +7,7 @@ import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -65,38 +65,41 @@ export default function SermonDetailPage() {
       loadSermon();
     }, [loadSermon])
   );
-  
+
+  const topPadding = Math.max(insets.top || 0, isLargeScreen ? theme.spacing.xl : theme.spacing.md);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.loadingContainer}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
   
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={theme.colors.error} />
           <Text style={styles.errorText}>{error}</Text>
           <Button title="Try Again" onPress={loadSermon} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
   
   if (!sermon) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.errorContainer}>
           <Ionicons name="document-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={styles.errorText}>Sermon not found</Text>
           <Button title="Go Back" onPress={() => router.back()} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -229,14 +232,10 @@ export default function SermonDetailPage() {
     }).format(date);
   };
 
-  const minHeaderPad = isLargeScreen ? 28 : 12;
-  // const headerTopPad = Math.max(insets.top || 0, minHeaderPad);
-  const headerTopPad = 0;
-
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: headerTopPad }]}>
+      <View style={styles.header}>
         <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </Pressable>
@@ -313,7 +312,7 @@ export default function SermonDetailPage() {
         </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

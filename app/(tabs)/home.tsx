@@ -6,7 +6,7 @@ import sermonService, { SermonDto } from '@/services/supabaseSermonService';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, ImageBackground, Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Dimensions, ImageBackground, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const motivationalQuotes = [
@@ -107,11 +107,11 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top || 0, isLargeScreen ? theme.spacing.xl : theme.spacing.md), paddingBottom: Math.max(insets.bottom || 0, theme.spacing.md) }]}>
         <View style={styles.loadingContainer}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -119,8 +119,11 @@ export default function HomeScreen() {
   // const headerTopPad = Math.max(insets.top || 0, minHeaderPad);
   // const headerTopPad = 0;
 
+  const topPadding = Math.max(insets.top || 0, isLargeScreen ? theme.spacing.xl : theme.spacing.md);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
       {/* Header */}
       <View style={[styles.header]}>
         <View style={styles.tabsContainer}>
@@ -362,7 +365,7 @@ export default function HomeScreen() {
             )}
           </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

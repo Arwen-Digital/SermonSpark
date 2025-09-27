@@ -8,7 +8,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { NativeScrollEvent, NativeSyntheticEvent, TextStyle } from 'react-native';
 import {
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -115,20 +114,23 @@ export default function PulpitViewPage() {
     },
     [hasStartedSinceReset, isTimerRunning]
   );
-  
+
+  const topPadding = Math.max(insets.top || 0, isLargeScreen ? theme.spacing.xl : theme.spacing.md);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.loadingContainer}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
   
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={theme.colors.error} />
           <Text style={styles.errorText}>{error}</Text>
@@ -136,13 +138,13 @@ export default function PulpitViewPage() {
             <Text style={styles.retryText}>Try Again</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
   
   if (!sermon) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.errorContainer}>
           <Ionicons name="document-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={styles.errorText}>Sermon not found</Text>
@@ -150,7 +152,7 @@ export default function PulpitViewPage() {
             <Text style={styles.retryText}>Go Back</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -208,7 +210,7 @@ export default function PulpitViewPage() {
   const stickyTopPad = 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
       {/* Sticky Header */}
       <View style={[styles.stickyHeader, { paddingTop: stickyTopPad }]}>
         <View style={styles.leftControls}>
@@ -281,7 +283,7 @@ export default function PulpitViewPage() {
         </Markdown>
         <View style={styles.bottomPadding} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

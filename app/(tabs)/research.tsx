@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, ScrollView, Text, FlatList, Pressable } from 'react-native';
+import { StyleSheet, View, ScrollView, Text, FlatList, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Card } from '@/components/common/Card';
@@ -87,6 +88,7 @@ const CATEGORIES = [
 ];
 
 export default function ResearchScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isPremiumUser] = useState(true); // Mock premium status - now premium user
 
@@ -207,10 +209,12 @@ export default function ResearchScreen() {
   );
 
 
+  const topPadding = Math.max(insets.top || 0, theme.spacing.md);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
+
   return (
-    <FadeInView style={styles.container}>
-      <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {renderHeader()}
           {renderCategories()}
           
@@ -228,7 +232,6 @@ export default function ResearchScreen() {
             />
           </View>
         </ScrollView>
-      </SafeAreaView>
     </FadeInView>
   );
 }

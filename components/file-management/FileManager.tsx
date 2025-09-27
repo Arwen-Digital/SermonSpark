@@ -404,11 +404,11 @@ export const FileManager: React.FC<FileManagerProps> = ({
   );
 
   const topPaddingBase = isLargeScreen ? theme.spacing.xl : theme.spacing.md;
-  // const topPadding = Math.max(insets.top || 0, topPaddingBase);
-    const topPadding = 0;
+  const topPadding = Math.max(insets.top || 0, topPaddingBase);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
 
   return (
-    <View style={[styles.container, { paddingTop: topPadding }] }>
+    <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }] }>
       {/* {renderHeader()} */}
      
       <View style={styles.sermonsSection}>
@@ -658,7 +658,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sermonsList: {
-    paddingBottom: 100, // Extra bottom padding for comfortable scrolling
+    paddingBottom: Platform.select({
+      ios: 100, // Extra bottom padding for comfortable scrolling
+      android: 120, // Slightly more padding for Android to account for tab bar
+      default: 100,
+    }),
   },
   loadingContainer: {
     flex: 1,

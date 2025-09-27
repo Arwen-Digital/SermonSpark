@@ -21,7 +21,7 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            position: 'absolute',
+            // Remove absolute positioning to prevent overlap
           },
           default: {},
         }),

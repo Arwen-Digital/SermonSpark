@@ -8,7 +8,8 @@ import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Fallback while loading
 const emptyUser: User = {
@@ -65,6 +66,7 @@ const MENU_SECTIONS = [
 ];
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState<User>(emptyUser);
   const [loading, setLoading] = useState(true);
   const [sermonCount, setSermonCount] = useState<number | null>(null);
@@ -297,10 +299,12 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const topPadding = Math.max(insets.top || 0, theme.spacing.md);
+  const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
+
   return (
-    <FadeInView style={styles.container}>
-      <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Profile</Text>
           </View>
@@ -325,7 +329,6 @@ export default function ProfileScreen() {
             </>
           )}
         </ScrollView>
-      </SafeAreaView>
     </FadeInView>
   );
 }

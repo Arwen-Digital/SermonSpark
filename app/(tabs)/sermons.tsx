@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { FileManager } from '@/components/file-management/FileManager';
 import { FadeInView } from '@/components/common/FadeInView';
@@ -109,20 +109,18 @@ export default function SermonsScreen() {
 
   return (
     <FadeInView style={styles.container}>
-      <SafeAreaView style={styles.container}>
-        <FileManager
-          sermons={sermons}
-          onSermonPress={handleSermonPress}
-          onCreateNew={handleCreateNew}
-          onSearch={handleSearch}
-          onFilter={handleFilter}
-          onPulpit={handlePulpit}
-          onSeriesPress={handleSeriesPress}
-          loading={loading}
-          onSyncNow={handleSyncNow}
-          syncing={syncing}
-        />
-      </SafeAreaView>
+      <FileManager
+        sermons={sermons}
+        onSermonPress={handleSermonPress}
+        onCreateNew={handleCreateNew}
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        onPulpit={handlePulpit}
+        onSeriesPress={handleSeriesPress}
+        loading={loading}
+        onSyncNow={handleSyncNow}
+        syncing={syncing}
+      />
     </FadeInView>
   );
 }
