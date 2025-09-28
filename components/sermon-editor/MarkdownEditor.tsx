@@ -1082,26 +1082,62 @@ const styles = StyleSheet.create({
   },
 });
 
-// Custom rules for highlight syntax
+// Custom rules for highlight syntax - using the working approach from pulpit/sermon views
 const customRules = {
-  highlight: {
-    match: (source: string, state: any, lookbehind: string) => {
-      const regex = /^==([\s\S]+?)==/;
-      const match = regex.exec(source);
-      return match ? [match[0], match[1]] : null;
-    },
-    parse: (capture: any, nestedParse: any, state: any) => {
-      return {
-        content: capture[1],
-      };
-    },
-    render: (node: any, children: any, parent: any, styles: any, inheritedStyles: any) => {
+  text: (
+    node: any,
+    _children: any,
+    _parent: any,
+    styles: any,
+    inheritedStyles: any = {}
+  ) => {
+    const content: string = node.content ?? '';
+    if (!content) return null;
+
+    // If no highlight syntax, return normal text
+    if (content.indexOf('==') === -1) {
       return (
-        <Text key={node.key} style={[inheritedStyles, styles.highlight]}>
-          {node.content}
+        <Text key={node.key} style={[inheritedStyles, styles.text]}>
+          {content}
         </Text>
       );
-    },
+    }
+
+    // Parse and render text with highlights
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let idx = 0;
+    const regex = /==(.+?)==/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(content)) !== null) {
+      // Add text before the highlight
+      if (match.index > lastIndex) {
+        parts.push(content.slice(lastIndex, match.index));
+      }
+      // Add highlighted text
+      parts.push(
+        <Text
+          key={`h-${idx}-${match.index}`}
+          style={[inheritedStyles, styles.text, markdownStyles.highlight]}
+        >
+          {match[1]}
+        </Text>
+      );
+      lastIndex = match.index + match[0].length;
+      idx++;
+    }
+
+    // Add remaining text after the last highlight
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+
+    return (
+      <Text key={`text-${node.key || Math.random()}`} style={[inheritedStyles, styles.text]}>
+        {parts}
+      </Text>
+    );
   },
 };
 
