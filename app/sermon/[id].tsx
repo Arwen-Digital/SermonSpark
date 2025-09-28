@@ -306,8 +306,8 @@ export default function SermonDetailPage() {
             ]} 
             onPress={handleDelete}
           >
-            <Ionicons name="trash-outline" size={20} color={theme.colors.surface} />
-            <Text style={styles.deleteButtonText}>Delete Sermon</Text>
+            <Ionicons name="trash-outline" size={14} color={theme.colors.textSecondary} />
+            <Text style={styles.deleteButtonText}>Delete</Text>
           </Pressable>
         </View>
 
@@ -425,27 +425,30 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   deleteButtonContainer: {
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    alignItems: 'flex-end',
   },
   deleteButton: {
-    backgroundColor: theme.colors.error,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: 'transparent',
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
   },
   deleteButtonText: {
-    color: theme.colors.surface,
-    fontWeight: '600',
-    fontSize: 16,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    fontSize: 12,
   },
   deleteButtonPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.7,
+    backgroundColor: theme.colors.gray100,
   },
   contentText: {
     ...theme.typography.body1,
