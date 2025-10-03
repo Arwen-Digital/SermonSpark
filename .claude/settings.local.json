@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Read(/Users/arnoldgamboa/Library/Application Support/CleanShot/media/media_ru1FdgLxHv/**)",
+      "Bash(npm run lint:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
