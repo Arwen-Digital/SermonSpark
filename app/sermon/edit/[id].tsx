@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, SafeAreaView, StyleSheet, Platform } from 'react-native';
-import { SermonEditor } from '@/components/sermon-editor/SermonEditor';
+import { CKEditorSermonEditor } from '@/components/sermon-editor/CKEditorSermonEditor';
 import { theme } from '@/constants/Theme';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Sermon } from '@/types';
 import { sermonRepository } from '@/services/repositories';
+import { Sermon } from '@/types';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Platform, SafeAreaView, StyleSheet } from 'react-native';
 
 export default function EditSermonPage() {
   const { id } = useLocalSearchParams();
@@ -107,7 +107,7 @@ export default function EditSermonPage() {
   return (
     <SafeAreaView style={styles.container}>
       {sermon && (
-        <SermonEditor
+        <CKEditorSermonEditor
           sermon={sermon}
           onSave={handleSave}
           onCancel={handleCancel}

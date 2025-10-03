@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Markdown from 'react-native-markdown-display';
+// TODO: Replace with HTML rendering for CKEditor content
+import { RichHtml } from '@/components/common/RichHtml';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SermonDetailPage() {
@@ -169,59 +170,7 @@ export default function SermonDetailPage() {
     );
   };
 
-  // Highlight ==text== while preserving inherited formatting
-  const highlightRules = {
-    text: (
-      node: any,
-      _children: any,
-      _parent: any,
-      styles: any,
-      inheritedStyles: any = {}
-    ) => {
-      const content: string = node.content ?? '';
-      if (!content) return null;
-
-      if (content.indexOf('==') === -1) {
-        return (
-          <Text key={node.key} style={[inheritedStyles, styles.text]}>
-            {content}
-          </Text>
-        );
-      }
-
-      const parts: React.ReactNode[] = [];
-      let lastIndex = 0;
-      let idx = 0;
-      const regex = /==(.+?)==/g;
-      let match: RegExpExecArray | null;
-
-      while ((match = regex.exec(content)) !== null) {
-        if (match.index > lastIndex) {
-          parts.push(content.slice(lastIndex, match.index));
-        }
-        parts.push(
-          <Text
-            key={`h-${idx}-${match.index}`}
-            style={[inheritedStyles, styles.text, markdownStyles.highlight]}
-          >
-            {match[1]}
-          </Text>
-        );
-        lastIndex = match.index + match[0].length;
-        idx++;
-      }
-
-      if (lastIndex < content.length) {
-        parts.push(content.slice(lastIndex));
-      }
-
-      return (
-        <Text key={`text-${node.key || Math.random()}`} style={[inheritedStyles, styles.text]}>
-          {parts}
-        </Text>
-      );
-    },
-  } as const;
+  // TODO: Replace with HTML rendering for CKEditor content
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -292,9 +241,7 @@ export default function SermonDetailPage() {
 
         {/* Sermon Content */}
         <Card style={styles.contentCard}>
-          <Markdown style={markdownStyles} rules={highlightRules}>
-            {sermon.content || ''}
-          </Markdown>
+          <RichHtml html={sermon.content || ''} />
         </Card>
 
         {/* Delete Button */}
@@ -424,6 +371,12 @@ const styles = StyleSheet.create({
   contentCard: {
     marginBottom: theme.spacing.lg,
   },
+  contentText: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    lineHeight: 28,
+    fontSize: 16,
+  },
   deleteButtonContainer: {
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
@@ -477,63 +430,4 @@ const styles = StyleSheet.create({
   },
 });
 
-const markdownStyles = {
-  body: {
-    ...theme.typography.body1,
-    color: theme.colors.textPrimary,
-    lineHeight: 28,
-    fontSize: 16,
-  },
-  heading1: {
-    ...theme.typography.h3,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
-    marginTop: theme.spacing.lg,
-  },
-  heading2: {
-    ...theme.typography.h4,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  heading3: {
-    ...theme.typography.h5,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  paragraph: {
-    ...theme.typography.body1,
-    color: theme.colors.textPrimary,
-    lineHeight: 28,
-    fontSize: 16,
-    marginBottom: theme.spacing.md,
-  },
-  strong: {
-    fontWeight: '700',
-  },
-  em: {
-    fontStyle: 'italic',
-  },
-  list_item: {
-    ...theme.typography.body1,
-    color: theme.colors.textPrimary,
-    lineHeight: 24,
-    marginBottom: theme.spacing.xs,
-  },
-  blockquote: {
-    backgroundColor: theme.colors.gray100,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
-    paddingLeft: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginVertical: theme.spacing.md,
-    fontStyle: 'italic',
-  },
-  // Inline highlight span for ==text==
-  highlight: {
-    backgroundColor: '#FFF59D',
-    paddingHorizontal: 4,
-    borderRadius: 3,
-  },
-};
+// TODO: Replace with HTML styles for CKEditor content

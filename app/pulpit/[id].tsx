@@ -14,7 +14,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Markdown from 'react-native-markdown-display';
+// TODO: Replace with HTML rendering for CKEditor content
+import { RichHtml } from '@/components/common/RichHtml';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
@@ -36,12 +37,7 @@ export default function PulpitViewPage() {
   const [hasStartedSinceReset, setHasStartedSinceReset] = useState(false);
   const lastScrollOffset = useRef(0);
 
-  const markdownStyles = useMemo(() => createPulpitMarkdownStyles(fontScale), [fontScale]);
   const baseTextStyle = useMemo(() => createBaseTextStyle(fontScale), [fontScale]);
-  const highlightRules = useMemo(
-    () => createHighlightRules(baseTextStyle, markdownStyles.highlight),
-    [baseTextStyle, markdownStyles.highlight]
-  );
   
   const loadSermon = useCallback(async () => {
     if (!id) return;
@@ -278,9 +274,12 @@ export default function PulpitViewPage() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <Markdown style={markdownStyles} rules={highlightRules}>
-          {sermon.content || ''}
-        </Markdown>
+        {/* TODO: Replace with HTML rendering for CKEditor content */}
+        <RichHtml 
+          html={sermon.content || ''} 
+          fontSize={baseTextStyle.fontSize}
+          lineHeight={baseTextStyle.lineHeight}
+        />
         <View style={styles.bottomPadding} />
       </ScrollView>
     </View>
@@ -409,68 +408,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const baseMarkdownStyles = {
-  // Match sermon/[id] typography for consistency
-  body: {
-    ...theme.typography.body1,
-    color: theme.colors.textPrimary,
-    lineHeight: 28,
-    fontSize: 16,
-  },
-  heading1: {
-    ...theme.typography.h3,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.md,
-    marginTop: theme.spacing.lg,
-  },
-  heading2: {
-    ...theme.typography.h4,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  heading3: {
-    ...theme.typography.h5,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  paragraph: {
-    ...theme.typography.body1,
-    color: theme.colors.textPrimary,
-    lineHeight: 28,
-    fontSize: 16,
-    marginBottom: theme.spacing.md,
-  },
-  strong: {
-    fontWeight: '700',
-  },
-  em: {
-    fontStyle: 'italic',
-  },
-  list_item: {
-    ...theme.typography.body1,
-    color: theme.colors.textPrimary,
-    lineHeight: 24,
-    marginBottom: theme.spacing.xs,
-  },
-  blockquote: {
-    ...theme.typography.body1,
-    backgroundColor: theme.colors.gray100,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
-    paddingLeft: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginVertical: theme.spacing.md,
-    fontStyle: 'italic',
-  },
-  // Only used for inline ==highlight== segments; does not change font size/weight
-  highlight: {
-    backgroundColor: '#FFF59D',
-    paddingHorizontal: 4,
-    borderRadius: 3,
-  },
-} as const;
+// TODO: Replace with HTML styles for CKEditor content
 
 const createBaseTextStyle = (scale: number): TextStyle => ({
   fontSize: Number((16 * scale).toFixed(1)),
@@ -493,76 +431,4 @@ const scaleTypography = (style: TextStyle, scale: number): TextStyle => {
   return scaled;
 };
 
-const createPulpitMarkdownStyles = (scale: number) => ({
-  body: scaleTypography(baseMarkdownStyles.body, scale),
-  heading1: scaleTypography(baseMarkdownStyles.heading1, scale),
-  heading2: scaleTypography(baseMarkdownStyles.heading2, scale),
-  heading3: scaleTypography(baseMarkdownStyles.heading3, scale),
-  paragraph: scaleTypography(baseMarkdownStyles.paragraph, scale),
-  strong: { ...baseMarkdownStyles.strong },
-  em: { ...baseMarkdownStyles.em },
-  list_item: scaleTypography(baseMarkdownStyles.list_item, scale),
-  blockquote: scaleTypography(baseMarkdownStyles.blockquote, scale),
-  highlight: baseMarkdownStyles.highlight,
-});
-
-const createHighlightRules = (baseTextStyle: TextStyle, highlightStyle: TextStyle) => ({
-  text: (
-    node: any,
-    _children: any,
-    _parent: any,
-    _styles: any,
-    inheritedStyles: any = {}
-  ) => {
-    const content: string = node.content ?? '';
-    if (!content) return null;
-
-    const textStyles: TextStyle[] = [baseTextStyle];
-
-    if (Array.isArray(inheritedStyles)) {
-      textStyles.push(...inheritedStyles);
-    } else if (inheritedStyles) {
-      textStyles.push(inheritedStyles);
-    }
-
-    if (content.indexOf('==') === -1) {
-      return (
-        <Text key={node.key} style={textStyles}>
-          {content}
-        </Text>
-      );
-    }
-
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let idx = 0;
-    const regex = /==(.+?)==/g;
-    let match: RegExpExecArray | null;
-
-    while ((match = regex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(content.slice(lastIndex, match.index));
-      }
-      parts.push(
-        <Text
-          key={`h-${idx}-${match.index}`}
-          style={[...textStyles, highlightStyle]}
-        >
-          {match[1]}
-        </Text>
-      );
-      lastIndex = match.index + match[0].length;
-      idx++;
-    }
-
-    if (lastIndex < content.length) {
-      parts.push(content.slice(lastIndex));
-    }
-
-    return (
-      <Text key={`text-${node.key || Math.random()}`} style={textStyles}>
-        {parts}
-      </Text>
-    );
-  },
-});
+// TODO: Replace with HTML rendering functions for CKEditor content
