@@ -32,7 +32,7 @@ export const RichHtml: React.FC<RichHtmlProps> = ({ html, style, testID, fontSiz
         body { 
           margin: 0; 
           padding: 0; 
-          font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
           overflow-x: hidden;
         }
         .ck-content { 
@@ -40,7 +40,7 @@ export const RichHtml: React.FC<RichHtmlProps> = ({ html, style, testID, fontSiz
           font-size: ${fontSize || 16}px; 
           line-height: ${lineHeight ? lineHeight / (fontSize || 16) : 1.6}; 
           word-wrap: break-word;
-          font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         blockquote { 
           border-left: 3px solid #e0e0e0; 
@@ -52,16 +52,16 @@ export const RichHtml: React.FC<RichHtmlProps> = ({ html, style, testID, fontSiz
         h2 { 
           font-size: 22px; 
           margin: 16px 0 8px; 
-          font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         h3 { 
           font-size: 18px; 
           margin: 14px 0 6px; 
-          font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         p { 
           margin: 8px 0; 
-          font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         .marker-yellow { background-color: #FFF59D; }
       </style>
