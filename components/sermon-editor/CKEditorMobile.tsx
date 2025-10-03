@@ -106,6 +106,7 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
             toolbar: false,
             heading: {
               options: [
+                { model: 'paragraph', title: 'Paragraph' },
                 { model: 'heading2', view: 'h2', title: 'Heading 2' },
                 { model: 'heading3', view: 'h3', title: 'Heading 3' }
               ]
@@ -354,6 +355,9 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
   return (
     <View style={[styles.container, style]} testID={testID}>
       <View style={styles.toolbar}>
+        <Pressable style={styles.toolButton} onPress={() => sendExec('heading', { value: 'paragraph' })}>
+          <Text style={styles.toolText}>P</Text>
+        </Pressable>
         <Pressable style={styles.toolButton} onPress={() => sendExec('heading', { value: 'heading2' })}>
           <Text style={styles.toolText}>H2</Text>
         </Pressable>
