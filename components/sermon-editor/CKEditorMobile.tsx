@@ -47,7 +47,7 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
         body {
           margin: 0;
           padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
           background-color: #ffffff;
         }
         .ck-editor__editable {
@@ -55,6 +55,7 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
           padding: 16px;
           font-size: 16px;
           line-height: 1.5;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         }
         .ck-toolbar {
           display: none;

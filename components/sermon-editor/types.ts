@@ -18,6 +18,7 @@ export interface CKEditorWrapperProps {
 }
 
 export interface CKEditorConfig {
+  plugins?: any[];
   toolbar: string[];
   heading?: {
     options: {

@@ -1,7 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CKEditorConfig, CKEditorWrapperProps } from './types';
+import React, { useEffect, useRef, useState } from 'react';
+import { CKEditorWrapperProps } from './types';
 
-export const CKEditorWeb: React.FC<CKEditorWrapperProps> = ({
+declare global {
+  interface Window {
+    CKEDITOR?: any;
+  }
+}
+
+const CKEditorWebComponent: React.FC<CKEditorWrapperProps> = ({
   value,
   onChange,
   placeholder = 'Start writing your sermon...',
@@ -12,154 +18,289 @@ export const CKEditorWeb: React.FC<CKEditorWrapperProps> = ({
   testID,
 }) => {
   const editorRef = useRef<any>(null);
-  const [CKEditor, setCKEditor] = useState<any>(null);
-  const [ClassicEditor, setClassicEditor] = useState<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const scriptLoadedRef = useRef(false);
+  const lastSentDataRef = useRef<string>('');
+  const changeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const config: CKEditorConfig = {
-    toolbar: [
-      'heading',
-      '|',
-      'bold',
-      'italic',
-      '|',
-      'blockQuote',
-      'highlight',
-    ],
-    heading: {
-      options: [
-        { model: 'paragraph', view: 'p', title: 'Paragraph', class: 'ck-heading_paragraph' },
-        { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
-        { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
-      ],
-    },
-    highlight: {
-      options: [
-        {
-          model: 'yellowMarker',
-          class: 'marker-yellow',
-          title: 'Yellow Marker',
-          color: '#FFF59D',
-          type: 'marker',
-        },
-      ],
-    },
-    placeholder,
-    language: 'en',
-  };
-
-  // Dynamically import CKEditor only on client side
+  // Load CKEditor from CDN
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const loadCKEditor = async () => {
-        try {
-          const [{ CKEditor: CKEditorComponent }, { default: ClassicEditorClass }] = await Promise.all([
-            import('@ckeditor/ckeditor5-react'),
-            import('@ckeditor/ckeditor5-build-classic')
-          ]);
-          
-          setCKEditor(() => CKEditorComponent);
-          setClassicEditor(() => ClassicEditorClass);
+    if (typeof window === 'undefined') return;
+
+    // Check if already loaded
+    if (window.CKEDITOR && window.CKEDITOR.ClassicEditor) {
+      console.log('CKEditor already available');
+      scriptLoadedRef.current = true;
+      setIsLoaded(true);
+      return;
+    }
+
+    if (scriptLoadedRef.current) return;
+
+    // Check if script tag already exists
+    const existingScript = document.querySelector('script[src*="ckeditor"]');
+    if (existingScript) {
+      console.log('CKEditor script already in DOM, waiting for load...');
+      const checkInterval = setInterval(() => {
+        if (window.CKEDITOR && window.CKEDITOR.ClassicEditor) {
+          console.log('CKEditor loaded from existing script');
+          scriptLoadedRef.current = true;
           setIsLoaded(true);
-        } catch (error) {
-          console.error('Failed to load CKEditor:', error);
+          clearInterval(checkInterval);
         }
-      };
+      }, 100);
       
-      loadCKEditor();
+      setTimeout(() => clearInterval(checkInterval), 10000); // Stop after 10s
+      return;
     }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.ckeditor.com/ckeditor5/40.2.0/super-build/ckeditor.js';
+    script.async = false; // Load synchronously to ensure proper initialization
+    script.crossOrigin = 'anonymous';
+    
+    script.onload = () => {
+      console.log('CKEditor CDN script loaded successfully');
+      // Wait a bit for CKEDITOR to be available
+      setTimeout(() => {
+        if (window.CKEDITOR && window.CKEDITOR.ClassicEditor) {
+          scriptLoadedRef.current = true;
+          setIsLoaded(true);
+        } else {
+          console.error('CKEditor script loaded but CKEDITOR not available');
+        }
+      }, 100);
+    };
+
+    script.onerror = (error) => {
+      console.error('Failed to load CKEditor from CDN:', error);
+      console.error('Script src:', script.src);
+      setLoadError('Failed to load editor from CDN. Please check your internet connection.');
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      // Don't remove the script on cleanup to allow reuse
+      // if (document.head.contains(script)) {
+      //   document.head.removeChild(script);
+      // }
+    };
   }, []);
 
-  const handleReady = useCallback((editor: any) => {
-    editorRef.current = editor;
-    console.log('CKEditor Web is ready to use!', editor);
-  }, []);
-
-  const handleChange = useCallback((event: any, editor: any) => {
-    const data = editor.getData();
-    onChange(data);
-  }, [onChange]);
-
-  const handleFocus = useCallback((event: any, editor: any) => {
-    onFocus?.();
-  }, [onFocus]);
-
-  const handleBlur = useCallback((event: any, editor: any) => {
-    onBlur?.();
-  }, [onBlur]);
-
-  const handleSelectionChange = useCallback((event: any, editor: any) => {
-    if (onSelectionChange) {
-      const selection = editor.model.document.selection;
-      const ranges = selection.getRanges();
-      if (ranges.length > 0) {
-        const range = ranges[0];
-        const start = range.start.offset;
-        const end = range.end.offset;
-        onSelectionChange({ start, end });
-      }
-    }
-  }, [onSelectionChange]);
-
-  // Expose editor methods for external use
+  // Initialize editor once CDN is loaded
   useEffect(() => {
-    if (editorRef.current) {
-      // Focus method
-      (window as any).focusEditor = () => {
-        editorRef.current?.focus();
-      };
-      
-      // Blur method
-      (window as any).blurEditor = () => {
-        editorRef.current?.blur();
-      };
-    }
-  }, []);
+    if (!isLoaded || !containerRef.current || isEditorReady || editorRef.current) return;
+
+    const initEditor = async () => {
+      try {
+        if (!window.CKEDITOR || !window.CKEDITOR.ClassicEditor) {
+          console.error('CKEDITOR not available on window object');
+          return;
+        }
+
+        const { ClassicEditor } = window.CKEDITOR;
+
+        const editor = await ClassicEditor.create(containerRef.current, {
+          toolbar: ['heading', '|', 'bold', 'italic', '|', 'blockQuote', 'highlight'],
+          heading: {
+            options: [
+              { model: 'paragraph', view: 'p', title: 'Paragraph', class: 'ck-heading_paragraph' },
+              { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+              { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+            ],
+          },
+          highlight: {
+            options: [
+              {
+                model: 'yellowMarker',
+                class: 'marker-yellow',
+                title: 'Yellow Marker',
+                color: '#FFF59D',
+                type: 'marker',
+              },
+            ],
+          },
+          placeholder,
+          language: 'en',
+          // Disable plugins we don't need (must match mobile; also remove CKBox image edit plugins)
+          removePlugins: [
+            'CKBox',
+            'CKBoxUtils',
+            'CKBoxImageEdit',
+            'CKBoxImageEditEditing',
+            'CKBoxImageEditUI',
+            'CloudServices',
+            'CKFinder',
+            'EasyImage',
+            'RealTimeCollaborativeComments',
+            'RealTimeCollaborativeTrackChanges',
+            'RealTimeCollaborativeRevisionHistory',
+            'PresenceList',
+            'Comments',
+            'TrackChanges',
+            'TrackChangesData',
+            'RevisionHistory',
+            'WProofreader',
+            'MathType',
+            'SlashCommand',
+            'Template',
+            'DocumentOutline',
+            'FormatPainter',
+            'TableOfContents',
+            'PasteFromOfficeEnhanced',
+            'Pagination',
+            'ExportPdf',
+            'ExportWord',
+            'AIAssistant',
+            'AICommands',
+            'AI',
+            'OpenAIAdapter',
+            'AzureOpenAIAdapter',
+            'GenericAIAdapter',
+          ],
+        });
+
+        editorRef.current = editor;
+        setIsEditorReady(true);
+
+        // Set initial content
+        if (value) {
+          editor.setData(value);
+          lastSentDataRef.current = value;
+        }
+
+        // Listen for changes
+        editor.model.document.on('change:data', () => {
+          const data = editor.getData();
+          // Debounce and prevent sending accidental clears
+          if (changeDebounceRef.current) {
+            clearTimeout(changeDebounceRef.current);
+          }
+          changeDebounceRef.current = setTimeout(() => {
+            const trimmed = (data || '').trim();
+            const lastTrimmed = (lastSentDataRef.current || '').trim();
+            // Ignore no-op changes
+            if (trimmed === lastTrimmed) return;
+            // Ignore accidental full clears when we previously had content
+            if (lastTrimmed.length > 0 && trimmed.length === 0) return;
+            lastSentDataRef.current = data;
+            onChange(data);
+          }, 200);
+        });
+
+        // Listen for focus
+        editor.editing.view.document.on('focus', () => {
+          onFocus?.();
+        });
+
+        // Listen for blur
+        editor.editing.view.document.on('blur', () => {
+          onBlur?.();
+        });
+
+        // Listen for selection changes
+        if (onSelectionChange) {
+          editor.model.document.selection.on('change', () => {
+            const selection = editor.model.document.selection;
+            const ranges = Array.from(selection.getRanges());
+            if (ranges.length > 0) {
+              const range: any = ranges[0];
+              const start = range.start.offset;
+              const end = range.end.offset;
+              onSelectionChange({ start, end });
+            }
+          });
+        }
+
+        console.log('CKEditor Web initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize CKEditor:', error);
+      }
+    };
+
+    initEditor();
+
+    return () => {
+      if (editorRef.current) {
+        editorRef.current.destroy().catch((error: any) => {
+          console.error('Error destroying editor:', error);
+        });
+        editorRef.current = null;
+        setIsEditorReady(false);
+      }
+    };
+  }, [isLoaded, placeholder, onFocus, onBlur, onSelectionChange, onChange, value]);
+
+  // Note: Avoid syncing parent value back into the editor to prevent resets during typing/highlighting
 
   const containerStyle = {
     minHeight: '400px',
+    maxHeight: '600px',
+    overflow: 'auto',
     border: '1px solid #ccc',
     borderRadius: '4px',
-    ...style 
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    ...style
   };
 
   const loadingStyle = {
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     height: '400px',
-    color: '#666'
+    color: '#666',
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
   };
 
-  // Show loading state while CKEditor is being loaded
-  if (!isLoaded || !CKEditor || !ClassicEditor) {
-    return (
-      <div 
-        style={containerStyle}
-        data-testid={testID}
-      >
-        <div style={loadingStyle}>
-          Loading editor...
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div 
-      style={containerStyle}
-      data-testid={testID}
-    >
-      <CKEditor
-        editor={ClassicEditor}
-        config={config}
-        data={value}
-        onReady={handleReady}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onSelectionChange={handleSelectionChange}
-      />
+    <div style={containerStyle} data-testid={testID}>
+      <style>{`
+        .ck-editor__editable {
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+          max-height: 500px !important;
+          overflow-y: auto !important;
+        }
+        .ck-content {
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        }
+        .ck-editor__editable p,
+        .ck-editor__editable h1,
+        .ck-editor__editable h2,
+        .ck-editor__editable h3,
+        .ck-editor__editable h4,
+        .ck-editor__editable h5,
+        .ck-editor__editable h6 {
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        }
+        .ck-editor__main {
+          overflow: visible !important;
+        }
+        .ck-editor {
+          overflow: visible !important;
+        }
+        .marker-yellow {
+          background-color: #FFF59D !important;
+        }
+      `}</style>
+      {loadError && (
+        <div style={{...loadingStyle, color: '#d32f2f'}}>
+          {loadError}
+        </div>
+      )}
+      {!isLoaded && !loadError && (
+        <div style={loadingStyle}>
+          Loading editor from CDN...
+        </div>
+      )}
+      <div ref={containerRef}></div>
     </div>
   );
 };
+
+// Prevent React from re-rendering this component after the first mount.
+// This avoids React reconciling the container div and wiping CKEditor DOM.
+export const CKEditorWeb = React.memo(CKEditorWebComponent, () => true);

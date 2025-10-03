@@ -15,8 +15,8 @@ CKEditorSermonEditor (Main Container)
 ├── Tabs (Content, Outline, Notes, Details)
 └── Content Area
     ├── CKEditorWrapper (Platform Router)
-    │   ├── CKEditorWeb (Web Implementation)
-    │   └── CKEditorMobile (Native Implementation via WebView)
+    │   ├── CKEditorWeb (Web: CDN Super-build via script tag)
+    │   └── CKEditorMobile (Mobile: WebView + CDN Super-build)
     └── Details Forms (Scripture, Series, Tags, Stats)
 ```
 
@@ -37,9 +37,9 @@ CKEditorSermonEditor (Main Container)
 
 #### 3. **CKEditorWeb** (`CKEditorWeb.tsx`)
 - Web-specific implementation
-- Uses `@ckeditor/ckeditor5-react` and `@ckeditor/ckeditor5-build-classic`
-- Dynamic imports to prevent SSR issues
-- Keyboard shortcuts support
+- Loads CKEditor 5 Super-build from CDN via script tag
+- Direct DOM manipulation for editor initialization
+- Same feature set as mobile (including highlight)
 
 #### 4. **CKEditorMobile** (`CKEditorMobile.tsx`)
 - Mobile implementation using React Native WebView
