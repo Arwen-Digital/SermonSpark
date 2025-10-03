@@ -20,7 +20,18 @@ This file tracks bugs that need to be addressed in future releases.
 
 ## Medium Priority
 
-*No medium priority bugs currently reported*
+### 🟡 Screen Turns Off in Tablet Pulpit Mode
+- **Platform:** Tablet
+- **Description:** When on tablet in pulpit mode, screen should be prevented from turning off
+- **Reproduction:**
+  1. Open app on tablet device
+  2. Switch to pulpit mode
+  3. Screen turns off after timeout period
+  4. Expected: Screen should stay on during pulpit mode
+- **Status:** Not fixed
+- **Priority:** Medium
+- **Assigned:** TBD
+- **Date Reported:** 2025-01-27
 
 ---
 
