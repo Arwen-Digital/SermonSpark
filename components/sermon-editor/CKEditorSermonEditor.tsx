@@ -1,4 +1,5 @@
 import { theme } from '@/constants/Theme';
+import { seriesRepository } from '@/services/repositories';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -80,8 +81,13 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
     const loadSeries = async () => {
       setSeriesLoading(true);
       try {
-        // TODO: Implement series loading from repository
-        setSeriesOptions([]);
+        const list = await seriesRepository.list();
+        const options = list.map(s => ({
+          id: s.id,
+          title: s.title,
+          isActive: s.status === 'active',
+        }));
+        setSeriesOptions(options);
       } catch (error) {
         console.error('Error loading series:', error);
       } finally {

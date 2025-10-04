@@ -7,6 +7,7 @@ export interface Sermon {
   scriptureReferences?: string[];
   tags: string[];
   seriesId?: string;
+  series?: string; // series title if available
   orderInSeries?: number;
   date: Date;
   preachedDate?: Date;

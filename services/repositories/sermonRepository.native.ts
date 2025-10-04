@@ -1,9 +1,9 @@
 // Native (iOS/Android) repository for Sermons using SQLite.
-import type { SermonRepository, SermonDTO, CreateSermonInput, UpdateSermonInput } from './types';
-import { initDb, exec, queryAll, queryFirst } from '@/services/db';
 import { getCurrentUserId } from '@/services/authSession';
-import UUID from 'react-native-uuid';
+import { exec, initDb, queryAll, queryFirst } from '@/services/db';
 import { syncSermons } from '@/services/sync/syncService';
+import UUID from 'react-native-uuid';
+import type { CreateSermonInput, SermonDTO, SermonRepository, UpdateSermonInput } from './types';
 
 // getCurrentUserId provided by authSession helper
 
@@ -26,6 +26,7 @@ function rowToDTO(row: any): SermonDTO {
     date: row.date ?? null,
     notes: row.notes ?? null,
     seriesId: row.series_id ?? null,
+    seriesTitle: row.series_title ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -36,7 +37,11 @@ export const sermonRepository: SermonRepository = {
     await initDb();
     const userId = await getCurrentUserId();
     const rows = await queryAll<any>(
-      `SELECT * FROM sermons WHERE user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC`,
+      `SELECT s.*, sr.title as series_title
+       FROM sermons s
+       LEFT JOIN series sr ON sr.id = s.series_id AND sr.deleted_at IS NULL
+       WHERE s.user_id = ? AND s.deleted_at IS NULL
+       ORDER BY s.updated_at DESC`,
       [userId]
     );
     return rows.map(rowToDTO);
@@ -46,7 +51,11 @@ export const sermonRepository: SermonRepository = {
     await initDb();
     const userId = await getCurrentUserId();
     const row = await queryFirst<any>(
-      `SELECT * FROM sermons WHERE id = ? AND user_id = ? AND deleted_at IS NULL LIMIT 1`,
+      `SELECT s.*, sr.title as series_title
+       FROM sermons s
+       LEFT JOIN series sr ON sr.id = s.series_id AND sr.deleted_at IS NULL
+       WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL
+       LIMIT 1`,
       [id, userId]
     );
     if (!row) throw new Error('Sermon not found');

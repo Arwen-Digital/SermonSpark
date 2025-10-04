@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, Alert } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { FileManager } from '@/components/file-management/FileManager';
 import { FadeInView } from '@/components/common/FadeInView';
+import { FileManager } from '@/components/file-management/FileManager';
 import { theme } from '@/constants/Theme';
-import { Sermon } from '@/types';
 import { sermonRepository } from '@/services/repositories';
 import { syncAll } from '@/services/sync/syncService';
+import { Sermon } from '@/types';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, StyleSheet } from 'react-native';
  
 
 export default function SermonsScreen() {
@@ -26,6 +26,7 @@ export default function SermonsScreen() {
         scripture: s.scripture || '',
         tags: s.tags || [],
         seriesId: s.seriesId || '',
+        series: (s as any).seriesTitle || '',
         orderInSeries: undefined,
         date: s.date ? new Date(s.date) : new Date(),
         preachedDate: undefined,

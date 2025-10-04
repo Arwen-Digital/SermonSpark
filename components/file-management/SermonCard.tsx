@@ -63,10 +63,14 @@ export const SermonCard: React.FC<SermonCardProps> = ({
         </View>
         <View style={styles.listMeta}>
           <Text style={styles.metaText}>{formatDate(sermon.date)}</Text>
+          {sermon.series ? (
+            <>
+              <Text style={styles.metaText}>•</Text>
+              <Text style={styles.metaText}>Series: {sermon.series}</Text>
+            </>
+          ) : null}
           <Text style={styles.metaText}>•</Text>
           <Text style={styles.metaText}>{sermon.wordCount} words</Text>
-          <Text style={styles.metaText}>•</Text>
-          {/* <Text style={styles.metaText}>{formatReadingTime(sermon.readingTime)}</Text> */}
         </View>
         {sermon.tags.length > 0 && (
           <View style={styles.tagsContainer}>
