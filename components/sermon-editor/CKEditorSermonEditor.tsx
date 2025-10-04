@@ -243,6 +243,7 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
 
   const contentEditor = useMemo(() => (
     <CKEditorWrapper
+      key="editor-content"
       value={content}
       onChange={handleContentChange}
       placeholder="Start writing your sermon content..."
@@ -265,6 +266,7 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
         return (
           <View style={styles.tabContent}>
             <CKEditorWrapper
+              key="editor-outline"
               value={outline}
               onChange={setOutline}
               placeholder="Create your sermon outline..."
@@ -277,6 +279,7 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
         return (
           <View style={styles.tabContent}>
             <CKEditorWrapper
+              key="editor-notes"
               value={notes}
               onChange={setNotes}
               placeholder="Add your personal notes..."
