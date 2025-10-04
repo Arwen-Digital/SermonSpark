@@ -44,7 +44,7 @@ const heroImages = [
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
-  const isLargeScreen = Math.min(winW, winH) >= 768;
+  const isLargeScreen = Math.min(winW, winH) >= 600;
   const [sermons, setSermons] = useState<SermonDto[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostDto[]>([]);
   const [userName, setUserName] = useState<string>('');
@@ -157,7 +157,7 @@ export default function HomeScreen() {
             <View style={styles.webTwoColumnContainer}>
               {/* Left Column - Hero Image */}
               <TouchableOpacity 
-                style={styles.webHeroColumn}
+                style={[styles.webHeroColumn, { aspectRatio: isLargeScreen ? 16/9 : 1 }]}
                 onPress={() => {
                   // Cycle to next image for testing
                   const nextImage = (currentHeroImage + 1) % heroImages.length;
@@ -262,7 +262,7 @@ export default function HomeScreen() {
               <>
                 {/* Hero Verse Card */}
                 <TouchableOpacity 
-                  style={styles.heroCard}
+                  style={[styles.heroCard, { aspectRatio: isLargeScreen ? 16/9 : 1 }]}
                   onPress={() => {
                   // Cycle to next image for testing
                   const nextImage = (currentHeroImage + 1) % heroImages.length;
