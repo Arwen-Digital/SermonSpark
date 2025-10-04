@@ -17,6 +17,27 @@ This file tracks bugs that need to be addressed in future releases.
 - **Assigned:** TBD
 - **Date Reported:** 2025-09-27
 
+### 🔴 Sermon Editor Not Functional Offline
+
+- **Platform:** iOS/Android
+- **Description:** The sermon editor fails to load when the mobile app is offline because it depends on loading CKEditor from a CDN. Users cannot create or edit sermons without internet connectivity, breaking the app's offline-first design.
+- **Reproduction:**
+  1. Put device in airplane mode or disconnect from internet
+  2. Open the app and navigate to create/edit a sermon
+  3. Editor fails to load with "CKEditor failed to load" error
+  4. Expected: Editor should work offline with full rich text editing capabilities
+  5. Actual: Editor completely fails to initialize, preventing sermon editing
+- **Status:** Not fixed
+- **Priority:** High
+- **Assigned:** TBD
+- **Date Reported:** 2025-01-27
+- **Additional Notes:**
+  - Root cause: Both `CKEditorMobile.tsx` and `CKEditorWeb.tsx` load CKEditor from `https://cdn.ckeditor.com/ckeditor5/40.2.0/super-build/ckeditor.js`
+  - The app has robust offline data storage (SQLite) but the editor component breaks offline functionality
+  - Solution: Download and bundle CKEditor JavaScript file locally in assets
+  - This affects core functionality and contradicts the app's offline-first architecture
+  - High impact on user experience as sermon editing is a primary feature
+
 ---
 
 ## Medium Priority
