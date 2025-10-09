@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, Platform, KeyboardAvoidingView } from 'react-native';
-import communityService, { CommunityCommentDto, CommunityPostDto } from '@/services/supabaseCommunityService';
+import communityService, { CommunityCommentDto, CommunityPostDto } from '@/services/expressCommunityService';
 
 type UiComment = {
   id: string;
@@ -113,7 +113,7 @@ export default function PostDetailPage() {
           <Text style={styles.errorSubtitle}>The post you're looking for doesn't exist or has been removed.</Text>
           <Button
             title="Back to Community"
-            onPress={() => router.back()}
+            onPress={() => router.navigate('/(tabs)/community')}
             variant="primary"
             style={{ marginTop: theme.spacing.md }}
           />
@@ -123,7 +123,18 @@ export default function PostDetailPage() {
   }
 
   const handleBack = () => {
-    router.back();
+    // Try to go back, but if there's no back stack (like when coming from create),
+    // navigate to the community tab
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.navigate('/(tabs)/community');
+      }
+    } catch (error) {
+      // Fallback to community tab if navigation fails
+      router.navigate('/(tabs)/community');
+    }
   };
 
   const handleLike = async () => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
-import { SermonDto } from '@/services/supabaseSermonService';
+import { SermonDto } from '@/services/expressSermonService';
 
 export function UpcomingCard({ sermon }: { sermon: SermonDto | null }) {
   if (!sermon || !sermon.date) return null;

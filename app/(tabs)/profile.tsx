@@ -2,8 +2,7 @@ import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import authService from '@/services/supabaseAuthService';
-import { supabase } from '@/services/supabaseClient';
+import authService from '@/services/expressAuthService';
 import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -103,31 +102,12 @@ export default function ProfileScreen() {
         if (!mounted) return;
         setUser(mapped);
 
-        // Load simple stats
-        const [{ count: sermons }, { count: series }] = await Promise.all([
-          supabase.from('sermons').select('*', { count: 'exact', head: true }),
-          supabase.from('series').select('*', { count: 'exact', head: true }),
-        ]);
+        // Load simple stats - these will need to be implemented as Express endpoints
+        // For now, set placeholder values
         if (mounted) {
-          setSermonCount(sermons ?? 0);
-          setSeriesCount(series ?? 0);
-        }
-
-        // Community likes on own posts
-        const { data: postIds } = await supabase
-          .from('community_posts')
-          .select('id')
-          .eq('author_id', u.id)
-          .order('created_at', { ascending: false });
-        if (postIds && postIds.length > 0) {
-          const ids = postIds.map((p) => p.id);
-          const { count } = await supabase
-            .from('community_post_likes')
-            .select('*', { count: 'exact', head: true })
-            .in('post_id', ids);
-          if (mounted) setCommunityLikes(count ?? 0);
-        } else if (mounted) {
-          setCommunityLikes(0);
+          setSermonCount(0); // TODO: Implement GET /api/sermons/count endpoint
+          setSeriesCount(0); // TODO: Implement GET /api/series/count endpoint
+          setCommunityLikes(0); // TODO: Implement GET /api/community/my-likes-count endpoint
         }
       } catch (e) {
         console.warn('Failed to load profile:', e);

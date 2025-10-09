@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
-import { SermonDto } from '@/services/supabaseSermonService';
+import { SermonDto } from '@/services/expressSermonService';
 
 export function ContinueWritingCard({ sermon, onResume }: { sermon: SermonDto | null; onResume: (s: SermonDto) => void }) {
   if (!sermon) return null;

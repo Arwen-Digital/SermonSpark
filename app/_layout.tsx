@@ -11,7 +11,7 @@ import { theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import authSession from '@/services/authSession';
 import { initDb } from '@/services/db';
-import authService from '@/services/supabaseAuthService';
+import authService from '@/services/expressAuthService';
 
 
 
@@ -33,7 +33,17 @@ export default function RootLayout() {
       try { await initDb(); console.log('SQLite DB initialized'); } catch (e) { console.warn('DB init failed', e); }
       // Initialize auth session cache/listener (keeps userId cached for offline use)
       try { authSession.initAuthSession(); } catch {}
-      const ok = await authService.isAuthenticated();
+      // Try online auth; if it fails or is false, allow offline if we have a cached user id
+      let ok = false;
+      try {
+        ok = await authService.isAuthenticated();
+      } catch {}
+      if (!ok) {
+        try {
+          const offlineOk = await authSession.isAuthenticatedOffline();
+          if (offlineOk) ok = true;
+        } catch {}
+      }
       if (!mounted) return;
       setIsAuthed(ok);
       setAuthChecked(true);

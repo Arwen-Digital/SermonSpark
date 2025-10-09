@@ -153,7 +153,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />  
+            <Ionicons name="chevron-back" size={22} color={theme.colors.textPrimary} />
           </Pressable>
           <Text style={styles.headerTitle}>My Sermons</Text>
         </View>

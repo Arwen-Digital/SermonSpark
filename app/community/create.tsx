@@ -3,8 +3,9 @@ import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import communityService from '@/services/supabaseCommunityService';
+import React, { useState, useEffect } from 'react';
+import communityService from '@/services/expressCommunityService';
+import authService from '@/services/expressAuthService';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -31,6 +32,19 @@ export default function CreatePostPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const user = await authService.getUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error loading current user:', error);
+      }
+    };
+    loadCurrentUser();
+  }, []);
 
   const handleBack = () => {
     if (title.trim() || content.trim()) {
@@ -78,7 +92,7 @@ export default function CreatePostPage() {
     setLoading(true);
     
     try {
-      await communityService.createPost({
+      const newPost = await communityService.createPost({
         title: title.trim(),
         content: content.trim(),
         tags,
@@ -86,13 +100,8 @@ export default function CreatePostPage() {
         status: 'active',
       });
       
-      Alert.alert(
-        'Post Created!',
-        'Your post has been successfully created and shared with the community.',
-        [
-          { text: 'OK', onPress: () => router.back() }
-        ]
-      );
+      // Navigate to the newly created post's details page
+      router.replace(`/community/${newPost.id}`);
     } catch (error) {
       console.error('Error creating post:', error);
       Alert.alert(
@@ -144,8 +153,12 @@ export default function CreatePostPage() {
                 <Ionicons name="person" size={20} color={theme.colors.gray600} />
               </View>
               <View>
-                <Text style={styles.authorName}>Posting as Pastor Arnold</Text>
-                <Text style={styles.authorMeta}>Lead Pastor at Grace Church</Text>
+                <Text style={styles.authorName}>
+                  Posting as {currentUser?.profile?.full_name || currentUser?.username || 'User'}
+                </Text>
+                <Text style={styles.authorMeta}>
+                  {currentUser?.profile?.title || 'Pastor'} • {currentUser?.profile?.church || 'Church'}
+                </Text>
               </View>
             </View>
           </Card>

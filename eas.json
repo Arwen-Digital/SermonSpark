@@ -6,24 +6,21 @@
           "distribution": "internal",
           "android": { "buildType": "apk" },
           "env": {
-            "EXPO_PUBLIC_SUPABASE_URL": "https://<dev-ref>.supabase.co",
-            "EXPO_PUBLIC_SUPABASE_ANON_KEY": "<dev-anon-key>"
+            "EXPO_PUBLIC_EXPRESS_API_URL": "https://dev-api.youpreacher.com"
           }
         },
         "preview": {
           "distribution": "internal",
           "android": { "buildType": "apk" },
           "env": {
-            "EXPO_PUBLIC_SUPABASE_URL": "https://kxfgkdtwkcyorwnbjmwf.supabase.co",
-            "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_YjU3A6d6eweqb-uoAr5E4g_4_lrNA2b"
+            "EXPO_PUBLIC_EXPRESS_API_URL": "https://staging-api.youpreacher.com"
           }
         },
         "production": {
           "android": { "buildType": "app-bundle" },
           "ios": { "simulator": false },
           "env": {
-            "EXPO_PUBLIC_SUPABASE_URL": "https://kxfgkdtwkcyorwnbjmwf.supabase.co",
-            "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_YjU3A6d6eweqb-uoAr5E4g_4_lrNA2b"
+            "EXPO_PUBLIC_EXPRESS_API_URL": "https://api.youpreacher.com"
           }
         }
     },

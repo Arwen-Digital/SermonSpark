@@ -1,4 +1,4 @@
-import supabaseSeriesService, { type CreateSeriesData, type UpdateSeriesData } from '../supabaseSeriesService';
+import expressSeriesService, { type CreateSeriesData, type UpdateSeriesData } from '../expressSeriesService';
 import type { SeriesRepository, SeriesDTO, CreateSeriesInput, UpdateSeriesInput } from './types';
 
 function toDTO(s: any): SeriesDTO {
@@ -41,23 +41,23 @@ function fromUpdate(input: UpdateSeriesInput): UpdateSeriesData {
 
 export const seriesRepository: SeriesRepository = {
   async list() {
-    const data = await supabaseSeriesService.getAllSeries();
+    const data = await expressSeriesService.getAllSeries();
     return data.map(toDTO);
   },
   async get(id: string) {
-    const data = await supabaseSeriesService.getSeriesById(id);
+    const data = await expressSeriesService.getSeriesById(id);
     return toDTO(data);
   },
   async create(input: CreateSeriesInput) {
-    const res = await supabaseSeriesService.createSeries(fromCreate(input));
+    const res = await expressSeriesService.createSeries(fromCreate(input));
     return toDTO(res);
   },
   async update(id: string, input: UpdateSeriesInput) {
-    const res = await supabaseSeriesService.updateSeries(id, fromUpdate(input));
+    const res = await expressSeriesService.updateSeries(id, fromUpdate(input));
     return toDTO(res);
   },
   async remove(id: string) {
-    await supabaseSeriesService.deleteSeries(id);
+    await expressSeriesService.deleteSeries(id);
   },
   async sync() {
     // No-op on web; web always hits Supabase directly

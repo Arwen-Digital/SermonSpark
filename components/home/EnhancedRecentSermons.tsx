@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
 import { Card } from '@/components/common/Card';
-import { SermonDto } from '@/services/supabaseSermonService';
+import { SermonDto } from '@/services/expressSermonService';
 
 interface EnhancedRecentSermonsProps {
   sermons: SermonDto[];

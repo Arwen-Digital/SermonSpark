@@ -1,4 +1,4 @@
-import supabaseSermonService, { type CreateSermonInput as SupaCreate, type UpdateSermonInput as SupaUpdate, type SermonDto } from '../supabaseSermonService';
+import expressSermonService, { type CreateSermonInput as ExpressCreate, type UpdateSermonInput as ExpressUpdate, type SermonDto } from '../expressSermonService';
 import type { SermonRepository, SermonDTO, CreateSermonInput, UpdateSermonInput } from './types';
 
 function toDTO(s: SermonDto): SermonDTO {
@@ -18,7 +18,7 @@ function toDTO(s: SermonDto): SermonDTO {
   };
 }
 
-function fromCreate(input: CreateSermonInput): SupaCreate {
+function fromCreate(input: CreateSermonInput): ExpressCreate {
   return {
     title: input.title,
     content: input.content,
@@ -33,7 +33,7 @@ function fromCreate(input: CreateSermonInput): SupaCreate {
   };
 }
 
-function fromUpdate(input: UpdateSermonInput): SupaUpdate {
+function fromUpdate(input: UpdateSermonInput): ExpressUpdate {
   return {
     title: input.title,
     content: input.content,
@@ -50,26 +50,26 @@ function fromUpdate(input: UpdateSermonInput): SupaUpdate {
 
 export const sermonRepository: SermonRepository = {
   async list() {
-    const data = await supabaseSermonService.listMine();
+    const data = await expressSermonService.listMine();
     return data.map(toDTO);
   },
   async get(id: string) {
-    const data = await supabaseSermonService.getByDocumentId(id);
+    const data = await expressSermonService.getByDocumentId(id);
     return toDTO(data);
   },
   async create(input: CreateSermonInput) {
-    const res = await supabaseSermonService.create(fromCreate(input));
+    const res = await expressSermonService.create(fromCreate(input));
     return toDTO(res);
   },
   async update(id: string, input: UpdateSermonInput) {
-    const res = await supabaseSermonService.update(id, fromUpdate(input));
+    const res = await expressSermonService.update(id, fromUpdate(input));
     return toDTO(res);
   },
   async remove(id: string) {
-    await supabaseSermonService.delete(id);
+    await expressSermonService.delete(id);
   },
   async sync() {
-    // No-op on web; web always hits Supabase directly
+    // No-op on web; web always hits Express API directly
   },
 };
 

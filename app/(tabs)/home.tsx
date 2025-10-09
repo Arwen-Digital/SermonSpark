@@ -1,8 +1,8 @@
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import authService from '@/services/supabaseAuthService';
-import communityService, { CommunityPostDto } from '@/services/supabaseCommunityService';
-import sermonService, { SermonDto } from '@/services/supabaseSermonService';
+import authService from '@/services/expressAuthService';
+import communityService, { CommunityPostDto } from '@/services/expressCommunityService';
+import sermonService, { SermonDto } from '@/services/expressSermonService';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';

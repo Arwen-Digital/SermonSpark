@@ -1,5 +1,5 @@
 import { theme } from '@/constants/Theme';
-import authService from '@/services/supabaseAuthService';
+import authService from '@/services/expressAuthService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -55,12 +55,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
         // Create username from email (before @ symbol)
         const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
         
-        // Signup with Supabase
+        // Signup with Express.js
         const authResponse = await authService.signup({
           username,
           email: email.trim(),
           password,
-          fullName: name.trim(),
+          full_name: name.trim(),
           title: title.trim(),
           church: church.trim(),
         });
@@ -78,9 +78,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           return;
         }
         
-        // Signin with Supabase
+        // Signin with Express.js
         const authResponse = await authService.signin({
-          identifier: email.trim(),
+          email: email.trim(),
           password,
         });
         
@@ -92,7 +92,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           return;
         }
         
-        // Forgot password with Supabase
+        // Forgot password with Express.js
         await authService.forgotPassword(email.trim());
         Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
         setMode('signin');
