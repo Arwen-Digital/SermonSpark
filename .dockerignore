@@ -76,9 +76,9 @@ ios/
 .prettierrc
 jest.config.js
 eslint.config.js
-tsconfig.json
-babel.config.js
-metro.config.js
+# tsconfig.json - KEEP THIS! Needed for path aliases (@/ imports)
+# babel.config.js - KEEP THIS! Needed for build
+# metro.config.js - KEEP THIS! Needed for Metro bundler
 
 # Scripts
 scripts/
