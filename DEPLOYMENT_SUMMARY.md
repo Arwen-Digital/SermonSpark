@@ -63,7 +63,7 @@ Your project is now ready for production deployment with Docker, optimized for *
 Added to `package.json`:
 ```json
 {
-  "web:build": "expo export:web",
+  "web:build": "expo export --platform web",
   "docker:build": "docker build -f Dockerfile.prod -t youpreacher-web:latest .",
   "docker:run": "docker run -p 80:80 youpreacher-web:latest",
   "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
@@ -129,7 +129,7 @@ docker stop $(docker ps -q --filter ancestor=youpreacher-web:latest)
 
 1. **Build Stage** (2-5 minutes):
    - Installs Node.js dependencies
-   - Runs `expo export:web`
+   - Runs `expo export --platform web` (Metro bundler)
    - Creates optimized static files in `/dist`
 
 2. **Production Stage** (< 1 minute):

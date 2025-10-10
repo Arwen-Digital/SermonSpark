@@ -17,7 +17,8 @@ COPY . .
 
 # Build the web app for production
 # This creates a static build in the dist folder
-RUN npx expo export:web
+# Using Metro bundler (not Webpack)
+RUN npx expo export --platform web
 
 # ================================
 # Stage 2: Serve with Nginx

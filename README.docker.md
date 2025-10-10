@@ -65,6 +65,6 @@ EXPO_PUBLIC_API_URL=https://your-api.com
 - **Framework**: Expo (React Native Web)
 - **Runtime**: Node.js 20 (Alpine Linux)
 - **Web Server**: Nginx (Alpine Linux)
-- **Build Tool**: Metro bundler
+- **Bundler**: Metro (static output)
 - **Container**: Multi-stage Docker build
 
