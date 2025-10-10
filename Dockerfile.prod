@@ -16,8 +16,8 @@ RUN npm ci --only=production=false && npm cache clean --force
 COPY . .
 
 # Build the web app for production
-# Using Metro bundler (not Webpack)
-RUN npx expo export --platform web
+# Using the same command that works on Vercel
+RUN npx expo export --platform web --output-dir dist
 
 # Debug: List the output directory to see what was created
 RUN echo "=== Build output ===" && ls -la && \
