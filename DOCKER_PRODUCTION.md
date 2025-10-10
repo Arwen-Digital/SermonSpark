@@ -5,7 +5,7 @@ This guide explains how to deploy the YouPreacher web application using Docker i
 ## Overview
 
 The production Docker setup uses a multi-stage build process:
-1. **Build Stage**: Compiles the Expo web app into static files
+1. **Build Stage**: Compiles the Expo web app into static files (Node.js 20)
 2. **Production Stage**: Serves the static files using Nginx
 
 ## Files
