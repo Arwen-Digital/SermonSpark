@@ -16,9 +16,13 @@ RUN npm ci --only=production=false && npm cache clean --force
 COPY . .
 
 # Build the web app for production
-# This creates a static build in the dist folder
 # Using Metro bundler (not Webpack)
 RUN npx expo export --platform web
+
+# Debug: List the output directory to see what was created
+RUN echo "=== Build output ===" && ls -la && \
+    echo "=== Checking for dist/ ===" && \
+    if [ -d "dist" ]; then ls -laR dist/; else echo "dist/ not found"; fi
 
 # ================================
 # Stage 2: Serve with Nginx
@@ -29,7 +33,16 @@ FROM nginx:alpine
 COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built static files from builder stage
+# expo export creates files in dist/ folder
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Verify files were copied and list them
+RUN echo "=== Files in nginx html directory ===" && ls -la /usr/share/nginx/html/ && \
+    echo "=== Checking for index.html ===" && \
+    if [ ! -f /usr/share/nginx/html/index.html ]; then \
+        echo "ERROR: index.html not found in /usr/share/nginx/html/"; \
+        exit 1; \
+    fi
 
 # Expose port 80
 EXPOSE 80
