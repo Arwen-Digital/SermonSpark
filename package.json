@@ -8,9 +8,14 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "web:build": "expo export:web",
     "lint": "expo lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "docker:build": "docker build -f Dockerfile.prod -t youpreacher-web:latest .",
+    "docker:run": "docker run -p 80:80 youpreacher-web:latest",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "docker:prod:stop": "docker-compose -f docker-compose.prod.yml down"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
