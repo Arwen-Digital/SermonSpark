@@ -26,9 +26,20 @@ const mockBibleVerses: Record<string, Record<string, string>> = {
     NIV: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
     NLT: 'For this is how God loved the world: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
     ESV: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.',
-    KJV: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'
+    KJV: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
+    NASB: 'For God so loved the world, that He gave His only Son, so that everyone who believes in Him will not perish, but have eternal life.'
   },
 };
+
+// Available Bible translations
+const BIBLE_TRANSLATIONS = [
+  { code: 'KJV', name: 'King James Version' },
+  { code: 'NASB', name: 'New American Standard Bible' },
+  { code: 'ESV', name: 'English Standard Version' },
+  { code: 'CSB', name: 'Christian Standard Bible' },
+  { code: 'NIV', name: 'New International Version' },
+  { code: 'NLT', name: 'New Living Translation' },
+] as const;
 
 interface LocalSeriesOption {
   id: string;
@@ -51,7 +62,7 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
   const [showSeriesModal, setShowSeriesModal] = useState(false);
   const [showBibleVerseModal, setShowBibleVerseModal] = useState(false);
   const [bibleVerse, setBibleVerse] = useState('');
-  const [bibleTranslation] = useState('CSB');
+  const [bibleTranslation, setBibleTranslation] = useState('CSB');
   const [fetchedVerseText, setFetchedVerseText] = useState('');
   const [fetchedVerseReference, setFetchedVerseReference] = useState('');
   const [toastMessage, setToastMessage] = useState('');
@@ -225,6 +236,18 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
       setFetchedVerseReference(bibleVerse);
     } else {
       showToastNotification('Verse not found', 'modal');
+    }
+  };
+
+  // Clear fetched verse when translation changes
+  const handleTranslationChange = (translation: string) => {
+    setBibleTranslation(translation);
+    if (fetchedVerseText) {
+      // Re-fetch the verse with the new translation
+      const key = bibleVerse.toLowerCase().trim();
+      if (mockBibleVerses[key]) {
+        setFetchedVerseText(mockBibleVerses[key][translation] || mockBibleVerses[key]['CSB']);
+      }
     }
   };
 
@@ -489,6 +512,30 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
             </Pressable>
           </View>
           <View style={styles.modalBody}>
+            {/* Translation Selection */}
+            <View style={styles.translationSection}>
+              <Text style={styles.translationLabel}>Bible Translation</Text>
+              <View style={styles.translationButtons}>
+                {BIBLE_TRANSLATIONS.map((translation) => (
+                  <Pressable
+                    key={translation.code}
+                    style={[
+                      styles.translationButton,
+                      bibleTranslation === translation.code && styles.translationButtonActive
+                    ]}
+                    onPress={() => handleTranslationChange(translation.code)}
+                  >
+                    <Text style={[
+                      styles.translationButtonText,
+                      bibleTranslation === translation.code && styles.translationButtonTextActive
+                    ]}>
+                      {translation.code}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
             <View style={styles.verseInputContainer}>
               <TextInput
                 style={styles.verseInput}
@@ -851,5 +898,40 @@ const styles = StyleSheet.create({
     ...theme.typography.button,
     color: theme.colors.textOnPrimary,
     fontWeight: '600',
+  },
+  translationSection: {
+    marginBottom: theme.spacing.lg,
+  },
+  translationLabel: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: theme.spacing.sm,
+  },
+  translationButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  translationButton: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadows.sm,
+  },
+  translationButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  translationButtonText: {
+    ...theme.typography.button,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  translationButtonTextActive: {
+    color: theme.colors.textOnPrimary,
   },
 });
