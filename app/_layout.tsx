@@ -75,6 +75,7 @@ export default function RootLayout() {
       <Stack.Screen name="community/[postId]" options={{ headerShown: false }} />
       <Stack.Screen name="community/create" options={{ headerShown: false }} />
       <Stack.Screen name="research/sermon-title-generator" options={{ headerShown: false }} />
+      <Stack.Screen name="research/outline-generator" options={{ headerShown: false }} />
       <Stack.Screen
         name="series/index"
         options={{

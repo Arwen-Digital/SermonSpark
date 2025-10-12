@@ -107,6 +107,9 @@ export default function ResearchScreen() {
       case 'Sermon Title Generator':
         router.push('/research/sermon-title-generator');
         break;
+      case 'Outline Generator':
+        router.push('/research/outline-generator');
+        break;
       default:
         console.log('Opening research tool:', tool.name);
         // For other tools, implement their specific navigation
