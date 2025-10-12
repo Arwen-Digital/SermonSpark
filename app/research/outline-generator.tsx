@@ -14,6 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
+import authSession from '@/services/authSession';
+import { agentSearchRepository } from '@/services/repositories';
 
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -69,6 +71,7 @@ export default function OutlineGeneratorPage() {
     }
 
     setIsGenerating(true);
+    const startTime = Date.now();
     setResult('');
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -100,10 +103,44 @@ export default function OutlineGeneratorPage() {
       const content: string = data?.choices?.[0]?.message?.content || '';
       if (!content) throw new Error('No content returned from model');
       setResult(content.trim());
+
+      // Log agent search (native only; safe-guard with try/catch)
+      try {
+        const userId = await authSession.getCurrentUserId();
+        await agentSearchRepository.create({
+          userId,
+          agentType: 'openai_gpt4o_mini',
+          searchType: 'outline_generation',
+          query: prompt,
+          response: content.trim(),
+          metadata: { outlineType, verse, preacher, provider: 'openai', model: 'gpt-4o-mini' },
+          success: true,
+          responseTimeMs: Date.now() - startTime,
+          tokensUsed: undefined,
+          costUsd: undefined,
+        } as any);
+      } catch {}
     } catch (e: any) {
       const message = e?.message || 'Failed to generate outline';
       setError(message);
       Alert.alert('Generation Failed', Platform.OS === 'web' ? message : 'Please try again.');
+      // Log failed attempt
+      try {
+        const userId = await authSession.getCurrentUserId();
+        await agentSearchRepository.create({
+          userId,
+          agentType: 'openai_gpt4o_mini',
+          searchType: 'outline_generation',
+          query: prompt,
+          response: '',
+          metadata: { outlineType, verse, preacher, provider: 'openai', model: 'gpt-4o-mini' },
+          success: false,
+          errorMessage: message,
+          responseTimeMs: Date.now() - startTime,
+          tokensUsed: undefined,
+          costUsd: undefined,
+        } as any);
+      } catch {}
     } finally {
       setIsGenerating(false);
     }
