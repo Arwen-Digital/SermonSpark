@@ -12,3 +12,6 @@ export const sermonRepository: SermonRepository = Platform.select<any>({
   web: require('./sermonRepository.web').sermonRepository,
   default: require('./sermonRepository.native').sermonRepository,
 });
+
+// Agent search repository (native only for now)
+export { agentSearchRepository } from './agentSearchRepository';

@@ -115,3 +115,33 @@ export interface AppSettings {
   };
   pulpit: PulpitSettings;
 }
+
+export interface AgentSearch {
+  id: string;
+  userId: string;
+  agentType: 'claude_haiku' | 'claude_sonnet' | 'claude_opus';
+  searchType: 'bible_verse' | 'sermon_help' | 'outline_generation' | 'illustration_search';
+  query: string;
+  response?: string;
+  metadata?: Record<string, any>;
+  success: boolean;
+  errorMessage?: string;
+  responseTimeMs?: number;
+  tokensUsed?: number;
+  costUsd?: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  syncedAt?: Date;
+  dirty: boolean;
+  op: 'upsert' | 'delete';
+  version: number;
+}
+
+export interface BibleVerseSearch {
+  verse: string;
+  translation: string;
+  response: string;
+  success: boolean;
+  errorMessage?: string;
+}

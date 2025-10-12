@@ -1,6 +1,9 @@
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
+import { createBibleVerseService } from '@/services/bibleVerseService';
+import { configService } from '@/services/configService';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -19,17 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CKEditorWrapper } from './CKEditorWrapper';
 import { CKEditorSermonEditorProps, EditorState } from './types';
 
-// Mock Bible verse data
-const mockBibleVerses: Record<string, Record<string, string>> = {
-  'john 3:16': {
-    CSB: 'For God loved the world in this way: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
-    NIV: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
-    NLT: 'For this is how God loved the world: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
-    ESV: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.',
-    KJV: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
-    NASB: 'For God so loved the world, that He gave His only Son, so that everyone who believes in Him will not perish, but have eternal life.'
-  },
-};
+// Note: Mock data removed - now using Claude API for real Bible verse searches
 
 // Available Bible translations
 const BIBLE_TRANSLATIONS = [
@@ -65,6 +58,7 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
   const [bibleTranslation, setBibleTranslation] = useState('CSB');
   const [fetchedVerseText, setFetchedVerseText] = useState('');
   const [fetchedVerseReference, setFetchedVerseReference] = useState('');
+  const [isLoadingVerse, setIsLoadingVerse] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
@@ -229,24 +223,63 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
     setHasUnsavedChanges(true);
   };
 
-  const fetchBibleVerse = () => {
-    const key = bibleVerse.toLowerCase().trim();
-    if (mockBibleVerses[key]) {
-      setFetchedVerseText(mockBibleVerses[key][bibleTranslation] || mockBibleVerses[key]['CSB']);
-      setFetchedVerseReference(bibleVerse);
-    } else {
-      showToastNotification('Verse not found', 'modal');
+  const fetchBibleVerse = async () => {
+    if (!bibleVerse.trim()) {
+      showToastNotification('Please enter a verse reference', 'modal');
+      return;
+    }
+
+    setIsLoadingVerse(true);
+    setFetchedVerseText('');
+    setFetchedVerseReference('');
+
+    try {
+      const config = await configService.getClaudeConfig();
+      
+      if (!config.enabled || !config.apiKey) {
+        showToastNotification('Claude API not configured. Please set up your API key in settings.', 'modal');
+        setIsLoadingVerse(false);
+        return;
+      }
+
+      // TODO: Get user ID from auth context
+      const userId = 'temp-user-id'; // Replace with actual user ID
+      
+      const bibleService = createBibleVerseService(config.apiKey, userId, config.model);
+      const result = await bibleService.searchVerse(bibleVerse.trim(), bibleTranslation);
+
+      if (result.success && result.response) {
+        setFetchedVerseText(result.response);
+        setFetchedVerseReference(bibleVerse.trim());
+        showToastNotification('Verse found successfully', 'modal');
+      } else {
+        showToastNotification(result.errorMessage || 'Verse not found', 'modal');
+      }
+    } catch (error) {
+      console.error('Error fetching Bible verse:', error);
+      showToastNotification('Error fetching verse. Please try again.', 'modal');
+    } finally {
+      setIsLoadingVerse(false);
     }
   };
 
   // Clear fetched verse when translation changes
   const handleTranslationChange = (translation: string) => {
     setBibleTranslation(translation);
-    if (fetchedVerseText) {
+    if (fetchedVerseText && bibleVerse.trim()) {
       // Re-fetch the verse with the new translation
-      const key = bibleVerse.toLowerCase().trim();
-      if (mockBibleVerses[key]) {
-        setFetchedVerseText(mockBibleVerses[key][translation] || mockBibleVerses[key]['CSB']);
+      fetchBibleVerse();
+    }
+  };
+
+  const copyVerseToClipboard = async () => {
+    if (fetchedVerseText) {
+      try {
+        await Clipboard.setStringAsync(fetchedVerseText);
+        showToastNotification('Verse copied to clipboard', 'modal');
+      } catch (error) {
+        console.error('Error copying to clipboard:', error);
+        showToastNotification('Failed to copy verse', 'modal');
       }
     }
   };
@@ -543,19 +576,40 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
                 onChangeText={setBibleVerse}
                 placeholder="e.g., John 3:16"
                 autoCapitalize="none"
+                editable={!isLoadingVerse}
               />
-              <Pressable style={styles.fetchButton} onPress={fetchBibleVerse}>
-                <Text style={styles.fetchButtonText}>Fetch</Text>
+              <Pressable 
+                style={[styles.fetchButton, isLoadingVerse && styles.fetchButtonDisabled]} 
+                onPress={fetchBibleVerse}
+                disabled={isLoadingVerse}
+              >
+                <Text style={styles.fetchButtonText}>
+                  {isLoadingVerse ? 'Searching...' : 'Fetch'}
+                </Text>
               </Pressable>
             </View>
             
-            {fetchedVerseText && (
+            {isLoadingVerse && (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Searching for Bible verse...</Text>
+              </View>
+            )}
+            
+            {fetchedVerseText && !isLoadingVerse && (
               <View style={styles.versePreview}>
                 <Text style={styles.verseReference}>{fetchedVerseReference}</Text>
-                <Text style={styles.verseText}>{fetchedVerseText}</Text>
-                <Pressable style={styles.insertButton} onPress={insertBibleVerse}>
-                  <Text style={styles.insertButtonText}>Insert Verse</Text>
+                <Pressable onPress={copyVerseToClipboard}>
+                  <Text style={styles.verseText}>{fetchedVerseText}</Text>
                 </Pressable>
+                <View style={styles.verseActions}>
+                  <Pressable style={styles.copyButton} onPress={copyVerseToClipboard}>
+                    <Ionicons name="copy-outline" size={16} color={theme.colors.primary} />
+                    <Text style={styles.copyButtonText}>Copy</Text>
+                  </Pressable>
+                  <Pressable style={styles.insertButton} onPress={insertBibleVerse}>
+                    <Text style={styles.insertButtonText}>Insert Verse</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
           </View>
@@ -933,5 +987,43 @@ const styles = StyleSheet.create({
   },
   translationButtonTextActive: {
     color: theme.colors.textOnPrimary,
+  },
+  loadingContainer: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    marginBottom: theme.spacing.lg,
+    alignItems: 'center',
+    ...theme.shadows.sm,
+  },
+  loadingText: {
+    ...theme.typography.body1,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  fetchButtonDisabled: {
+    backgroundColor: theme.colors.gray300,
+    opacity: 0.6,
+  },
+  verseActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: 'transparent',
+    gap: theme.spacing.xs,
+  },
+  copyButtonText: {
+    ...theme.typography.button,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
 });
