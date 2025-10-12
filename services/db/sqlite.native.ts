@@ -119,12 +119,52 @@ async function migrateTo1() {
   await setUserVersion(1);
 }
 
+// Migration v2: add agent_searches table
+async function migrateTo2() {
+  const stmts: { sql: string; params?: SQLParams }[] = [
+    {
+      sql: `CREATE TABLE IF NOT EXISTS agent_searches (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        agent_type TEXT NOT NULL,
+        search_type TEXT NOT NULL,
+        query TEXT NOT NULL,
+        response TEXT,
+        metadata TEXT,
+        success INTEGER NOT NULL DEFAULT 1,
+        error_message TEXT,
+        response_time_ms INTEGER,
+        tokens_used INTEGER,
+        cost_usd REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        synced_at TEXT,
+        dirty INTEGER NOT NULL DEFAULT 1,
+        op TEXT NOT NULL DEFAULT 'upsert',
+        version INTEGER NOT NULL DEFAULT 0
+      )`,
+    },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_agent_searches_user_created ON agent_searches (user_id, created_at)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_agent_searches_user_agent ON agent_searches (user_id, agent_type)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_agent_searches_user_type ON agent_searches (user_id, search_type)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_agent_searches_user_success ON agent_searches (user_id, success)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_agent_searches_created ON agent_searches (created_at)` },
+  ];
+
+  await runBatch(stmts);
+  await setUserVersion(2);
+}
+
 export async function initDb(): Promise<void> {
   if (initPromise) return initPromise;
   initPromise = (async () => {
     const current = await getUserVersion();
     if (current < 1) {
       await migrateTo1();
+    }
+    if (current < 2) {
+      await migrateTo2();
     }
   })();
   return initPromise;
