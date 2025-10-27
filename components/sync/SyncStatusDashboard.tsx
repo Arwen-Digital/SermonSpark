@@ -124,12 +124,16 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
   };
 
   const handleManualSync = async () => {
+    console.log('handleManualSync called, isSignedIn:', isSignedIn);
+    
     // Check if user is authenticated
     if (!isSignedIn) {
+      console.log('User not signed in, showing Clerk login modal');
       setShowClerkSignIn(true);
       return;
     }
 
+    console.log('User is signed in, starting sync');
     setIsSyncing(true);
     try {
       const result = await syncToConvex();

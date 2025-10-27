@@ -1,15 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, View, Text } from 'react-native';
-import Constants from 'expo-constants';
+import { Platform, View } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useMultipleFeatureGates } from '@/hooks/useFeatureGate';
-import { FeatureType } from '@/services/featureGate';
 
 // Premium indicator component for tab icons
 const PremiumTabIcon = ({ 
@@ -116,19 +114,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Community',
-          tabBarIcon: ({ color }) => (
-            <PremiumTabIcon
-              IconComponent={<Ionicons name="people" size={24} color={color} />}
-              color={color}
-              isPremium={true}
-              hasAccess={accessMap.community}
-            />
-          ),
-          // Show community tab but indicate premium status
-          tabBarLabelStyle: !accessMap.community ? {
-            opacity: 0.6,
-          } : undefined,
+          href: null, // Hide the community tab
         }}
       />
       <Tabs.Screen

@@ -13,20 +13,67 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import authSession from '@/services/authSession';
+import { clerkTokenCache } from '@/services/clerkTokenCache';
 import { convexClient, useConvexClerkAuth } from '@/services/convexClient';
 import { initDb } from '@/services/db/index.native';
 
 // Inner component to access Clerk hooks
 function AppContent() {
-  const { isSignedIn, userId } = useClerkAuth();
+  const { isSignedIn, userId, isLoaded } = useClerkAuth();
   useConvexClerkAuth(); // Sync Clerk token with Convex client
   
+  // Track if we've logged the initial state
+  const hasLoggedInitialState = React.useRef(false);
+  const [hasCheckedLocalUserId, setHasCheckedLocalUserId] = React.useState(false);
+  
+  // Check if there's a cached user ID from SQLite on first load
   React.useEffect(() => {
+    const checkLocalUserId = async () => {
+      if (hasCheckedLocalUserId || !isLoaded) return;
+      
+      try {
+        const cachedUserId = await authSession.getCachedUserId();
+        console.log('Checking for cached Clerk user ID:', cachedUserId);
+        
+        if (cachedUserId && !cachedUserId.startsWith('anon_')) {
+          console.log('Found cached Clerk user ID from SQLite:', cachedUserId);
+          // We have a user ID in SQLite, but Clerk doesn't have it
+          // This means the session was lost on app restart
+          // We'll need to prompt user to log in again
+          console.log('WARNING: Clerk session lost. User needs to login again.');
+        }
+        setHasCheckedLocalUserId(true);
+      } catch (error) {
+        console.error('Error checking local user ID:', error);
+        setHasCheckedLocalUserId(true);
+      }
+    };
+    
+    checkLocalUserId();
+  }, [isLoaded, hasCheckedLocalUserId]);
+  
+  React.useEffect(() => {
+    if (!isLoaded) {
+      console.log('Clerk not loaded yet...');
+      return;
+    }
+    
+    // Log the initial loaded state once
+    if (!hasLoggedInitialState.current) {
+      console.log('Clerk initial load complete:', { isSignedIn, userId });
+      hasLoggedInitialState.current = true;
+    }
+    
+    console.log('Auth state changed:', { isSignedIn, userId });
+    
     if (isSignedIn && userId) {
+      console.log('User is signed in with ID:', userId);
       // User just logged in, sync their ID to local
       authSession.syncClerkUserToLocal(userId);
+    } else if (isSignedIn === false && userId === null && isLoaded) {
+      console.log('User is NOT signed in (session not found)');
     }
-  }, [isSignedIn, userId]);
+  }, [isSignedIn, userId, isLoaded]);
   
   return <></>;
 }
@@ -141,7 +188,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ClerkProvider publishableKey={clerkPublishableKey}>
+      <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={clerkTokenCache as any}>
         <AppContent />
         <ConvexProvider client={convexClient}>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

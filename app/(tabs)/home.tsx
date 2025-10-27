@@ -149,8 +149,8 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
-      {/* Header */}
-      <View style={[styles.header]}>
+      {/* Header - Community tab hidden */}
+      {/* <View style={[styles.header]}>
         <View style={styles.tabsContainer}>
           <View style={styles.activeTab}>
             <Text style={styles.activeTabText}>Today</Text>
@@ -160,7 +160,7 @@ export default function HomeScreen() {
             <Text style={styles.inactiveTabText}>Community</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </View> */}
 
       <ScrollView 
         style={styles.scrollView}
