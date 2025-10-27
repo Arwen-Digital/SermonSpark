@@ -1,11 +1,18 @@
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
+import { CommunityCommentDto, CommunityPostDto } from '@/services/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, Platform, KeyboardAvoidingView } from 'react-native';
-import communityService, { CommunityCommentDto, CommunityPostDto } from '@/services/expressCommunityService';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+
+// Stub services - TODO: Replace with Convex/Clerk
+const communityService = {
+  getPost: async (id: string) => ({ id, content: '', createdAt: '', userId: '', likes: [] }),
+  addComment: async (postId: string, content: string) => ({ id: 'stub', content, createdAt: new Date().toISOString() }),
+  likePost: async (id: string) => ({}),
+};
 
 type UiComment = {
   id: string;

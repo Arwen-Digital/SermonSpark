@@ -1,13 +1,15 @@
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import authService from '@/services/expressAuthService';
-import communityService, { CommunityPostDto } from '@/services/expressCommunityService';
-import sermonService, { SermonDto } from '@/services/expressSermonService';
+import authSession from '@/services/authSession';
+import { seriesRepository } from '@/services/repositories/seriesRepository.native';
+import { sermonRepository } from '@/services/repositories/sermonRepository.native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// TODO: Add CommunityPostDto type to a shared types file
+type CommunityPostDto = any;
 
 const motivationalQuotes = [
   "Preach the Word, not your opinions. God's truth transforms hearts, not clever arguments.",
@@ -55,18 +57,41 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [list, posts, user] = await Promise.all([
-        sermonService.listMine().catch(() => []),
-        communityService.getAllPosts().catch(() => []),
-        authService.getUser(),
+      // Use local repositories for local-first functionality
+      const userId = await authSession.getCurrentUserId();
+      
+      const [sermonsList, seriesList] = await Promise.all([
+        sermonRepository.list().catch(() => []),
+        seriesRepository.list().catch(() => []),
       ]);
-      setSermons(list);
-      setCommunityPosts(posts.slice(0, 5));
-      setUserName(user?.fullName || user?.username || 'Pastor');
+      
+      // Convert local data to expected format
+      const formattedSermons = sermonsList.map(sermon => ({
+        id: sermon.id,
+        title: sermon.title,
+        content: sermon.content,
+        status: sermon.status,
+        userId: sermon.userId,
+        seriesId: sermon.seriesId,
+        createdAt: sermon.createdAt,
+        updatedAt: sermon.updatedAt,
+      }));
+      
+      setSermons(formattedSermons);
+      setCommunityPosts([]); // Community posts will be empty for offline users
+      
+      // Set user name based on authentication state
+      if (userId?.startsWith('anon_')) {
+        setUserName('Anonymous User');
+      } else {
+        setUserName('Pastor'); // Default for now, can be enhanced later
+      }
+      
     } catch (error) {
       console.warn('Failed to load home data:', error);
       setSermons([]);
       setCommunityPosts([]);
+      setUserName('Pastor');
     } finally {
       setLoading(false);
     }

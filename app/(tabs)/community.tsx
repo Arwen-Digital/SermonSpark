@@ -1,15 +1,32 @@
+import { ConnectAccountModal } from '@/components/auth/ConnectAccountModal';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
+import { UpgradePrompt } from '@/components/common/UpgradePrompt';
 import { theme } from '@/constants/Theme';
-import authService from '@/services/expressAuthService';
-import communityService, { CommunityPostDto } from '@/services/expressCommunityService';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// TODO: Replace with Convex community queries
+// import { useConvexCommunityPosts } from '@/hooks/useConvexCommunity';
+// TODO: Replace with Convex community queries
+// import { useConvexCommunityPosts } from '@/hooks/useConvexCommunity';
+type CommunityPostDto = any;
+
+// Stub services until Convex community integration
+const communityService = {
+  getAllPosts: async () => [],
+  createPost: async (data: any) => ({}),
+  getPost: async (id: string) => ({}),
+};
+
+const authService = {
+  ensureProfileExists: async () => {},
+};
 
 
 const FILTER_TABS = [
@@ -26,8 +43,27 @@ export default function CommunityScreen() {
   const [posts, setPosts] = useState<CommunityPostDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [connectModalVisible, setConnectModalVisible] = useState(false);
+  
+  // Feature gating for community access
+  const {
+    canAccess,
+    isLoading: featureLoading,
+    upgradePromptVisible,
+    upgradePrompt,
+    showUpgradePrompt,
+    hideUpgradePrompt,
+    handleFeatureRequest,
+    checkAccess,
+  } = useFeatureGate('community');
 
   const loadPosts = useCallback(async () => {
+    // Only load posts if user has access to community features
+    if (!canAccess) {
+      setPosts([]);
+      return;
+    }
+    
     try {
       // Ensure current user has a profile so their posts show author info
       await authService.ensureProfileExists();
@@ -40,7 +76,7 @@ export default function CommunityScreen() {
       // Still set an empty array so the UI shows the empty state
       setPosts([]);
     }
-  }, []);
+  }, [canAccess]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -51,11 +87,14 @@ export default function CommunityScreen() {
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
-      await loadPosts();
+      // Only load posts if user has access and feature loading is complete
+      if (!featureLoading && canAccess) {
+        await loadPosts();
+      }
       setLoading(false);
     };
     initializeData();
-  }, [loadPosts]);
+  }, [loadPosts, canAccess, featureLoading]);
 
   useFocusEffect(
     useCallback(() => {
@@ -279,12 +318,79 @@ export default function CommunityScreen() {
   const topPadding = Math.max(insets.top || 0, theme.spacing.md);
   const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
 
-  if (loading) {
+  // Show loading while checking feature access
+  if (featureLoading || loading) {
     return (
       <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
         <View style={styles.loadingScreen}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
         </View>
+      </FadeInView>
+    );
+  }
+
+  // Show upgrade prompt if user doesn't have access to community features
+  if (!canAccess) {
+    return (
+      <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+        <View style={styles.upgradeContainer}>
+          <Ionicons name="people-outline" size={80} color={theme.colors.gray400} />
+          <Text style={styles.upgradeTitle}>Join the Community</Text>
+          <Text style={styles.upgradeSubtitle}>
+            Connect with fellow pastors, share insights, and discover new perspectives on ministry.
+          </Text>
+          <View style={styles.featureList}>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Share sermon ideas and get feedback</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Ask questions and get answers from peers</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Discover trending topics in ministry</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Build connections with other pastors</Text>
+            </View>
+          </View>
+          <Button
+            title="Connect Account"
+            onPress={() => setConnectModalVisible(true)}
+            variant="primary"
+            style={styles.upgradeButton}
+            icon={<Ionicons name="person-add" size={16} color={theme.colors.white} />}
+          />
+          <Text style={styles.upgradeNote}>
+            Your local sermons and series will remain private until you choose to share them.
+          </Text>
+        </View>
+        
+        {/* Connect Account Modal */}
+        <ConnectAccountModal
+          visible={connectModalVisible}
+          onClose={() => setConnectModalVisible(false)}
+          onAuthenticated={() => {
+            setConnectModalVisible(false);
+            checkAccess(); // Refresh access status
+          }}
+        />
+        
+        {/* Upgrade prompt modal */}
+        {upgradePrompt && (
+          <UpgradePrompt
+            visible={upgradePromptVisible}
+            onClose={hideUpgradePrompt}
+            prompt={upgradePrompt}
+            onConnect={() => {
+              hideUpgradePrompt();
+              setConnectModalVisible(true);
+            }}
+          />
+        )}
       </FadeInView>
     );
   }
@@ -550,5 +656,51 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  upgradeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.xxl,
+  },
+  upgradeTitle: {
+    ...theme.typography.h3,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  upgradeSubtitle: {
+    ...theme.typography.body1,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: theme.spacing.xl,
+  },
+  featureList: {
+    alignSelf: 'stretch',
+    marginBottom: theme.spacing.xl,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  featureText: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  upgradeButton: {
+    alignSelf: 'stretch',
+    marginBottom: theme.spacing.lg,
+  },
+  upgradeNote: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

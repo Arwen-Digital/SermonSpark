@@ -65,23 +65,55 @@ export interface CreateSermonInput {
 
 export type UpdateSermonInput = Partial<CreateSermonInput>;
 
-// Common repository interface both platforms implement
-export interface SeriesRepository {
-  list(): Promise<SeriesDTO[]>;
-  get(id: string): Promise<SeriesDTO>;
-  create(input: CreateSeriesInput): Promise<SeriesDTO>;
-  update(id: string, input: UpdateSeriesInput): Promise<SeriesDTO>;
+// Sync operation types for local-first operations
+export interface SyncOperation<T = any> {
+  id: string;
+  type: 'create' | 'update' | 'delete';
+  entityType: 'sermon' | 'series';
+  entityId: string;
+  data: T;
+  userId: string;
+  timestamp: string;
+  status: 'pending' | 'synced' | 'failed';
+  retryCount: number;
+}
+
+export interface SyncResult {
+  success: boolean;
+  operationsProcessed: number;
+  errors: string[];
+}
+
+export interface DataMigrationResult {
+  success: boolean;
+  migratedRecords: number;
+  conflicts: number;
+  errors: string[];
+}
+
+// Enhanced repository interface for local-first operations
+export interface LocalFirstRepository<T, CreateInput, UpdateInput> {
+  // Core local operations (always available)
+  list(): Promise<T[]>;
+  get(id: string): Promise<T>;
+  create(input: CreateInput): Promise<T>;
+  update(id: string, input: UpdateInput): Promise<T>;
   remove(id: string): Promise<void>;
-  // Native may implement; web returns resolved Promise
+  
+  // Optional sync operations (require authentication)
+  queueForSync?(operation: SyncOperation<T>): Promise<void>;
+  syncWithRemote?(): Promise<SyncResult>;
+  
+  // User management for local-first operations
+  setUserId?(userId: string): void;
+  migrateToUser?(fromUserId: string, toUserId: string): Promise<DataMigrationResult>;
+  
+  // Legacy sync method for backward compatibility
   sync?(): Promise<void>;
 }
 
-export interface SermonRepository {
-  list(): Promise<SermonDTO[]>;
-  get(id: string): Promise<SermonDTO>;
-  create(input: CreateSermonInput): Promise<SermonDTO>;
-  update(id: string, input: UpdateSermonInput): Promise<SermonDTO>;
-  remove(id: string): Promise<void>;
-  sync?(): Promise<void>;
-}
+// Common repository interface both platforms implement
+export interface SeriesRepository extends LocalFirstRepository<SeriesDTO, CreateSeriesInput, UpdateSeriesInput> {}
+
+export interface SermonRepository extends LocalFirstRepository<SermonDTO, CreateSermonInput, UpdateSermonInput> {}
 

@@ -2,7 +2,9 @@ import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import authService from '@/services/expressAuthService';
+import authSession from '@/services/authSession';
+import { sermonRepository } from '@/services/repositories/sermonRepository.native';
+import { seriesRepository } from '@/services/repositories/seriesRepository.native';
 import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -64,6 +66,18 @@ const MENU_SECTIONS = [
   },
 ];
 
+// Add debug section only in development
+const DEBUG_SECTION = {
+  title: 'Development',
+  items: [
+    { key: 'debug', label: 'Debug Panel', icon: 'bug-outline' },
+  ],
+};
+
+const MENU_SECTIONS_WITH_DEBUG = __DEV__ 
+  ? [...MENU_SECTIONS.slice(0, -1), DEBUG_SECTION, MENU_SECTIONS[MENU_SECTIONS.length - 1]]
+  : MENU_SECTIONS;
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<User>(emptyUser);
@@ -76,38 +90,44 @@ export default function ProfileScreen() {
     let mounted = true;
     const load = async () => {
       try {
-        const authed = await authService.isAuthenticated();
-        if (!authed) {
+        // Use local authentication check - no API calls
+        const userId = await authSession.getCurrentUserId();
+        const isOfflineAuth = await authSession.isAuthenticatedOffline();
+        
+        if (!isOfflineAuth) {
           router.replace('/auth');
           return;
         }
-        // Ensure profile row exists and fetch user
-        await authService.ensureProfileExists?.();
-        const u = await authService.getUser();
-        if (!u) {
-          router.replace('/auth');
-          return;
-        }
+
+        // Create user profile from local data
+        const isAnonymous = userId?.startsWith('anon_');
         const mapped: User = {
-          id: u.id,
-          name: u.fullName || u.username || u.email.split('@')[0] || 'Pastor',
-          email: u.email,
+          id: userId || 'unknown',
+          name: isAnonymous ? 'Anonymous User' : 'Pastor',
+          email: isAnonymous ? '' : 'user@example.com',
           avatar: '',
-          title: u.title || '',
-          church: u.church || '',
+          title: isAnonymous ? '' : 'Pastor',
+          church: '',
           bio: '',
           isPremium: false,
-          joinedDate: new Date(u.createdAt),
+          joinedDate: new Date(),
         };
+        
         if (!mounted) return;
         setUser(mapped);
 
-        // Load simple stats - these will need to be implemented as Express endpoints
-        // For now, set placeholder values
+        // Load stats from local repositories
         if (mounted) {
-          setSermonCount(0); // TODO: Implement GET /api/sermons/count endpoint
-          setSeriesCount(0); // TODO: Implement GET /api/series/count endpoint
-          setCommunityLikes(0); // TODO: Implement GET /api/community/my-likes-count endpoint
+          // Get sermon count from local database
+          const sermons = await sermonRepository.list();
+          setSermonCount(sermons.length);
+          
+          // Get series count from local database
+          const series = await seriesRepository.list();
+          setSeriesCount(series.length);
+          
+          // Community likes only available for online users
+          setCommunityLikes(isAnonymous ? null : 0);
         }
       } catch (e) {
         console.warn('Failed to load profile:', e);
@@ -129,10 +149,15 @@ export default function ProfileScreen() {
       case 'edit-profile':
         console.log('Navigate to edit profile');
         break;
+      case 'debug':
+        router.push('/debug');
+        break;
       case 'logout': {
         const doLogout = async () => {
           try {
-            await authService.signout();
+            // Clear local authentication data
+            await authSession.clearCachedUserId();
+            await authSession.clearAnonymousUserId();
             router.replace('/auth');
           } catch (e) {
             // Even if clear fails, force navigation; guard will handle state
@@ -299,7 +324,7 @@ export default function ProfileScreen() {
           {renderStatsCard()}
           
           <View style={styles.menuContainer}>
-            {MENU_SECTIONS.map(renderMenuSection)}
+            {MENU_SECTIONS_WITH_DEBUG.map(renderMenuSection)}
           </View>
           
           <View style={styles.footer}>

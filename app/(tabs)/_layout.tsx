@@ -1,15 +1,57 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, Text } from 'react-native';
+import Constants from 'expo-constants';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useMultipleFeatureGates } from '@/hooks/useFeatureGate';
+import { FeatureType } from '@/services/featureGate';
+
+// Premium indicator component for tab icons
+const PremiumTabIcon = ({ 
+  IconComponent, 
+  color, 
+  isPremium, 
+  hasAccess 
+}: { 
+  IconComponent: React.ReactNode;
+  color: string;
+  isPremium: boolean;
+  hasAccess: boolean;
+}) => {
+  return (
+    <View style={{ position: 'relative' }}>
+      {IconComponent}
+      {isPremium && !hasAccess && (
+        <View
+          style={{
+            position: 'absolute',
+            top: -2,
+            right: -2,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: theme.colors.premium,
+          }}
+        />
+      )}
+    </View>
+  );
+};
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  
+  // Check access for all navigation features
+  const { accessMap, isLoading } = useMultipleFeatureGates([
+    'sermons',
+    'research', 
+    'community'
+  ]);
 
   return (
     <Tabs
@@ -43,21 +85,50 @@ export default function TabLayout() {
         name="sermons"
         options={{
           title: 'Sermons',
-          tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <PremiumTabIcon
+              IconComponent={<Ionicons name="document-text" size={24} color={color} />}
+              color={color}
+              isPremium={false}
+              hasAccess={accessMap.sermons}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="research"
         options={{
           title: 'Research',
-          tabBarIcon: ({ color }) => <Ionicons name="search" size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <PremiumTabIcon
+              IconComponent={<Ionicons name="search" size={24} color={color} />}
+              color={color}
+              isPremium={true}
+              hasAccess={accessMap.research}
+            />
+          ),
+          // Dim the tab if no access but keep it visible for discovery
+          tabBarLabelStyle: !accessMap.research ? {
+            opacity: 0.6,
+          } : undefined,
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
-          // Hide the Community tab for now, keep route available
-          href: null,
+          title: 'Community',
+          tabBarIcon: ({ color }) => (
+            <PremiumTabIcon
+              IconComponent={<Ionicons name="people" size={24} color={color} />}
+              color={color}
+              isPremium={true}
+              hasAccess={accessMap.community}
+            />
+          ),
+          // Show community tab but indicate premium status
+          tabBarLabelStyle: !accessMap.community ? {
+            opacity: 0.6,
+          } : undefined,
         }}
       />
       <Tabs.Screen
@@ -65,6 +136,14 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="debug"
+        options={{
+          title: 'Debug',
+          tabBarIcon: ({ color }) => <Ionicons name="bug" size={24} color={color} />,
+          tabBarLabelStyle: { fontSize: 10 },
         }}
       />
     </Tabs>

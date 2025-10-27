@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/constants/Theme';
-import { SermonDto } from '@/services/expressSermonService';
+import type { SermonDTO } from '@/services/repositories/types';
 
 export function RecentSermons({ sermons, onOpen }: { sermons: SermonDto[]; onOpen: (s: SermonDto) => void }) {
   if (!sermons || sermons.length === 0) return null;

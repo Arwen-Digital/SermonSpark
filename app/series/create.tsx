@@ -101,7 +101,8 @@ export default function CreateSeriesScreen() {
       
       console.log('Creating new series:', newSeriesData);
       
-      await seriesRepository.create(newSeriesData);
+      const createdSeries = await seriesRepository.create(newSeriesData);
+      console.log('Series created successfully:', createdSeries);
       
       if (Platform.OS === 'web') {
         // On web, navigate immediately for better UX

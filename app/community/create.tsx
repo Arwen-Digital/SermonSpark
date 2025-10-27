@@ -1,11 +1,9 @@
-import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import communityService from '@/services/expressCommunityService';
-import authService from '@/services/expressAuthService';
+import React, { useEffect, useState } from 'react';
+
 import {
   Alert,
   KeyboardAvoidingView,
@@ -18,6 +16,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+// Stub services - TODO: Replace with Convex/Clerk
+const communityService = {
+  createPost: async (data: any) => ({ id: 'stub', ...data }),
+};
+const authService = {
+  getUser: async () => ({}),
+  ensureProfileExists: async () => {},
+};
 
 
 const SUGGESTED_TAGS = [

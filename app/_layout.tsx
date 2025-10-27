@@ -1,17 +1,38 @@
+import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-expo';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { ConvexProvider } from 'convex/react';
+import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { Platform, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import authSession from '@/services/authSession';
-import { initDb } from '@/services/db';
-import authService from '@/services/expressAuthService';
+import { convexClient, useConvexClerkAuth } from '@/services/convexClient';
+import { initDb } from '@/services/db/index.native';
+
+// Inner component to access Clerk hooks
+function AppContent() {
+  const { isSignedIn, userId } = useClerkAuth();
+  useConvexClerkAuth(); // Sync Clerk token with Convex client
+  
+  React.useEffect(() => {
+    if (isSignedIn && userId) {
+      // User just logged in, sync their ID to local
+      authSession.syncClerkUserToLocal(userId);
+    }
+  }, [isSignedIn, userId]);
+  
+  return <></>;
+}
+
+// Get Clerk publishable key from environment
+const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || Constants.expoConfig?.extra?.clerkPublishableKey || '';
 
 
 
@@ -22,46 +43,72 @@ export default function RootLayout() {
   });
   const router = useRouter();
   const pathname = usePathname();
-  const [authChecked, setAuthChecked] = React.useState(false);
-  const [isAuthed, setIsAuthed] = React.useState<boolean | null>(null);
-
+  const [dbInitialized, setDbInitialized] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
-    const check = async () => {
-      // Initialize local DB (native only; web no-op). Safe to call unconditionally.
-      try { await initDb(); console.log('SQLite DB initialized'); } catch (e) { console.warn('DB init failed', e); }
-      // Initialize auth session cache/listener (keeps userId cached for offline use)
-      try { authSession.initAuthSession(); } catch {}
-      // Try online auth; if it fails or is false, allow offline if we have a cached user id
-      let ok = false;
+    const initializeApp = async () => {
       try {
-        ok = await authService.isAuthenticated();
-      } catch {}
-      if (!ok) {
+        // Initialize SQLite database immediately on app start
+        await initDb();
+        console.log('SQLite DB initialized');
+        
+        // Initialize auth session cache/listener (keeps userId cached for offline use)
+        authSession.initAuthSession();
+        
+        // Perform local authentication check first (no API calls)
         try {
-          const offlineOk = await authSession.isAuthenticatedOffline();
-          if (offlineOk) ok = true;
-        } catch {}
-      }
-      if (!mounted) return;
-      setIsAuthed(ok);
-      setAuthChecked(true);
-      const onAuthRoute = pathname === '/auth';
-      if (!ok && !onAuthRoute) {
-        router.replace('/auth');
-      } else if (ok && onAuthRoute) {
-        router.replace('/(tabs)/home');
+          const isOfflineAuth = await authSession.isAuthenticatedOffline();
+          if (isOfflineAuth) {
+            console.log('User authenticated offline');
+          } else {
+            console.log('User not authenticated - allowing offline access');
+            // Generate anonymous user for fresh installs
+            await authSession.generateAnonymousUserId();
+            console.log('Generated anonymous user for offline access');
+          }
+        } catch (error) {
+          console.log('Authentication check failed - allowing offline access:', error);
+        }
+        
+        if (mounted) {
+          setDbInitialized(true);
+          
+          // Only redirect from auth screen if user is already authenticated with a real account
+          if (pathname === '/auth') {
+            try {
+              console.log('Checking if user is authenticated online...');
+              const isOnlineAuth = await authSession.isAuthenticatedOnline();
+              console.log('Online authentication status:', isOnlineAuth);
+              if (isOnlineAuth) {
+                console.log('User is authenticated online, redirecting to home');
+                router.replace('/(tabs)/home');
+              } else {
+                console.log('User not authenticated online, staying on auth page');
+              }
+            } catch (error) {
+              console.log('Auth check failed, staying on auth page:', error);
+              // Stay on auth screen if check fails
+            }
+          }
+        }
+      } catch (error) {
+        console.error('App initialization failed:', error);
+        if (mounted) {
+          setDbInitialized(true); // Allow app to continue even if init fails
+        }
       }
     };
-    check();
+    
+    initializeApp();
+    
     return () => {
       mounted = false;
     };
   }, [pathname, router]);
 
-  if (!loaded || !authChecked) {
-    // Async font loading only occurs in development.
+  if (!loaded || !dbInitialized) {
+    // Show loading only for fonts and database initialization
     return null;
   }
 
@@ -94,24 +141,29 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <View style={Platform.select({
-          web: { 
-            flex: 1, 
-            backgroundColor: theme.colors.background 
-          },
-          default: { flex: 1 }
-        })}>
-          {Platform.OS === 'web' ? (
-            <View style={{ flex: 1, maxWidth: 1200, alignSelf: 'center', width: '100%' }}>
-              {content}
+      <ClerkProvider publishableKey={clerkPublishableKey}>
+        <AppContent />
+        <ConvexProvider client={convexClient}>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <View style={Platform.select({
+              web: { 
+                flex: 1, 
+                backgroundColor: theme.colors.background 
+              },
+              default: { flex: 1 }
+            })}>
+              {Platform.OS === 'web' ? (
+                <View style={{ flex: 1, maxWidth: 1200, alignSelf: 'center', width: '100%' }}>
+                  {content}
+                </View>
+              ) : (
+                content
+              )}
             </View>
-          ) : (
-            content
-          )}
-        </View>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </ConvexProvider>
+      </ClerkProvider>
     </SafeAreaProvider>
   );
 }

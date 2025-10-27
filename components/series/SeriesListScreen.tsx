@@ -1,8 +1,9 @@
 import { theme } from '@/constants/Theme';
 import { seriesRepository } from '@/services/repositories';
-import { syncAll } from '@/services/sync/syncService';
+import { syncToConvex } from '@/services/sync/convexSyncHandler';
+import { useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
@@ -15,7 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ClerkSignInModal } from '../auth/ClerkSignInModal';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { LoadingIndicator } from '../common/LoadingIndicator';
@@ -44,14 +45,17 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const insets = useSafeAreaInsets();
+  const [showClerkSignIn, setShowClerkSignIn] = useState(false);
   const { width, height } = useWindowDimensions();
   const isLargeScreen = Math.min(width, height) >= 768;
   const isWeb = Platform.OS === 'web';
+  const { isSignedIn } = useAuth();
 
   const loadSeries = useCallback(async () => {
     try {
+      console.log('Loading series...');
       const data = await seriesRepository.list();
+      console.log('Series data loaded:', data);
       const mapped: SeriesItem[] = data.map(s => ({
         id: s.id,
         title: s.title,
@@ -62,6 +66,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
         status: s.status,
         sermonCount: (s as any).sermonCount ?? 0,
       }));
+      console.log('Mapped series:', mapped);
       setSeries(mapped);
     } catch (error) {
       console.error('Error loading series:', error);
@@ -76,18 +81,43 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
   }, [loadSeries]);
 
   const handleSyncNow = useCallback(async () => {
+    // Check if user is authenticated
+    if (!isSignedIn) {
+      setShowClerkSignIn(true);
+      return;
+    }
+
     if (syncing) return;
     setSyncing(true);
     try {
-      await syncAll();
+      // Use Convex sync
+      const result = await syncToConvex();
+      
+      Alert.alert(
+        'Sync Complete',
+        `Pushed: ${result.seriesStats.pushed + result.sermonStats.pushed}, Pulled: ${result.seriesStats.pulled + result.sermonStats.pulled}`
+      );
+      
+      if (result.conflicts?.length > 0) {
+        Alert.alert(
+          'Conflicts Detected',
+          `${result.conflicts.length} conflicts require manual resolution`
+        );
+      }
+      
       await loadSeries();
     } catch (e: any) {
       console.warn('Series sync failed', e);
-      Alert.alert('Sync failed', e?.message || 'Please try again.');
+      Alert.alert('Sync Failed', e?.message || 'Please try again.');
     } finally {
       setSyncing(false);
     }
-  }, [syncing, loadSeries]);
+  }, [syncing, loadSeries, isSignedIn]);
+
+  const handleAuthSuccess = async () => {
+    // Auto-trigger sync after successful login
+    await handleSyncNow();
+  };
 
   // handleDeleteSeries defined below with cross-platform confirm
 
@@ -126,6 +156,13 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
     };
     initializeData();
   }, [loadSeries]);
+
+  // Reload data when screen comes into focus (e.g., returning from create screen)
+  useFocusEffect(
+    useCallback(() => {
+      loadSeries();
+    }, [loadSeries])
+  );
 
   if (loading) {
     return (
@@ -279,6 +316,13 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
           ))
         )}
       </ScrollView>
+      
+      {/* Clerk Sign-In Modal */}
+      <ClerkSignInModal
+        visible={showClerkSignIn}
+        onClose={() => setShowClerkSignIn(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </View>
   );
 };

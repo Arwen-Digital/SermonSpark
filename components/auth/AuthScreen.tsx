@@ -1,5 +1,5 @@
 import { theme } from '@/constants/Theme';
-import authService from '@/services/expressAuthService';
+import { useAuth, useSignIn, useSignUp } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -24,100 +24,125 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const { isSignedIn } = useAuth();
+  const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded } = useSignUp();
+
   const handleSubmit = async () => {
     setIsLoading(true);
-    setErrorMessage(''); // Clear previous errors
+    setErrorMessage('');
     
     try {
       if (mode === 'signup') {
+        if (!signUpLoaded) {
+          setErrorMessage('Please wait while we initialize...');
+          return;
+        }
+
         // Validation
         if (!name.trim()) {
           setErrorMessage('Please enter your name');
+          setIsLoading(false);
           return;
         }
         if (!email.trim()) {
           setErrorMessage('Please enter your email');
+          setIsLoading(false);
           return;
         }
         if (!password.trim()) {
           setErrorMessage('Please enter a password');
+          setIsLoading(false);
           return;
         }
         if (password !== confirmPassword) {
           setErrorMessage('Passwords do not match');
+          setIsLoading(false);
           return;
         }
-        if (password.length < 6) {
-          setErrorMessage('Password must be at least 6 characters');
+        if (password.length < 8) {
+          setErrorMessage('Password must be at least 8 characters');
+          setIsLoading(false);
           return;
         }
 
-        // Create username from email (before @ symbol)
-        const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-        
-        // Signup with Express.js
-        const authResponse = await authService.signup({
-          username,
-          email: email.trim(),
-          password,
-          full_name: name.trim(),
-          title: title.trim(),
-          church: church.trim(),
+        // Signup with Clerk
+        const result = await signUp.create({
+          emailAddress: email.trim(),
+          password: password,
+          firstName: name.trim().split(' ')[0],
+          lastName: name.trim().split(' ').slice(1).join(' ') || '',
+          unsafeMetadata: {
+            title: title.trim(),
+            church: church.trim(),
+          },
         });
+
+        // Send verification email
+        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
         
-        Alert.alert('Welcome!', `Account created successfully! Welcome, ${authResponse.user.email}`);
-        onAuthenticated();
+        Alert.alert(
+          'Verification Required',
+          'Please check your email to verify your account before signing in.'
+        );
+        
+        setMode('signin');
         
       } else if (mode === 'signin') {
+        if (!signInLoaded) {
+          setErrorMessage('Please wait while we initialize...');
+          return;
+        }
+
         if (!email.trim()) {
           setErrorMessage('Please enter your email');
+          setIsLoading(false);
           return;
         }
         if (!password.trim()) {
           setErrorMessage('Please enter your password');
+          setIsLoading(false);
           return;
         }
         
-        // Signin with Express.js
-        const authResponse = await authService.signin({
-          email: email.trim(),
-          password,
+        // Signin with Clerk
+        await signIn.create({
+          identifier: email.trim(),
+          password: password,
         });
         
         onAuthenticated();
         
       } else if (mode === 'forgot') {
+        if (!signInLoaded) {
+          setErrorMessage('Please wait while we initialize...');
+          setIsLoading(false);
+          return;
+        }
+
         if (!email.trim()) {
           setErrorMessage('Please enter your email');
+          setIsLoading(false);
           return;
         }
         
-        // Forgot password with Express.js
-        await authService.forgotPassword(email.trim());
+        // Forgot password with Clerk
+        await signIn.attemptFirstFactor({
+          strategy: 'reset_password_email_code',
+          identifier: email.trim(),
+        });
+        
         Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
         setMode('signin');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
       let errorMsg = 'Something went wrong. Please try again.';
       
-      if (error instanceof Error) {
-        // More specific error messages based on common auth errors
-        if (error.message.includes('Invalid login credentials')) {
-          errorMsg = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (error.message.includes('User not found')) {
-          errorMsg = 'No account found with this email address.';
-        } else if (error.message.includes('Too many requests')) {
-          errorMsg = 'Too many login attempts. Please wait a few minutes before trying again.';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMsg = 'Please check your email and click the confirmation link before signing in.';
-        } else if (error.message.includes('User already registered')) {
-          errorMsg = 'An account with this email already exists. Try signing in instead.';
-        } else if (error.message.includes('Network')) {
-          errorMsg = 'Network error. Please check your internet connection and try again.';
-        } else {
-          errorMsg = error.message;
-        }
+      if (error?.errors?.[0]?.message) {
+        errorMsg = error.errors[0].message;
+      } else if (error?.message) {
+        errorMsg = error.message;
       }
       
       setErrorMessage(errorMsg);
@@ -149,13 +174,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
     <Card style={styles.formCard}>
       <View style={styles.formHeader}>
         <Text style={styles.formTitle}>
-          {mode === 'signin' && 'Sign In'}
-          {mode === 'signup' && 'Create Account'}
+          {mode === 'signin' && 'Welcome Back'}
+          {mode === 'signup' && 'Create Your Account'}
           {mode === 'forgot' && 'Reset Password'}
         </Text>
         <Text style={styles.formSubtitle}>
-          {mode === 'signin' && 'Welcome back! Sign in to your account'}
-          {mode === 'signup' && 'Join thousands of pastors using YouPreacher'}
+          {mode === 'signin' && 'Sign in to access premium features and sync your content'}
+          {mode === 'signup' && 'Join the community and unlock AI-powered tools'}
           {mode === 'forgot' && 'Enter your email to reset your password'}
         </Text>
       </View>

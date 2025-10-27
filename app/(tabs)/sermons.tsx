@@ -1,9 +1,11 @@
+import { ClerkSignInModal } from '@/components/auth/ClerkSignInModal';
 import { FadeInView } from '@/components/common/FadeInView';
 import { FileManager } from '@/components/file-management/FileManager';
 import { theme } from '@/constants/Theme';
 import { sermonRepository } from '@/services/repositories';
-import { syncAll } from '@/services/sync/syncService';
+import { syncToConvex } from '@/services/sync/convexSyncHandler';
 import { Sermon } from '@/types';
+import { useAuth } from '@clerk/clerk-expo';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
@@ -13,9 +15,11 @@ export default function SermonsScreen() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [showClerkSignIn, setShowClerkSignIn] = useState(false);
+  const { isSignedIn } = useAuth();
 
   const loadSermons = useCallback(async () => {
-    setLoading(true);
+    // No loading indicator for local-first - data loads instantly from SQLite
     try {
       const list = await sermonRepository.list();
       const mapped: Sermon[] = list.map((s) => ({
@@ -39,10 +43,10 @@ export default function SermonsScreen() {
         // Extra fields ignored by FileManager
       }));
       setSermons(mapped);
+      setLoading(false); // Set to false after first load
     } catch (e) {
       console.warn('Failed to load sermons', e);
       setSermons([]);
-    } finally {
       setLoading(false);
     }
   }, []);
@@ -90,23 +94,44 @@ export default function SermonsScreen() {
   };
 
   const handleSyncNow = useCallback(async () => {
+    // Check if user is authenticated
+    if (!isSignedIn) {
+      setShowClerkSignIn(true);
+      return;
+    }
+
     if (syncing) return;
     setSyncing(true);
     try {
-      await syncAll();
+      // Use Convex sync
+      const result = await syncToConvex();
+      
+      Alert.alert(
+        'Sync Complete',
+        `Pushed: ${result.seriesStats.pushed + result.sermonStats.pushed}, Pulled: ${result.seriesStats.pulled + result.sermonStats.pulled}`
+      );
+      
+      if (result.conflicts?.length > 0) {
+        Alert.alert(
+          'Conflicts Detected',
+          `${result.conflicts.length} conflicts require manual resolution`
+        );
+      }
+      
       await loadSermons();
       console.log('Sync complete');
     } catch (e: any) {
       console.warn('Sync failed', e);
-      if (typeof e?.message === 'string') {
-        Alert.alert('Sync failed', e.message);
-      } else {
-        Alert.alert('Sync failed', 'Please check your connection and try again.');
-      }
+      Alert.alert('Sync Failed', e.message || 'Please check your connection and try again.');
     } finally {
       setSyncing(false);
     }
-  }, [syncing, loadSermons]);
+  }, [syncing, loadSermons, isSignedIn]);
+
+  const handleAuthSuccess = async () => {
+    // Auto-trigger sync after successful login
+    await handleSyncNow();
+  };
 
   return (
     <FadeInView style={styles.container}>
@@ -121,6 +146,13 @@ export default function SermonsScreen() {
         loading={loading}
         onSyncNow={handleSyncNow}
         syncing={syncing}
+      />
+      
+      {/* Clerk Sign-In Modal */}
+      <ClerkSignInModal
+        visible={showClerkSignIn}
+        onClose={() => setShowClerkSignIn(false)}
+        onAuthSuccess={handleAuthSuccess}
       />
     </FadeInView>
   );

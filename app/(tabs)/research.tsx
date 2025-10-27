@@ -6,7 +6,11 @@ import { router } from 'expo-router';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { FadeInView } from '@/components/common/FadeInView';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
+import { UpgradePrompt } from '@/components/common/UpgradePrompt';
+import { ConnectAccountModal } from '@/components/auth/ConnectAccountModal';
 import { theme } from '@/constants/Theme';
+import { useFeatureGate } from '@/hooks/useFeatureGate';
 import { ResearchTool } from '@/types';
 
 // Mock research tools data
@@ -90,15 +94,28 @@ const CATEGORIES = [
 export default function ResearchScreen() {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [isPremiumUser] = useState(true); // Mock premium status - now premium user
+  const [connectModalVisible, setConnectModalVisible] = useState(false);
+  
+  // Feature gating for research access
+  const {
+    canAccess,
+    isLoading: featureLoading,
+    upgradePromptVisible,
+    upgradePrompt,
+    showUpgradePrompt,
+    hideUpgradePrompt,
+    handleFeatureRequest,
+    checkAccess,
+  } = useFeatureGate('research');
 
   const filteredTools = selectedCategory === 'all' 
     ? mockResearchTools 
     : mockResearchTools.filter(tool => tool.category === selectedCategory);
 
-  const handleToolPress = (tool: ResearchTool) => {
-    if (tool.isPremium && !isPremiumUser) {
-      console.log('Show premium upgrade modal');
+  const handleToolPress = async (tool: ResearchTool) => {
+    // Check feature access first
+    const accessResult = await handleFeatureRequest();
+    if (accessResult !== 'granted') {
       return;
     }
     
@@ -212,6 +229,87 @@ export default function ResearchScreen() {
   const topPadding = Math.max(insets.top || 0, theme.spacing.md);
   const bottomPadding = Math.max(insets.bottom || 0, theme.spacing.md);
 
+  // Show loading while checking feature access
+  if (featureLoading) {
+    return (
+      <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+        <View style={styles.loadingScreen}>
+          <LoadingIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </FadeInView>
+    );
+  }
+
+  // Show upgrade prompt if user doesn't have access to research features
+  if (!canAccess) {
+    return (
+      <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
+        <View style={styles.upgradeContainer}>
+          <Ionicons name="search-outline" size={80} color={theme.colors.gray400} />
+          <Text style={styles.upgradeTitle}>Unlock AI Research Tools</Text>
+          <Text style={styles.upgradeSubtitle}>
+            Enhance your sermon preparation with powerful AI-powered research and study tools.
+          </Text>
+          <View style={styles.featureList}>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>AI-powered sermon title generation</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Intelligent outline suggestions</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Historical context and background</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Original language word studies</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.success} />
+              <Text style={styles.featureText}>Illustration and story finder</Text>
+            </View>
+          </View>
+          <Button
+            title="Connect Account"
+            onPress={() => setConnectModalVisible(true)}
+            variant="primary"
+            style={styles.upgradeButton}
+            icon={<Ionicons name="person-add" size={16} color={theme.colors.white} />}
+          />
+          <Text style={styles.upgradeNote}>
+            Your local sermons and series will remain private and accessible offline.
+          </Text>
+        </View>
+        
+        {/* Connect Account Modal */}
+        <ConnectAccountModal
+          visible={connectModalVisible}
+          onClose={() => setConnectModalVisible(false)}
+          onAuthenticated={() => {
+            setConnectModalVisible(false);
+            checkAccess(); // Refresh access status
+          }}
+        />
+        
+        {/* Upgrade prompt modal */}
+        {upgradePrompt && (
+          <UpgradePrompt
+            visible={upgradePromptVisible}
+            onClose={hideUpgradePrompt}
+            prompt={upgradePrompt}
+            onConnect={() => {
+              hideUpgradePrompt();
+              setConnectModalVisible(true);
+            }}
+          />
+        )}
+      </FadeInView>
+    );
+  }
+
   return (
     <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -232,6 +330,19 @@ export default function ResearchScreen() {
             />
           </View>
         </ScrollView>
+        
+        {/* Upgrade prompt modal */}
+        {upgradePrompt && (
+          <UpgradePrompt
+            visible={upgradePromptVisible}
+            onClose={hideUpgradePrompt}
+            prompt={upgradePrompt}
+            onConnect={() => {
+              hideUpgradePrompt();
+              setConnectModalVisible(true);
+            }}
+          />
+        )}
     </FadeInView>
   );
 }
@@ -404,5 +515,58 @@ const styles = StyleSheet.create({
     ...theme.typography.body2,
     color: theme.colors.gray500,
     fontWeight: '500',
+  },
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.xl,
+  },
+  upgradeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.xxl,
+  },
+  upgradeTitle: {
+    ...theme.typography.h3,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  upgradeSubtitle: {
+    ...theme.typography.body1,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: theme.spacing.xl,
+  },
+  featureList: {
+    alignSelf: 'stretch',
+    marginBottom: theme.spacing.xl,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  featureText: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  upgradeButton: {
+    alignSelf: 'stretch',
+    marginBottom: theme.spacing.lg,
+  },
+  upgradeNote: {
+    ...theme.typography.caption,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

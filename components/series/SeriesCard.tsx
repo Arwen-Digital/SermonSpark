@@ -1,8 +1,8 @@
-import React from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Series } from '@/services/expressSeriesService';
 import { theme } from '@/constants/Theme';
+import type { SeriesDTO as Series } from '@/services/repositories/types';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface SeriesCardProps {
   series: Series;

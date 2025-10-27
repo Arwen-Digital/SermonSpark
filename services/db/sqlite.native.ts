@@ -113,6 +113,15 @@ async function migrateTo1() {
         created_at TEXT NOT NULL
       )`,
     },
+
+    {
+      sql: `CREATE TABLE IF NOT EXISTS convex_id_mapping (
+        local_id TEXT PRIMARY KEY,
+        convex_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        synced_at TEXT NOT NULL
+      )`,
+    },
   ];
 
   await runBatch(stmts);
