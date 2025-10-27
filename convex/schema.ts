@@ -89,6 +89,23 @@ export default defineSchema({
   })
     .index("by_post", ["postId"])
     .index("by_user", ["userId"]),
+
+  // Cache for Eden AI Bible responses per reference+translation
+  bible_cache: defineTable({
+    key: v.string(), // `${reference.toLowerCase()}|${translation}`
+    reference: v.string(),
+    translation: v.union(
+      v.literal("ESV"),
+      v.literal("KJV"),
+      v.literal("CSB"),
+      v.literal("NLT"),
+      v.literal("NIV"),
+    ),
+    text: v.string(),
+    createdAt: v.string(),
+  })
+    .index("by_key", ["key"])
+    .index("by_created", ["createdAt"]),
 });
 
 

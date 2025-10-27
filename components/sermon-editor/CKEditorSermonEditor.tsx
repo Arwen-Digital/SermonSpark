@@ -3,6 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { convex } from '@/services/convexClient';
 import { seriesRepository } from '@/services/repositories';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -241,16 +242,19 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
     }
   };
 
-  const insertBibleVerse = () => {
+  const copyBibleVerseToClipboard = async () => {
     if (fetchedVerseText) {
-      const verseMarkup = `<blockquote><p><strong>${fetchedVerseReference} (${bibleTranslation})</strong><br/>${fetchedVerseText}</p></blockquote>`;
-      setContent(prev => prev + '\n\n' + verseMarkup);
-      setHasUnsavedChanges(true);
+      const plain = `${fetchedVerseText}`;
+      try {
+        await Clipboard.setStringAsync(plain);
+        showToastNotification('Verse copied to clipboard', 'global');
+      } catch (e) {
+        showToastNotification('Failed to copy', 'modal');
+      }
       setShowBibleVerseModal(false);
       setBibleVerse('');
       setFetchedVerseText('');
       setFetchedVerseReference('');
-      showToastNotification('Verse inserted successfully', 'global');
     }
   };
 
@@ -558,8 +562,8 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
               <View style={styles.versePreview}>
                 <Text style={styles.verseReference}>{`${fetchedVerseReference} (${bibleTranslation})`}</Text>
                 <Text style={styles.verseText}>{fetchedVerseText}</Text>
-                <Pressable style={styles.insertButton} onPress={insertBibleVerse}>
-                  <Text style={styles.insertButtonText}>Insert Verse</Text>
+                <Pressable style={styles.insertButton} onPress={copyBibleVerseToClipboard}>
+                  <Text style={styles.insertButtonText}>Copy to Clipboard</Text>
                 </Pressable>
               </View>
             )}

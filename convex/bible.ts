@@ -1,8 +1,22 @@
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import { action } from "./_generated/server";
 
 // Keep translations explicit to align with client options
 // type Translation = "ESV" | "KJV" | "CSB" | "NLT" | "NIV";
+
+interface FetchVerseArgs {
+  reference: string;
+  translation: "ESV" | "KJV" | "CSB" | "NLT" | "NIV";
+}
+
+interface FetchVerseResult {
+  reference: string;
+  translation: FetchVerseArgs["translation"];
+  text: string;
+  raw: any;
+  cached?: boolean;
+}
 
 export const fetchVerse = action({
   args: {
@@ -15,13 +29,20 @@ export const fetchVerse = action({
       v.literal("NIV")
     ),
   },
-  handler: async (_ctx, { reference, translation }) => {
+  handler: async (ctx, { reference, translation }): Promise<FetchVerseResult> => {
     if (!process.env.EDENAI_API_KEY) {
       throw new Error("Missing EDENAI_API_KEY");
     }
 
     const url = "https://api.edenai.run/v2/prompts/Bible-Text";
     const word = `${reference} ${translation}`; // e.g., "jn 3:16 CSB"
+
+    // Cache key (normalize reference spacing/case)
+    const key = `${reference.trim().toLowerCase()}|${translation}`;
+    const cached: { text?: string } | null = await ctx.runQuery(api.bibleCache.getByKey, { key });
+    if (cached?.text) {
+      return { reference, translation, text: cached.text, raw: null, cached: true };
+    }
 
     async function callEden(promptKey: string) {
       const payload = {
@@ -80,12 +101,27 @@ export const fetchVerse = action({
 
     const text = (textFields[0] as string | undefined) ?? JSON.stringify(data);
 
-    return {
+    const result = {
       reference,
       translation,
       text,
       raw: data,
     };
+    // Store in cache only if the response doesn't look like an error
+    const hasErrorField = data && typeof data === "object" && (data.error || data.errors);
+    const looksLikeErrorText = /missing context|error|invalid|not found|failed/i.test(text ?? "");
+    const shouldCache = !hasErrorField && !looksLikeErrorText && !!(text && text.trim().length > 0);
+    if (shouldCache) {
+      try {
+        await ctx.runMutation(api.bibleCache.upsert, {
+          key,
+          reference,
+          translation,
+          text,
+        });
+      } catch {}
+    }
+    return result;
   },
 });
 
