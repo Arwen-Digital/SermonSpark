@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as bible from "../bible.js";
 import type * as community from "../community.js";
 import type * as profiles from "../profiles.js";
 import type * as series from "../series.js";
@@ -28,6 +29,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  bible: typeof bible;
   community: typeof community;
   profiles: typeof profiles;
   series: typeof series;

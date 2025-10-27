@@ -1,4 +1,6 @@
 import { theme } from '@/constants/Theme';
+import { api } from '@/convex/_generated/api';
+import { convex } from '@/services/convexClient';
 import { seriesRepository } from '@/services/repositories';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,16 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CKEditorWrapper } from './CKEditorWrapper';
 import { CKEditorSermonEditorProps, EditorState } from './types';
 
-// Mock Bible verse data
-const mockBibleVerses: Record<string, Record<string, string>> = {
-  'john 3:16': {
-    CSB: 'For God loved the world in this way: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
-    NIV: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
-    NLT: 'For this is how God loved the world: He gave his one and only Son, so that everyone who believes in him will not perish but have eternal life.',
-    ESV: 'For God so loved the world, that he gave his only Son, that whoever believes in him should not perish but have eternal life.',
-    KJV: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.'
-  },
-};
+// Remote Bible verse lookup handled via Convex action
 
 interface LocalSeriesOption {
   id: string;
@@ -51,9 +44,12 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
   const [showSeriesModal, setShowSeriesModal] = useState(false);
   const [showBibleVerseModal, setShowBibleVerseModal] = useState(false);
   const [bibleVerse, setBibleVerse] = useState('');
-  const [bibleTranslation] = useState('CSB');
+  const translations = ['ESV', 'KJV', 'CSB', 'NLT', 'NIV'] as const;
+  type Translation = typeof translations[number];
+  const [bibleTranslation, setBibleTranslation] = useState<Translation>('CSB');
   const [fetchedVerseText, setFetchedVerseText] = useState('');
   const [fetchedVerseReference, setFetchedVerseReference] = useState('');
+  const [isFetchingVerse, setIsFetchingVerse] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [currentTab, setCurrentTab] = useState<'content' | 'outline' | 'notes' | 'details'>('content');
@@ -218,19 +214,36 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
     setHasUnsavedChanges(true);
   };
 
-  const fetchBibleVerse = () => {
-    const key = bibleVerse.toLowerCase().trim();
-    if (mockBibleVerses[key]) {
-      setFetchedVerseText(mockBibleVerses[key][bibleTranslation] || mockBibleVerses[key]['CSB']);
-      setFetchedVerseReference(bibleVerse);
-    } else {
-      showToastNotification('Verse not found', 'modal');
+  const fetchBibleVerse = async () => {
+    const reference = bibleVerse.trim();
+    if (!reference) {
+      showToastNotification('Please enter a reference', 'modal');
+      return;
+    }
+    try {
+      setIsFetchingVerse(true);
+      setFetchedVerseText('');
+      setFetchedVerseReference('');
+      const res = await convex.action((api as any).bible.fetchVerse, {
+        reference,
+        translation: bibleTranslation,
+      });
+      setFetchedVerseText(res.text || '');
+      setFetchedVerseReference(`${reference}`);
+      if (!res.text) {
+        showToastNotification('No text returned', 'modal');
+      }
+    } catch (err: any) {
+      console.error('fetchBibleVerse error', err);
+      showToastNotification('Failed to fetch verse', 'modal');
+    } finally {
+      setIsFetchingVerse(false);
     }
   };
 
   const insertBibleVerse = () => {
     if (fetchedVerseText) {
-      const verseMarkup = `<blockquote><p><strong>${fetchedVerseReference}</strong><br/>${fetchedVerseText}</p></blockquote>`;
+      const verseMarkup = `<blockquote><p><strong>${fetchedVerseReference} (${bibleTranslation})</strong><br/>${fetchedVerseText}</p></blockquote>`;
       setContent(prev => prev + '\n\n' + verseMarkup);
       setHasUnsavedChanges(true);
       setShowBibleVerseModal(false);
@@ -497,14 +510,53 @@ export const CKEditorSermonEditor: React.FC<CKEditorSermonEditorProps> = ({
                 placeholder="e.g., John 3:16"
                 autoCapitalize="none"
               />
-              <Pressable style={styles.fetchButton} onPress={fetchBibleVerse}>
-                <Text style={styles.fetchButtonText}>Fetch</Text>
+              <Pressable style={[styles.fetchButton, isFetchingVerse && { opacity: 0.6 }]} onPress={fetchBibleVerse} disabled={isFetchingVerse}>
+                <Text style={styles.fetchButtonText}>{isFetchingVerse ? 'Fetching...' : 'Fetch'}</Text>
               </Pressable>
+            </View>
+            <View style={styles.translationSelector}>
+              {translations.map((t) => (
+                <Pressable
+                  key={t}
+                  style={[
+                    styles.translationButton,
+                    bibleTranslation === t && styles.translationButtonActive,
+                  ]}
+                  onPress={async () => {
+                    setBibleTranslation(t);
+                    const reference = bibleVerse.trim();
+                    if (!reference) return;
+                    try {
+                      setIsFetchingVerse(true);
+                      const res = await convex.action((api as any).bible.fetchVerse, {
+                        reference,
+                        translation: t,
+                      });
+                      setFetchedVerseText(res.text || '');
+                      setFetchedVerseReference(`${reference}`);
+                    } catch (err) {
+                      console.error('translation fetch error', err);
+                      showToastNotification('Failed to fetch verse', 'modal');
+                    } finally {
+                      setIsFetchingVerse(false);
+                    }
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.translationButtonText,
+                      bibleTranslation === t && styles.translationButtonTextActive,
+                    ]}
+                  >
+                    {t}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
             
             {fetchedVerseText && (
               <View style={styles.versePreview}>
-                <Text style={styles.verseReference}>{fetchedVerseReference}</Text>
+                <Text style={styles.verseReference}>{`${fetchedVerseReference} (${bibleTranslation})`}</Text>
                 <Text style={styles.verseText}>{fetchedVerseText}</Text>
                 <Pressable style={styles.insertButton} onPress={insertBibleVerse}>
                   <Text style={styles.insertButtonText}>Insert Verse</Text>
@@ -819,6 +871,32 @@ const styles = StyleSheet.create({
     ...theme.typography.button,
     color: theme.colors.textOnPrimary,
     fontWeight: '600',
+  },
+  translationSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  translationButton: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+  },
+  translationButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  translationButtonText: {
+    ...theme.typography.button,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  translationButtonTextActive: {
+    color: theme.colors.textOnPrimary,
   },
   versePreview: {
     backgroundColor: theme.colors.surface,
