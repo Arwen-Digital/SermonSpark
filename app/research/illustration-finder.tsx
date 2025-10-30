@@ -1,0 +1,355 @@
+import { Button } from '@/components/common/Button';
+import { Card } from '@/components/common/Card';
+import { LoadingIndicator } from '@/components/common/LoadingIndicator';
+import { theme } from '@/constants/Theme';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    Alert,
+    Pressable,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
+
+export default function IllustrationFinderPage() {
+  const [inputMethod, setInputMethod] = useState<'concept' | 'brainstorm'>('concept');
+  const [biblicalConcept, setBiblicalConcept] = useState('How great God\'s free gift of grace is for believers');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleGenerateIllustrations = async () => {
+    if (!biblicalConcept.trim()) {
+      Alert.alert('Missing Information', 'Please provide a Biblical concept to generate illustrations.');
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    // Simulate AI processing
+    setTimeout(() => {
+      setIsGenerating(false);
+      Alert.alert(
+        'Illustrations Generated!',
+        'Your AI-generated illustrations are ready. This feature will be fully implemented soon.',
+        [{ text: 'OK' }]
+      );
+    }, 2000);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Illustration Finder</Text>
+        <View style={styles.headerRight} />
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Tool Description */}
+        <Card style={styles.descriptionCard}>
+          <View style={styles.toolHeader}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="images" size={24} color={theme.colors.primary} />
+            </View>
+            <View style={styles.toolInfo}>
+              <Text style={styles.toolTitle}>AI-Powered Illustration Finder</Text>
+              <Text style={styles.toolDescription}>
+                Discover compelling stories and examples for your sermons
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* Input Method Selection */}
+        <Card style={styles.sectionCard}>
+          <Text style={styles.radioGroupTitle}>Input Method</Text>
+          
+          {/* Provide a concept */}
+          <Pressable
+            style={styles.radioOption}
+            onPress={() => setInputMethod('concept')}
+          >
+            <View style={styles.radioCircle}>
+              {inputMethod === 'concept' && <View style={styles.radioInner} />}
+            </View>
+            <Text style={styles.radioText}>Provide a concept</Text>
+          </Pressable>
+
+          {/* Provide a brainstorm */}
+          <Pressable
+            style={[styles.radioOption, styles.radioOptionLocked]}
+            onPress={() => {
+              Alert.alert('Premium Feature', 'This feature is available for premium users.');
+            }}
+          >
+            <View style={styles.radioCircle}>
+              {inputMethod === 'brainstorm' && <View style={styles.radioInner} />}
+            </View>
+            <View style={styles.radioTextRow}>
+              <Text style={styles.radioText}>Provide a brainstorm</Text>
+              <Ionicons name="lock-closed" size={16} color={theme.colors.premium} />
+            </View>
+          </Pressable>
+        </Card>
+
+        {/* Form Fields */}
+        {inputMethod === 'concept' && (
+          <>
+            {/* Biblical Concept Input */}
+            <Card style={styles.inputCard}>
+              <Text style={styles.inputLabel}>What Biblical concept are you trying to describe?</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter your Biblical concept..."
+                placeholderTextColor={theme.colors.gray500}
+                value={biblicalConcept}
+                onChangeText={setBiblicalConcept}
+                multiline={true}
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </Card>
+          </>
+        )}
+
+        {/* Generate Button */}
+        <Card style={styles.generateCard}>
+          <Button
+            title={isGenerating ? 'Generating Illustrations...' : 'Generate Illustrations'}
+            onPress={handleGenerateIllustrations}
+            variant="primary"
+            disabled={isGenerating || !biblicalConcept.trim()}
+            icon={
+              isGenerating ? (
+                <LoadingIndicator size="small" color={theme.colors.white} />
+              ) : (
+                <Ionicons name="sparkles" size={16} color={theme.colors.white} />
+              )
+            }
+            style={styles.generateButton}
+          />
+        </Card>
+
+        {/* Tips Card */}
+        <Card style={styles.tipsCard}>
+          <View style={styles.tipsHeader}>
+            <Ionicons name="bulb-outline" size={20} color={theme.colors.primary} />
+            <Text style={styles.tipsTitle}>How It Works</Text>
+          </View>
+          <View style={styles.tipsList}>
+            <Text style={styles.tipItem}>• Provide a Biblical concept or theme</Text>
+            <Text style={styles.tipItem}>• Our AI will generate relevant illustrations</Text>
+            <Text style={styles.tipItem}>• Use stories, examples, and analogies to make your point</Text>
+            <Text style={styles.tipItem}>• Customize and save illustrations for your sermons</Text>
+          </View>
+        </Card>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
+  },
+  backButton: {
+    padding: theme.spacing.xs,
+    marginRight: theme.spacing.sm,
+  },
+  headerTitle: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    flex: 1,
+  },
+  headerRight: {
+    width: 40,
+  },
+  content: {
+    flex: 1,
+    padding: theme.spacing.md,
+  },
+
+  // Description card
+  descriptionCard: {
+    marginBottom: theme.spacing.md,
+  },
+  toolHeader: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  toolIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toolInfo: {
+    flex: 1,
+  },
+  toolTitle: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: theme.spacing.xs,
+  },
+  toolDescription: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+
+  // Section cards
+  sectionCard: {
+    marginBottom: theme.spacing.md,
+  },
+  sectionHeader: {
+    marginBottom: theme.spacing.sm,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
+  },
+  sectionTitle: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  helpButton: {
+    padding: theme.spacing.xs,
+  },
+  sectionSubtitle: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+  },
+
+  // Radio buttons
+  radioGroupTitle: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: theme.spacing.md,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    gap: theme.spacing.md,
+  },
+  radioOptionLocked: {
+    opacity: 0.6,
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: theme.colors.gray400,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: theme.colors.primary,
+  },
+  radioTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  radioText: {
+    ...theme.typography.body2,
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+
+  // Input fields
+  inputCard: {
+    marginBottom: theme.spacing.md,
+  },
+  inputLabel: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: theme.spacing.sm,
+  },
+  inputSubtext: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
+  },
+  textInput: {
+    ...theme.typography.body1,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.gray200,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    minHeight: 100,
+  },
+
+  // Generate button
+  generateCard: {
+    marginBottom: theme.spacing.md,
+  },
+  generateButton: {
+    backgroundColor: theme.colors.primary,
+  },
+
+  // Tips card
+  tipsCard: {
+    marginBottom: theme.spacing.xxl,
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  tipsTitle: {
+    ...theme.typography.h6,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  tipsList: {
+    gap: theme.spacing.xs,
+  },
+  tipItem: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+});
+
+
+
+

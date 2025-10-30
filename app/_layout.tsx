@@ -169,6 +169,14 @@ export default function RootLayout() {
       <Stack.Screen name="community/[postId]" options={{ headerShown: false }} />
       <Stack.Screen name="community/create" options={{ headerShown: false }} />
       <Stack.Screen name="research/sermon-title-generator" options={{ headerShown: false }} />
+      <Stack.Screen name="research/outline-generator" options={{ headerShown: false }} />
+      <Stack.Screen name="research/illustration-finder" options={{ headerShown: false }} />
+      <Stack.Screen name="research/historical-context" options={{ headerShown: false }} />
+      <Stack.Screen name="research/original-language-study" options={{ headerShown: false }} />
+      <Stack.Screen name="research/discussion-questions" options={{ headerShown: false }} />
+      <Stack.Screen name="research/topic-explorer" options={{ headerShown: false }} />
+      <Stack.Screen name="research/social-media-post-ideas" options={{ headerShown: false }} />
+      <Stack.Screen name="research/blog-post-ideas" options={{ headerShown: false }} />
       <Stack.Screen
         name="series/index"
         options={{

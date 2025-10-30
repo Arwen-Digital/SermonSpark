@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Text, FlatList, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { Card } from '@/components/common/Card';
+import { ConnectAccountModal } from '@/components/auth/ConnectAccountModal';
 import { Button } from '@/components/common/Button';
+import { Card } from '@/components/common/Card';
 import { FadeInView } from '@/components/common/FadeInView';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { UpgradePrompt } from '@/components/common/UpgradePrompt';
-import { ConnectAccountModal } from '@/components/auth/ConnectAccountModal';
 import { theme } from '@/constants/Theme';
 import { useFeatureGate } from '@/hooks/useFeatureGate';
 import { ResearchTool } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Mock research tools data
 const mockResearchTools: ResearchTool[] = [
@@ -23,6 +23,7 @@ const mockResearchTools: ResearchTool[] = [
     isPremium: true,
     category: 'outline',
   },
+  
   {
     id: '2',
     name: 'Outline Generator',
@@ -31,14 +32,7 @@ const mockResearchTools: ResearchTool[] = [
     isPremium: true,
     category: 'outline',
   },
-  {
-    id: '3',
-    name: 'Bible Finder',
-    description: 'Advanced scripture search across multiple translations',
-    icon: 'book',
-    isPremium: false,
-    category: 'context',
-  },
+ 
   {
     id: '4',
     name: 'Illustration Finder',
@@ -78,6 +72,21 @@ const mockResearchTools: ResearchTool[] = [
     icon: 'compass',
     isPremium: true,
     category: 'topic',
+  },{
+    id: '9',
+    name: 'Social Media Post Ideas',
+    description: 'Generate engaging social media content for your sermons',
+    icon: 'share-social',
+    isPremium: true,
+    category: 'social',
+  },
+  {
+    id: '10',
+    name: 'Blog Post Ideas',
+    description: 'Generate compelling blog post content from your sermons',
+    icon: 'document-text',
+    isPremium: true,
+    category: 'social',
   },
 ];
 
@@ -88,6 +97,7 @@ const CATEGORIES = [
   { key: 'illustration', label: 'Illustrations', icon: 'images' },
   { key: 'language', label: 'Original Languages', icon: 'language' },
   { key: 'topic', label: 'Topics & Themes', icon: 'compass' },
+  { key: 'social', label: 'Social Media', icon: 'list' },
   { key: 'history', label: 'Church History', icon: 'time' },
 ];
 
@@ -123,6 +133,30 @@ export default function ResearchScreen() {
     switch (tool.name) {
       case 'Sermon Title Generator':
         router.push('/research/sermon-title-generator');
+        break;
+      case 'Outline Generator':
+        router.push('/research/outline-generator');
+        break;
+      case 'Illustration Finder':
+        router.push('/research/illustration-finder');
+        break;
+      case 'Historical Context':
+        router.push('/research/historical-context');
+        break;
+      case 'Original Language Study':
+        router.push('/research/original-language-study');
+        break;
+      case 'Discussion Questions':
+        router.push('/research/discussion-questions');
+        break;
+      case 'Topic Explorer':
+        router.push('/research/topic-explorer');
+        break;
+      case 'Social Media Post Ideas':
+        router.push('/research/social-media-post-ideas');
+        break;
+      case 'Blog Post Ideas':
+        router.push('/research/blog-post-ideas');
         break;
       default:
         console.log('Opening research tool:', tool.name);

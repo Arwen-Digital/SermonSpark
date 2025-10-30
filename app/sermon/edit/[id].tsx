@@ -58,7 +58,7 @@ export default function EditSermonPage() {
         tags: sermonData.tags,
         notes: sermonData.notes,
         date: sermonData.date ? new Date(sermonData.date).toISOString() : undefined,
-        seriesId: sermonData.seriesId && sermonData.seriesId.trim() ? sermonData.seriesId : null,
+        seriesId: sermonData.seriesId && sermonData.seriesId.trim() ? sermonData.seriesId : undefined,
       };
       
       console.log('Update data:', updateData);
@@ -106,13 +106,12 @@ export default function EditSermonPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {sermon && (
-        <CKEditorSermonEditor
-          sermon={sermon}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      )}
+      <CKEditorSermonEditor
+        key={sermon?.id ?? 'loading'}
+        sermon={sermon || undefined}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
     </SafeAreaView>
   );
 }
