@@ -15,6 +15,7 @@ import type * as functions_generateHistoricalContext from "../functions/generate
 import type * as functions_generateIllustration from "../functions/generateIllustration.js";
 import type * as functions_generateLanguageStudy from "../functions/generateLanguageStudy.js";
 import type * as functions_generateOutline from "../functions/generateOutline.js";
+import type * as functions_generateSermonTitles from "../functions/generateSermonTitles.js";
 import type * as profiles from "../profiles.js";
 import type * as series from "../series.js";
 import type * as sermons from "../sermons.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "functions/generateIllustration": typeof functions_generateIllustration;
   "functions/generateLanguageStudy": typeof functions_generateLanguageStudy;
   "functions/generateOutline": typeof functions_generateOutline;
+  "functions/generateSermonTitles": typeof functions_generateSermonTitles;
   profiles: typeof profiles;
   series: typeof series;
   sermons: typeof sermons;

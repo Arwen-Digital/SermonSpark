@@ -2,13 +2,10 @@ import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
-import { api } from '@/convex/_generated/api';
+import { Sermon } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useAction } from 'convex/react';
-import type { FunctionReference } from 'convex/server';
-import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Modal,
@@ -19,98 +16,123 @@ import {
   Text,
   View,
 } from 'react-native';
-import { sermonRepository } from '@/services/repositories/sermonRepository.native';
-import type { SermonDTO } from '@/services/repositories/types';
 
-type GenerateSermonTitlesArgs = {
-  sermon_content: string;
-  scripture_reference: string;
-  current_title: string;
-  tags: string[];
-};
+// Mock sermon data - in real app this would come from global state
+const mockSermons: Sermon[] = [
+  {
+    id: '1',
+    title: 'The Good Shepherd',
+    content: 'Jesus said, "I am the good shepherd. The good shepherd lays down his life for the sheep." In this passage from John 10:11, we see a beautiful picture of Christ\'s sacrificial love...',
+    outline: '1. The Shepherd\'s Heart\n2. The Shepherd\'s Sacrifice\n3. The Shepherd\'s Call',
+    scripture: 'John 10:11-16',
+    tags: ['Jesus', 'Love', 'Sacrifice', 'Shepherd'],
+    series: 'I Am Statements',
+    date: new Date('2024-01-15'),
+    lastModified: new Date('2024-01-20'),
+    wordCount: 2800,
+    readingTime: 18,
+    isArchived: false,
+    isFavorite: true,
+    notes: 'Focus on the personal nature of Christ\'s care for each believer.',
+  },
+  {
+    id: '2',
+    title: 'Walking in Faith',
+    content: 'Faith is not just a feeling, but a way of living. In Hebrews 11, we see examples of men and women who lived by faith...',
+    scripture: 'Hebrews 11:1-6',
+    tags: ['Faith', 'Trust', 'Obedience'],
+    series: 'Living by Faith',
+    date: new Date('2024-01-08'),
+    lastModified: new Date('2024-01-10'),
+    wordCount: 2200,
+    readingTime: 14,
+    isArchived: false,
+    isFavorite: false,
+    notes: 'Include personal testimonies about faith.',
+  },
+  {
+    id: '3',
+    title: 'The Power of Prayer',
+    content: 'Prayer is our direct line of communication with God. Through prayer, we can experience His presence and power...',
+    scripture: 'Matthew 6:5-15',
+    tags: ['Prayer', 'Communication', 'God'],
+    series: 'Spiritual Disciplines',
+    date: new Date('2024-01-01'),
+    lastModified: new Date('2024-01-05'),
+    wordCount: 1900,
+    readingTime: 12,
+    isArchived: false,
+    isFavorite: true,
+    notes: 'Emphasize the importance of consistent prayer life.',
+  },
+];
 
-type GenerateSermonTitlesResult = {
-  titles: string[];
-  raw?: unknown;
+// Mock title suggestions based on sermon content
+const generateTitleSuggestions = (sermon: Sermon): string[] => {
+  const suggestions = [];
+  
+  // Base suggestions on content themes
+  if (sermon.content.toLowerCase().includes('shepherd')) {
+    suggestions.push(
+      'Our Great Shepherd: Finding Comfort in Christ\'s Care',
+      'The Shepherd\'s Voice: Learning to Follow Jesus',
+      'Safe in the Shepherd\'s Arms',
+      'When the Shepherd Leads: Trusting God\'s Direction'
+    );
+  } else if (sermon.content.toLowerCase().includes('faith')) {
+    suggestions.push(
+      'Faith That Moves Mountains: Living with Unwavering Trust',
+      'Walking by Faith, Not by Sight',
+      'The Faith Journey: Steps of Trust and Obedience',
+      'Faith in Action: Living Out Our Beliefs'
+    );
+  } else if (sermon.content.toLowerCase().includes('prayer')) {
+    suggestions.push(
+      'The Prayer Life That Changes Everything',
+      'Unlocking Heaven\'s Power Through Prayer',
+      'Prayer: Your Direct Line to the Divine',
+      'The Secret Place: Discovering Intimate Prayer'
+    );
+  } else {
+    // Generic suggestions based on scripture or tags
+    suggestions.push(
+      `Discovering Truth in ${sermon.scripture}`,
+      `Life Lessons from ${sermon.scripture}`,
+      `God\'s Message Through ${sermon.scripture}`,
+      `Biblical Wisdom from ${sermon.scripture}`
+    );
+  }
+
+  // Add creative variations
+  const creativeSuggestions = [
+    `${sermon.tags[0]}: A Biblical Perspective`,
+    `Finding Hope Through ${sermon.tags[0]}`,
+    `The Heart of ${sermon.tags[0]}: God\'s Design`,
+    `Living in ${sermon.tags[0]}: Practical Applications`
+  ];
+
+  suggestions.push(...creativeSuggestions);
+
+  // Return 8 unique suggestions
+  return [...new Set(suggestions)].slice(0, 8);
 };
 
 export default function SermonTitleGeneratorPage() {
-  const [availableSermons, setAvailableSermons] = useState<SermonDTO[]>([]);
-  const [selectedSermon, setSelectedSermon] = useState<SermonDTO | null>(null);
+  const [selectedSermon, setSelectedSermon] = useState<Sermon | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoadingSermons, setIsLoadingSermons] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [lastRequest, setLastRequest] = useState<GenerateSermonTitlesArgs | null>(null);
-
-  // Convex action reference
-  const generateTitlesAction = (
-    api as unknown as Record<string, any>
-  )['functions/generateSermonTitles'].generateSermonTitles as FunctionReference<
-    'action',
-    'public',
-    GenerateSermonTitlesArgs,
-    GenerateSermonTitlesResult
-  >;
-
-  const generateTitles = useAction(generateTitlesAction);
-
-  // Load sermons on component mount
-  useEffect(() => {
-    const loadSermons = async () => {
-      setIsLoadingSermons(true);
-      try {
-        const sermons = await sermonRepository.list();
-        setAvailableSermons(sermons);
-      } catch (error) {
-        console.error('Failed to load sermons:', error);
-        Alert.alert('Error', 'Failed to load your sermons. Please try again.');
-      } finally {
-        setIsLoadingSermons(false);
-      }
-    };
-    
-    loadSermons();
-  }, []);
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleSermonSelect = (sermon: SermonDTO) => {
+  const handleSermonSelect = (sermon: Sermon) => {
     setSelectedSermon(sermon);
     setShowDropdown(false);
     setShowSuggestions(false);
     setTitleSuggestions([]);
-    setModalError(null);
-  };
-
-  const runTitleGeneration = async (args: GenerateSermonTitlesArgs) => {
-    setIsGenerating(true);
-    setTitleSuggestions([]);
-    setModalError(null);
-
-    try {
-      const response = await generateTitles(args);
-      const titles = response.titles || [];
-      
-      if (titles.length === 0) {
-        throw new Error('No titles generated');
-      }
-
-      setTitleSuggestions(titles);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error('Failed to generate titles:', error);
-      const message = error instanceof Error 
-        ? error.message 
-        : 'Unable to generate titles right now. Please try again.';
-      setModalError(message);
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const handleGenerateTitles = () => {
@@ -119,42 +141,34 @@ export default function SermonTitleGeneratorPage() {
       return;
     }
 
-    const args: GenerateSermonTitlesArgs = {
-      sermon_content: selectedSermon.content || '',
-      scripture_reference: selectedSermon.scripture || '',
-      current_title: selectedSermon.title,
-      tags: selectedSermon.tags || [],
-    };
-
-    setLastRequest(args);
-    void runTitleGeneration(args);
+    setIsGenerating(true);
+    
+    // Simulate AI processing time
+    setTimeout(() => {
+      const suggestions = generateTitleSuggestions(selectedSermon);
+      setTitleSuggestions(suggestions);
+      setIsGenerating(false);
+      setShowSuggestions(true);
+    }, 2000);
   };
 
-  const handleRegenerateTitles = () => {
-    if (!lastRequest) {
-      return;
-    }
-
-    void runTitleGeneration(lastRequest);
+  const handleUseTitleSuggestion = (title: string) => {
+    Alert.alert(
+      'Use This Title?',
+      `Apply "${title}" as the title for "${selectedSermon?.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Apply', 
+          onPress: () => {
+            // In real app, this would update the sermon title
+            Alert.alert('Title Applied!', 'The new title has been applied to your sermon.');
+            router.back();
+          }
+        }
+      ]
+    );
   };
-
-  const handleCopyTitle = async (title: string) => {
-    try {
-      await Clipboard.setStringAsync(title);
-      
-      // Show success feedback
-      Alert.alert(
-        'Title Copied!',
-        `"${title}" has been copied to your clipboard.`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Failed to copy title:', error);
-      Alert.alert('Copy Failed', 'Unable to copy the title. Please try again.');
-    }
-  };
-
-  const disableGenerate = isGenerating || !selectedSermon;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -190,39 +204,24 @@ export default function SermonTitleGeneratorPage() {
             Choose one of your existing sermons to generate new title suggestions
           </Text>
           
-          {isLoadingSermons ? (
-            <View style={styles.loadingContainer}>
-              <LoadingIndicator size="small" color={theme.colors.primary} />
-              <Text style={styles.loadingText}>Loading your sermons...</Text>
-            </View>
-          ) : availableSermons.length === 0 ? (
-            <View style={styles.emptyStateContainer}>
-              <Ionicons name="document-text-outline" size={48} color={theme.colors.gray400} />
-              <Text style={styles.emptyStateText}>No sermons found</Text>
-              <Text style={styles.emptyStateSubtext}>
-                Create your first sermon to get started with title generation
-              </Text>
-            </View>
-          ) : (
-            <Pressable
-              style={styles.dropdownButton}
-              onPress={() => setShowDropdown(true)}
-            >
-              <View style={styles.dropdownContent}>
-                <View style={styles.dropdownInfo}>
-                  <Text style={styles.dropdownText}>
-                    {selectedSermon ? selectedSermon.title : 'Choose a sermon...'}
+          <Pressable
+            style={styles.dropdownButton}
+            onPress={() => setShowDropdown(true)}
+          >
+            <View style={styles.dropdownContent}>
+              <View style={styles.dropdownInfo}>
+                <Text style={styles.dropdownText}>
+                  {selectedSermon ? selectedSermon.title : 'Choose a sermon...'}
+                </Text>
+                {selectedSermon && (
+                  <Text style={styles.dropdownSubtext}>
+                    {selectedSermon.scripture} • {selectedSermon.series}
                   </Text>
-                  {selectedSermon && (
-                    <Text style={styles.dropdownSubtext}>
-                      {selectedSermon.scripture} • {selectedSermon.seriesTitle}
-                    </Text>
-                  )}
-                </View>
-                <Ionicons name="chevron-down" size={20} color={theme.colors.gray600} />
+                )}
               </View>
-            </Pressable>
-          )}
+              <Ionicons name="chevron-down" size={20} color={theme.colors.gray600} />
+            </View>
+          </Pressable>
         </Card>
 
         {/* Generate Button */}
@@ -231,7 +230,7 @@ export default function SermonTitleGeneratorPage() {
             title={isGenerating ? "Generating Suggestions..." : "Generate Sermon Title Suggestions"}
             onPress={handleGenerateTitles}
             variant="primary"
-            disabled={disableGenerate}
+            disabled={!selectedSermon || isGenerating}
             icon={
               isGenerating ? (
                 <LoadingIndicator size="small" color={theme.colors.white} />
@@ -240,30 +239,20 @@ export default function SermonTitleGeneratorPage() {
               )
             }
           />
-          {!selectedSermon && !isLoadingSermons && (
+          {!selectedSermon && (
             <Text style={styles.generateHint}>
               Select a sermon above to generate title suggestions
             </Text>
           )}
         </Card>
 
-        {/* Error Display */}
-        {modalError && (
-          <Card style={styles.errorCard}>
-            <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
-              <Text style={styles.errorText}>{modalError}</Text>
-            </View>
-          </Card>
-        )}
-
         {/* Title Suggestions */}
         {showSuggestions && titleSuggestions.length > 0 && (
           <Card style={styles.suggestionsCard}>
             <View style={styles.suggestionsHeader}>
-              <Text style={styles.sectionTitle}>Generated Suggestions ({titleSuggestions.length})</Text>
+              <Text style={styles.sectionTitle}>Generated Suggestions</Text>
               <Text style={styles.sectionDescription}>
-                Tap any title to copy it to your clipboard
+                Tap any title to apply it to your sermon
               </Text>
             </View>
             
@@ -272,14 +261,11 @@ export default function SermonTitleGeneratorPage() {
                 <Pressable
                   key={index}
                   style={styles.suggestionItem}
-                  onPress={() => handleCopyTitle(title)}
+                  onPress={() => handleUseTitleSuggestion(title)}
                 >
                   <View style={styles.suggestionContent}>
-                    <View style={styles.suggestionNumber}>
-                      <Text style={styles.suggestionNumberText}>{index + 1}</Text>
-                    </View>
                     <Text style={styles.suggestionTitle}>{title}</Text>
-                    <Ionicons name="copy-outline" size={16} color={theme.colors.gray600} />
+                    <Ionicons name="chevron-forward" size={16} color={theme.colors.gray600} />
                   </View>
                 </Pressable>
               ))}
@@ -287,11 +273,10 @@ export default function SermonTitleGeneratorPage() {
             
             <View style={styles.suggestionsFooter}>
               <Button
-                title={isGenerating ? 'Generating More...' : 'Generate More Suggestions'}
-                onPress={handleRegenerateTitles}
+                title="Generate More Suggestions"
+                onPress={handleGenerateTitles}
                 variant="outline"
                 size="sm"
-                disabled={!lastRequest || isGenerating}
                 icon={<Ionicons name="refresh" size={16} color={theme.colors.primary} />}
               />
             </View>
@@ -334,7 +319,7 @@ export default function SermonTitleGeneratorPage() {
             </View>
             
             <ScrollView style={styles.sermonsList}>
-              {availableSermons.map((sermon) => (
+              {mockSermons.map((sermon) => (
                 <Pressable
                   key={sermon.id}
                   style={[
@@ -346,10 +331,10 @@ export default function SermonTitleGeneratorPage() {
                   <View style={styles.sermonItemContent}>
                     <Text style={styles.sermonItemTitle}>{sermon.title}</Text>
                     <Text style={styles.sermonItemMeta}>
-                      {sermon.scripture} • {sermon.seriesTitle || 'No Series'}
+                      {sermon.scripture} • {sermon.series}
                     </Text>
                     <View style={styles.sermonItemTags}>
-                      {(sermon.tags || []).slice(0, 3).map((tag, index) => (
+                      {sermon.tags.slice(0, 3).map((tag, index) => (
                         <View key={index} style={styles.sermonTag}>
                           <Text style={styles.sermonTagText}>#{tag}</Text>
                         </View>
@@ -449,32 +434,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     lineHeight: 20,
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-  },
-  loadingText: {
-    ...theme.typography.body2,
-    color: theme.colors.textSecondary,
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
-  },
-  emptyStateText: {
-    ...theme.typography.h6,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  emptyStateSubtext: {
-    ...theme.typography.body2,
-    color: theme.colors.textTertiary,
-    textAlign: 'center',
-  },
   dropdownButton: {
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: theme.borderRadius.md,
@@ -513,22 +472,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Error card
-  errorCard: {
-    marginBottom: theme.spacing.md,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-  },
-  errorText: {
-    ...theme.typography.body2,
-    color: theme.colors.error,
-    flex: 1,
-  },
-
   // Suggestions card
   suggestionsCard: {
     marginBottom: theme.spacing.md,
@@ -549,22 +492,8 @@ const styles = StyleSheet.create({
   suggestionContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  suggestionNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  suggestionNumberText: {
-    ...theme.typography.caption,
-    color: theme.colors.white,
-    fontWeight: '600',
-    fontSize: 12,
   },
   suggestionTitle: {
     ...theme.typography.body1,
