@@ -11,6 +11,10 @@
 import type * as bible from "../bible.js";
 import type * as bibleCache from "../bibleCache.js";
 import type * as community from "../community.js";
+import type * as functions_generateHistoricalContext from "../functions/generateHistoricalContext.js";
+import type * as functions_generateIllustration from "../functions/generateIllustration.js";
+import type * as functions_generateLanguageStudy from "../functions/generateLanguageStudy.js";
+import type * as functions_generateOutline from "../functions/generateOutline.js";
 import type * as profiles from "../profiles.js";
 import type * as series from "../series.js";
 import type * as sermons from "../sermons.js";
@@ -33,6 +37,10 @@ declare const fullApi: ApiFromModules<{
   bible: typeof bible;
   bibleCache: typeof bibleCache;
   community: typeof community;
+  "functions/generateHistoricalContext": typeof functions_generateHistoricalContext;
+  "functions/generateIllustration": typeof functions_generateIllustration;
+  "functions/generateLanguageStudy": typeof functions_generateLanguageStudy;
+  "functions/generateOutline": typeof functions_generateOutline;
   profiles: typeof profiles;
   series: typeof series;
   sermons: typeof sermons;

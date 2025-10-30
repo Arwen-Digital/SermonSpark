@@ -1,20 +1,30 @@
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
+import { RichHtml } from '@/components/common/RichHtml';
 import { theme } from '@/constants/Theme';
+import { api } from '@/convex/_generated/api';
+import { markdownToHtml } from '@/utils/markdown';
 import { Ionicons } from '@expo/vector-icons';
+import { useAction } from 'convex/react';
+import type { FunctionReference } from 'convex/server';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  ViewStyle,
+  useWindowDimensions,
 } from 'react-native';
 
 const OUTLINE_TYPES = [
@@ -29,39 +39,204 @@ const OUTLINE_TYPES = [
 
 ];
 
+type GenerateOutlineArgs = {
+  outline_type: string;
+  sermon_topic: string;
+  bible_verse: string;
+  preacher: string;
+};
+
+type GenerateOutlineResult = {
+  outline: string;
+  html?: string;
+  raw?: unknown;
+};
+
+type OutlineContent = {
+  html: string;
+  text: string;
+};
+
 export default function OutlineGeneratorPage() {
-  const [outlineType, setOutlineType] = useState('expository');
+  const [outlineType, setOutlineType] = useState(OUTLINE_TYPES[0]?.value ?? '');
   const [inputMethod, setInputMethod] = useState<'topic-verse' | 'brainstorm'>('topic-verse');
   const [sermonTopic, setSermonTopic] = useState('');
   const [bibleVerse, setBibleVerse] = useState('');
   const [preacherInspiration, setPreacherInspiration] = useState('');
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isResultModalVisible, setIsResultModalVisible] = useState(false);
+  const [outlineResult, setOutlineResult] = useState<OutlineContent | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [thinkingDots, setThinkingDots] = useState(0);
+  const [lastRequest, setLastRequest] = useState<GenerateOutlineArgs | null>(null);
+
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.max(width, height) >= 768;
+  const presentationStyle =
+    isLargeScreen && Platform.OS === 'ios' ? 'pageSheet' : 'overFullScreen';
+
+  const outlineActionReference = (
+    api as unknown as Record<string, any>
+  )['functions/generateOutline'].generateOutline as FunctionReference<
+    'action',
+    'public',
+    GenerateOutlineArgs,
+    GenerateOutlineResult
+  >;
+
+  const generateOutlineAction = useAction(outlineActionReference);
+
+  useEffect(() => {
+    if (!isResultModalVisible || !isGenerating) {
+      setThinkingDots(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setThinkingDots((prev) => (prev + 1) % 4);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isResultModalVisible, isGenerating]);
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleGenerateOutline = async () => {
-    if (!sermonTopic && !bibleVerse) {
+  const closeResultModal = () => {
+    if (isGenerating) {
+      return;
+    }
+    setIsResultModalVisible(false);
+  };
+
+  const runOutlineGeneration = async (args: GenerateOutlineArgs) => {
+    setIsGenerating(true);
+    setOutlineResult(null);
+    setModalError(null);
+
+    try {
+      const response = await generateOutlineAction(args);
+      const html = response.html && response.html.trim().length > 0
+        ? response.html
+        : markdownToHtml(response.outline);
+      setOutlineResult({
+        html,
+        text: response.outline,
+      });
+    } catch (error) {
+      console.error('Failed to generate outline', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to generate an outline right now. Please try again.';
+      setModalError(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateOutline = () => {
+    if (!sermonTopic.trim() && !bibleVerse.trim()) {
       Alert.alert('Missing Information', 'Please provide a sermon topic or Bible verse to generate an outline.');
       return;
     }
 
-    setIsGenerating(true);
-    
-    // Simulate AI processing
-    setTimeout(() => {
-      setIsGenerating(false);
-      Alert.alert(
-        'Outline Generated!',
-        'Your AI-generated outline is ready. This feature will be fully implemented soon.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    }, 2000);
+    const args: GenerateOutlineArgs = {
+      outline_type: outlineType,
+      sermon_topic: sermonTopic.trim(),
+      bible_verse: bibleVerse.trim(),
+      preacher: preacherInspiration.trim(),
+    };
+
+    setLastRequest(args);
+    setIsResultModalVisible(true);
+    void runOutlineGeneration(args);
+  };
+
+  const handleRegenerateOutline = () => {
+    if (!lastRequest) {
+      return;
+    }
+
+    void runOutlineGeneration(lastRequest);
+  };
+
+  const handleCopyOutline = async () => {
+    if (!outlineResult) {
+      return;
+    }
+
+    try {
+      await Clipboard.setStringAsync(outlineResult.text);
+      Alert.alert('Copied to Clipboard', 'The generated outline has been copied to your clipboard.');
+    } catch (error) {
+      console.error('Failed to copy outline to clipboard', error);
+      Alert.alert('Copy Failed', 'Unable to copy the outline. Please try again.');
+    }
   };
 
   const selectedType = OUTLINE_TYPES.find(type => type.value === outlineType);
+  const animatedDots = '.'.repeat(thinkingDots);
+  const disableGenerate = isGenerating || (!sermonTopic.trim() && !bibleVerse.trim());
+
+  const renderResultBody = (scrollStyle?: StyleProp<ViewStyle>) => (
+    <>
+      <View style={styles.resultModalHeader}>
+        <Text style={styles.resultModalTitle}>Generated Outline</Text>
+        <Pressable
+          style={[styles.modalCloseButton, isGenerating && styles.modalCloseButtonDisabled]}
+          onPress={closeResultModal}
+          disabled={isGenerating}
+        >
+          <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+        </Pressable>
+      </View>
+
+      {isGenerating && !outlineResult && !modalError ? (
+        <View style={styles.thinkingContainer}>
+          <LoadingIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.thinkingText}>{`Thinking${animatedDots}`}</Text>
+        </View>
+      ) : null}
+
+      {modalError ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+          <Text style={styles.errorText}>{modalError}</Text>
+        </View>
+      ) : null}
+
+      {outlineResult ? (
+        <ScrollView
+          style={[styles.resultScroll, scrollStyle]}
+          contentContainerStyle={styles.resultScrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+          <RichHtml html={outlineResult.html} />
+        </ScrollView>
+      ) : null}
+
+      <View style={styles.resultButtonRow}>
+        <Button
+          title="Copy to Clipboard"
+          onPress={handleCopyOutline}
+          variant="secondary"
+          disabled={!outlineResult || isGenerating}
+          style={styles.resultButton}
+        />
+        <Button
+          title={isGenerating ? 'Regenerating...' : 'Regenerate Result'}
+          onPress={handleRegenerateOutline}
+          variant="primary"
+          disabled={!lastRequest || isGenerating}
+          style={styles.resultButton}
+        />
+      </View>
+    </>
+  );
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -210,7 +385,7 @@ export default function OutlineGeneratorPage() {
             title={isGenerating ? 'Generating Outline...' : 'Generate Outline'}
             onPress={handleGenerateOutline}
             variant="primary"
-            disabled={isGenerating || (!sermonTopic && !bibleVerse)}
+            disabled={disableGenerate}
             icon={
               isGenerating ? (
                 <LoadingIndicator size="small" color={theme.colors.white} />
@@ -236,6 +411,30 @@ export default function OutlineGeneratorPage() {
           </View>
         </Card>
       </ScrollView>
+
+      {/* Result Modal */}
+      <Modal
+        visible={isResultModalVisible}
+        transparent={presentationStyle === 'overFullScreen'}
+        animationType="slide"
+        presentationStyle={presentationStyle}
+        onRequestClose={closeResultModal}
+      >
+        {presentationStyle === 'pageSheet' ? (
+          <SafeAreaView style={styles.sheetContainer}>
+            <View style={styles.resultModalContentSheet}>{renderResultBody(styles.resultScrollSheet)}</View>
+          </SafeAreaView>
+        ) : (
+          <View style={styles.resultOverlay}>
+            <Pressable
+              style={styles.backdrop}
+              onPress={closeResultModal}
+              disabled={isGenerating}
+            />
+            <View style={styles.resultModalContent}>{renderResultBody()}</View>
+          </View>
+        )}
+      </Modal>
 
       {/* Outline Type Modal */}
       <Modal
@@ -513,6 +712,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: theme.spacing.md,
   },
+  resultOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  sheetContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    paddingTop: 0,
+  },
+  resultModalContent: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderTopRightRadius: theme.borderRadius.xl,
+    width: '100%',
+    paddingTop: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+    maxHeight: '85%',
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  resultModalContentSheet: {
+    flex: 1,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 720,
+    maxHeight: undefined,
+    paddingTop: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxl,
+  },
+  resultModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
+  },
+  resultModalTitle: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
   modalContent: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
@@ -534,6 +781,57 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     padding: theme.spacing.xs,
+  },
+  modalCloseButtonDisabled: {
+    opacity: 0.4,
+  },
+  thinkingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
+  },
+  thinkingText: {
+    ...theme.typography.body1,
+    color: theme.colors.textSecondary,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.error + '10',
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  errorText: {
+    ...theme.typography.body2,
+    color: theme.colors.error,
+    flex: 1,
+  },
+  resultScroll: {
+    borderWidth: 1,
+    borderColor: theme.colors.gray200,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.white,
+    maxHeight: '55%',
+    marginBottom: theme.spacing.md,
+  },
+  resultScrollSheet: {
+    maxHeight: undefined,
+    flex: 1,
+  },
+  resultScrollContent: {
+    padding: theme.spacing.md,
+  },
+  resultButtonRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  resultButton: {
+    flex: 1,
   },
   optionsList: {
     padding: theme.spacing.sm,

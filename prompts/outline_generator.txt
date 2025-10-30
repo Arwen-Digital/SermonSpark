@@ -1,0 +1,1 @@
+Create a sermon outline using {outline_type} on the topic of {sermon_topic}, based on {bible_verse} with {preacher} as preacher inspiration.

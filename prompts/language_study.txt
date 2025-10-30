@@ -1,0 +1,1 @@
+Provide a short original language study (greek for new testament and hebrew in the old testament) for {bible_text}
