@@ -1,1 +1,26 @@
-Provide a short original language study (greek for new testament and hebrew in the old testament) for {bible_text}
+Provide a focused original language study for sermon preparation based on this biblical text: {bible_text}
+
+Requirements:
+- Focus on the New Testament Greek or Old Testament Hebrew as appropriate
+- Identify 2-4 key Hebrew/Greek words that are most theologically significant
+- Prioritize words that appear frequently or carry theological weight
+- Provide accurate transliteration and pronunciation guide
+- Include Strong's numbers where relevant
+
+Structure for each key word:
+1. **Hebrew/Greek word**: [original script]
+   - **Transliteration**: [how to say it]
+   - **Strong's**: [# if known]
+   - **Root meaning**: [literal meaning of the root]
+   - **How it's used here**: [contextual meaning in this passage]
+   - **Theological significance**: [why this word choice matters]
+   - **Practical application**: [how this insight strengthens the sermon]
+
+For the overall passage:
+- **Context note**: [brief cultural/historical context affecting the language]
+- **Preaching insight**: [one key takeaway for your sermon based on the language study]
+- **Application**: [how to help your congregation understand and apply this]
+
+Length: 200-400 words total
+
+Focus on insights that will enrich your sermon without overwhelming your congregation. The goal is to provide solid scholarship that enhances pastoral application, not academic display.

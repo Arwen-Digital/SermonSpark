@@ -1,1 +1,28 @@
-Create a sermon illustration for this biblical concept: {biblical_concept}
+Create a compelling sermon illustration that brings this biblical concept to life: {biblical_concept}
+
+Requirements:
+- Make the illustration relevant and directly applicable to the biblical concept
+- Use relatable, everyday situations that your congregation can connect with
+- Keep it authentic and genuine - avoid forced or artificial examples
+- Make it memorable and engaging for your audience
+- Ensure it supports and illuminates the biblical truth, not just entertains
+
+Types to consider:
+- Personal stories (your own or others you've witnessed)
+- Current events or cultural references
+- Historical examples
+- Nature analogies
+- Business/work situations
+- Family dynamics
+- Sports analogies
+- Technology comparisons (use sparingly and appropriately)
+
+Format:
+- Provide a 1-2 sentence setup/context
+- Share the main story/example
+- Include a clear connection back to the biblical concept
+- End with a brief application or takeaway
+
+Length: 150-300 words
+
+The illustration should help make the biblical concept more tangible and easier for your congregation to understand and remember.

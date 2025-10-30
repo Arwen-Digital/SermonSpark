@@ -145,7 +145,7 @@ export default function SermonTitleGeneratorPage() {
       // Show success feedback
       Alert.alert(
         'Title Copied!',
-        `"${title}" has been copied to your clipboard.`,
+        `&quot;${title}&quot; has been copied to your clipboard.`,
         [{ text: 'OK' }]
       );
     } catch (error) {

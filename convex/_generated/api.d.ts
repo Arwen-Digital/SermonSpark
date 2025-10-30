@@ -11,6 +11,7 @@
 import type * as bible from "../bible.js";
 import type * as bibleCache from "../bibleCache.js";
 import type * as community from "../community.js";
+import type * as functions_generateDiscussionQuestions from "../functions/generateDiscussionQuestions.js";
 import type * as functions_generateHistoricalContext from "../functions/generateHistoricalContext.js";
 import type * as functions_generateIllustration from "../functions/generateIllustration.js";
 import type * as functions_generateLanguageStudy from "../functions/generateLanguageStudy.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   bible: typeof bible;
   bibleCache: typeof bibleCache;
   community: typeof community;
+  "functions/generateDiscussionQuestions": typeof functions_generateDiscussionQuestions;
   "functions/generateHistoricalContext": typeof functions_generateHistoricalContext;
   "functions/generateIllustration": typeof functions_generateIllustration;
   "functions/generateLanguageStudy": typeof functions_generateLanguageStudy;

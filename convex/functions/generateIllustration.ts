@@ -2,25 +2,22 @@
 
 import { v } from "convex/values";
 import { readFileSync } from "fs";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
+import { resolve } from "path";
 import { markdownToHtml } from "../../utils/markdown";
 import { action } from "../_generated/server";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/completions";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Path to prompts directory from convex functions
 const TEMPLATE_PATH = resolve(__dirname, "../../prompts/illustration_finder.txt");
 
-const defaultTemplate = "Create a sermon illustration for this biblical concept: {biblical_concept}";
-
-let promptTemplate = defaultTemplate;
+let promptTemplate = "";
 
 try {
   promptTemplate = readFileSync(TEMPLATE_PATH, "utf8");
 } catch (error) {
-  console.error("Failed to read illustration finder prompt template, falling back to default", error);
+  console.error("Failed to read illustration finder prompt template:", error);
+  throw new Error("Unable to load prompt template");
 }
 
 type IllustrationArgs = {
