@@ -6,19 +6,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 
 export default function IllustrationFinderPage() {
   const [inputMethod, setInputMethod] = useState<'concept' | 'brainstorm'>('concept');
-  const [biblicalConcept, setBiblicalConcept] = useState('How great God\'s free gift of grace is for believers');
+  const [biblicalConcept, setBiblicalConcept] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleBack = () => {
@@ -111,8 +111,7 @@ export default function IllustrationFinderPage() {
               <Text style={styles.inputLabel}>What Biblical concept are you trying to describe?</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Enter your Biblical concept..."
-                placeholderTextColor={theme.colors.gray500}
+                placeholder="How great God's free gift of grace is for believers"
                 value={biblicalConcept}
                 onChangeText={setBiblicalConcept}
                 multiline={true}
@@ -349,6 +348,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+
 
 
 
