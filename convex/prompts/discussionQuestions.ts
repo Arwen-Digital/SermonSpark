@@ -1,4 +1,4 @@
-Generate thoughtful Bible study discussion questions based on the provided content. Create 5 questions that encourage deep reflection and group discussion.
+export const discussionQuestionsPrompt = `Generate thoughtful Bible study discussion questions based on the provided content. Create 5 questions that encourage deep reflection and group discussion.
 
 Input Type: {input_type}
 Content: {content}
@@ -20,4 +20,5 @@ Sermon Content: {sermon_content}
 Bible Verse: {bible_verse}
 {/if}
 
-Generate questions that will help a small group explore this topic meaningfully.
+Generate questions that will help a small group explore this topic meaningfully.`;
+

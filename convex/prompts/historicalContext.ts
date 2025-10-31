@@ -1,4 +1,4 @@
-Provide comprehensive historical and cultural context for sermon preparation based on this biblical text: {bible_text}
+export const historicalContextPrompt = `Provide comprehensive historical and cultural context for sermon preparation based on this biblical text: {bible_text}
 
 **Historical Context:**
 - **Time Period**: When was this written and under what historical circumstances?
@@ -48,4 +48,5 @@ Provide comprehensive historical and cultural context for sermon preparation bas
 
 **Length**: 400-600 words total
 
-**Tone**: Academic yet accessible - useful for thorough preparation but not overwhelming for practical preaching application.
+**Tone**: Academic yet accessible - useful for thorough preparation but not overwhelming for practical preaching application.`;
+

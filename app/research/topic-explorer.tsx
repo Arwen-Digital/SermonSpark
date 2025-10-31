@@ -1,48 +1,162 @@
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
+import { RichHtml } from '@/components/common/RichHtml';
 import { theme } from '@/constants/Theme';
+import { api } from '@/convex/_generated/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useAction } from 'convex/react';
+import type { FunctionReference } from 'convex/server';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Alert,
+    Modal,
+    Platform,
     Pressable,
     SafeAreaView,
     ScrollView,
+    StyleProp,
     StyleSheet,
     Text,
     TextInput,
     View,
+    ViewStyle,
+    useWindowDimensions,
 } from 'react-native';
+
+type GenerateTopicExplorationArgs = {
+  sermon_topic?: string;
+  bible_verse?: string;
+};
+
+type GenerateTopicExplorationResult = {
+  exploration: string;
+  html: string;
+  raw?: unknown;
+};
+
+type TopicExplorationContent = {
+  html: string;
+  text: string;
+};
 
 export default function TopicExplorerPage() {
   const [sermonTopic, setSermonTopic] = useState('');
   const [bibleVerse, setBibleVerse] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isResultModalVisible, setIsResultModalVisible] = useState(false);
+  const [explorationResult, setExplorationResult] = useState<TopicExplorationContent | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [thinkingDots, setThinkingDots] = useState(0);
+  const [lastRequest, setLastRequest] = useState<GenerateTopicExplorationArgs | null>(null);
+
+  const { width, height } = useWindowDimensions();
+  const isLargeScreen = Math.max(width, height) >= 768;
+  const presentationStyle =
+    isLargeScreen && Platform.OS === 'ios' ? 'pageSheet' : 'overFullScreen';
+
+  // Convex action reference
+  const topicExplorationActionReference = (
+    api as unknown as Record<string, any>
+  )['functions/generateTopicExploration'].generateTopicExploration as FunctionReference<
+    'action',
+    'public',
+    GenerateTopicExplorationArgs,
+    GenerateTopicExplorationResult
+  >;
+
+  const generateTopicExplorationAction = useAction(topicExplorationActionReference);
+
+  useEffect(() => {
+    if (!isResultModalVisible || !isGenerating) {
+      setThinkingDots(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setThinkingDots((prev) => (prev + 1) % 4);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isResultModalVisible, isGenerating]);
 
   const handleBack = () => {
     router.back();
   };
 
+  const closeResultModal = () => {
+    if (isGenerating) {
+      return;
+    }
+    setIsResultModalVisible(false);
+  };
+
+  const runTopicExploration = async (args: GenerateTopicExplorationArgs) => {
+    setIsGenerating(true);
+    setExplorationResult(null);
+    setModalError(null);
+
+    try {
+      const response = await generateTopicExplorationAction(args);
+      const html = response.html && response.html.trim().length > 0
+        ? response.html
+        : `<div>${response.exploration}</div>`;
+      setExplorationResult({
+        html,
+        text: response.exploration,
+      });
+    } catch (error) {
+      console.error('Failed to generate topic exploration', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate topic exploration. Please try again.';
+      setModalError(message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleExploreTopic = async () => {
-    if (!sermonTopic && !bibleVerse) {
+    if (!sermonTopic.trim() && !bibleVerse.trim()) {
       Alert.alert('Missing Information', 'Please provide a sermon topic or Bible verse to explore.');
       return;
     }
 
-    setIsGenerating(true);
-    
-    // Simulate AI processing
-    setTimeout(() => {
-      setIsGenerating(false);
-      Alert.alert(
-        'Topic Explored!',
-        'Comprehensive theological insights and cross-references are ready. This feature will be fully implemented soon.',
-        [{ text: 'OK' }]
-      );
-    }, 2000);
+    const args: GenerateTopicExplorationArgs = {
+      sermon_topic: sermonTopic.trim() || undefined,
+      bible_verse: bibleVerse.trim() || undefined,
+    };
+
+    setLastRequest(args);
+    setIsResultModalVisible(true);
+    await runTopicExploration(args);
   };
+
+  const handleRegenerateExploration = async () => {
+    if (!lastRequest) {
+      return;
+    }
+    await runTopicExploration(lastRequest);
+  };
+
+  const handleCopyExploration = async () => {
+    if (!explorationResult) {
+      return;
+    }
+
+    try {
+      await Clipboard.setStringAsync(explorationResult.text);
+      Alert.alert('Copied to Clipboard', 'The topic exploration has been copied to your clipboard.');
+    } catch (error) {
+      console.error('Failed to copy exploration to clipboard', error);
+      Alert.alert('Copy Failed', 'Unable to copy the exploration. Please try again.');
+    }
+  };
+
+  const animatedDots = '.'.repeat(thinkingDots);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -138,6 +252,68 @@ export default function TopicExplorerPage() {
           </View>
         </Card>
       </ScrollView>
+
+      {/* Result Modal */}
+      <Modal
+        visible={isResultModalVisible}
+        animationType="slide"
+        presentationStyle={presentationStyle}
+        onRequestClose={closeResultModal}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.resultModalHeader}>
+            <Text style={styles.resultModalTitle}>Topic Exploration</Text>
+            <Pressable
+              style={[styles.modalCloseButton, isGenerating && styles.modalCloseButtonDisabled]}
+              onPress={closeResultModal}
+              disabled={isGenerating}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          {isGenerating && !explorationResult && !modalError ? (
+            <View style={styles.thinkingContainer}>
+              <LoadingIndicator size="large" color={theme.colors.primary} />
+              <Text style={styles.thinkingText}>{`Exploring Topic${animatedDots}`}</Text>
+            </View>
+          ) : null}
+
+          {modalError ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+              <Text style={styles.errorText}>{modalError}</Text>
+            </View>
+          ) : null}
+
+          {explorationResult ? (
+            <ScrollView
+              style={styles.resultScroll}
+              contentContainerStyle={styles.resultScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              <RichHtml html={explorationResult.html} />
+            </ScrollView>
+          ) : null}
+
+          <View style={styles.resultButtonRow}>
+            <Button
+              title="Copy to Clipboard"
+              onPress={handleCopyExploration}
+              variant="secondary"
+              disabled={!explorationResult || isGenerating}
+              style={styles.resultButton}
+            />
+            <Button
+              title={isGenerating ? 'Regenerating...' : 'Regenerate'}
+              onPress={handleRegenerateExploration}
+              variant="primary"
+              disabled={!lastRequest || isGenerating}
+              style={styles.resultButton}
+            />
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -280,6 +456,74 @@ const styles = StyleSheet.create({
     ...theme.typography.body2,
     color: theme.colors.textSecondary,
     lineHeight: 20,
+  },
+
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  resultModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray200,
+  },
+  resultModalTitle: {
+    ...theme.typography.h5,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    padding: theme.spacing.xs,
+  },
+  modalCloseButtonDisabled: {
+    opacity: 0.5,
+  },
+  thinkingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xxl,
+  },
+  thinkingText: {
+    ...theme.typography.body1,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.md,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.error + '15',
+    borderRadius: theme.borderRadius.md,
+    margin: theme.spacing.md,
+  },
+  errorText: {
+    ...theme.typography.body2,
+    color: theme.colors.error,
+    flex: 1,
+  },
+  resultScroll: {
+    flex: 1,
+  },
+  resultScrollContent: {
+    padding: theme.spacing.md,
+  },
+  resultButtonRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray200,
+    backgroundColor: theme.colors.surface,
+  },
+  resultButton: {
+    flex: 1,
   },
 });
 

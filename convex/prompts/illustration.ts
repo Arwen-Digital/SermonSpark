@@ -1,4 +1,4 @@
-Create a compelling sermon illustration that brings this biblical concept to life: {biblical_concept}
+export const illustrationPrompt = `Create a compelling sermon illustration that brings this biblical concept to life: {biblical_concept}
 
 Requirements:
 - Make the illustration relevant and directly applicable to the biblical concept
@@ -25,4 +25,5 @@ Format:
 
 Length: 150-300 words
 
-The illustration should help make the biblical concept more tangible and easier for your congregation to understand and remember.
+The illustration should help make the biblical concept more tangible and easier for your congregation to understand and remember.`;
+

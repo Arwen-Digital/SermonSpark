@@ -1,4 +1,4 @@
-Generate 10 compelling sermon titles based on this sermon content. Return only a JSON array of strings with no additional text or formatting.
+export const sermonTitlesPrompt = `Generate 10 compelling sermon titles based on this sermon content. Return only a JSON array of strings with no additional text or formatting.
 
 Sermon Content: {sermon_content}
 Scripture Reference: {scripture_reference}
@@ -12,4 +12,5 @@ Requirements:
 - Keep titles under 80 characters
 - Make them memorable and shareable
 
-JSON Format: ["Title 1", "Title 2", "Title 3", ...]
+JSON Format: ["Title 1", "Title 2", "Title 3", ...]`;
+

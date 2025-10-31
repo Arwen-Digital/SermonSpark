@@ -1,24 +1,12 @@
 "use node";
 
 import { v } from "convex/values";
-import { readFileSync } from "fs";
-import { resolve } from "path";
 import { markdownToHtml } from "../../utils/markdown";
 import { action } from "../_generated/server";
+import { illustrationPrompt } from "../prompts/illustration";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/completions";
 
-// Path to prompts directory from convex functions
-const TEMPLATE_PATH = resolve(__dirname, "../../prompts/illustration_finder.txt");
-
-let promptTemplate = "";
-
-try {
-  promptTemplate = readFileSync(TEMPLATE_PATH, "utf8");
-} catch (error) {
-  console.error("Failed to read illustration finder prompt template:", error);
-  throw new Error("Unable to load prompt template");
-}
 
 type IllustrationArgs = {
   biblical_concept: string;
@@ -53,7 +41,7 @@ export const generateIllustration = action({
       throw new Error("Missing OPENROUTER_MODEL environment variable");
     }
 
-    const prompt = renderTemplate(promptTemplate, args);
+    const prompt = renderTemplate(illustrationPrompt, args);
 
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",

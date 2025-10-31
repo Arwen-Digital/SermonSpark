@@ -3,6 +3,8 @@ import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { theme } from '@/constants/Theme';
 import { api } from '@/convex/_generated/api';
+import { sermonRepository } from '@/services/repositories/sermonRepository.native';
+import type { SermonDTO } from '@/services/repositories/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAction } from 'convex/react';
 import type { FunctionReference } from 'convex/server';
@@ -19,8 +21,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { sermonRepository } from '@/services/repositories/sermonRepository.native';
-import type { SermonDTO } from '@/services/repositories/types';
 
 type GenerateSermonTitlesArgs = {
   sermon_content: string;
@@ -175,7 +175,7 @@ export default function SermonTitleGeneratorPage() {
               <Ionicons name="bulb" size={24} color={theme.colors.primary} />
             </View>
             <View style={styles.toolInfo}>
-              <Text style={styles.toolTitle}>AI-Powered Title Generator</Text>
+              <Text style={styles.toolTitle}>Sermon Title Generator</Text>
               <Text style={styles.toolDescription}>
                 Generate compelling sermon titles based on your existing content and themes
               </Text>

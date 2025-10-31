@@ -18,7 +18,7 @@ const mockResearchTools: ResearchTool[] = [
   {
     id: '1',
     name: 'Sermon Title Generator',
-    description: 'AI-powered sermon title suggestions based on scripture or topic',
+    description: 'Sermon title suggestions based on scripture or topic',
     icon: 'bulb',
     isPremium: true,
     category: 'outline',

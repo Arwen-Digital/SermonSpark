@@ -1,4 +1,4 @@
-Provide a focused original language study for sermon preparation based on this biblical text: {bible_text}
+export const languageStudyPrompt = `Provide a focused original language study for sermon preparation based on this biblical text: {bible_text}
 
 Requirements:
 - Focus on the New Testament Greek or Old Testament Hebrew as appropriate
@@ -23,4 +23,5 @@ For the overall passage:
 
 Length: 200-400 words total
 
-Focus on insights that will enrich your sermon without overwhelming your congregation. The goal is to provide solid scholarship that enhances pastoral application, not academic display.
+Focus on insights that will enrich your sermon without overwhelming your congregation. The goal is to provide solid scholarship that enhances pastoral application, not academic display.`;
+

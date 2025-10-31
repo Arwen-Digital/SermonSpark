@@ -1,4 +1,4 @@
-Create a comprehensive sermon outline with the following parameters:
+export const outlinePrompt = `Create a comprehensive sermon outline with the following parameters:
 - **Outline Type**: {outline_type}
 - **Topic**: {sermon_topic}
 - **Scripture**: {bible_verse}
@@ -58,4 +58,5 @@ Create a comprehensive sermon outline with the following parameters:
 - Clear hierarchical structure with proper formatting
 - Scripture references in proper citation format
 - Practical application suggestions after each point
-- Notes on preacher style integration throughout
+- Notes on preacher style integration throughout`;
+

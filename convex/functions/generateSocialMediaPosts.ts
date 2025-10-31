@@ -3,30 +3,29 @@
 import { v } from "convex/values";
 import { markdownToHtml } from "../../utils/markdown";
 import { action } from "../_generated/server";
-import { discussionQuestionsPrompt } from "../prompts/discussionQuestions";
+import { socialMediaPostsPrompt } from "../prompts/socialMediaPosts";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/completions";
 
-
-type DiscussionQuestionsArgs = {
+type SocialMediaPostsArgs = {
   input_type: 'sermon' | 'topic_verse';
   content: string;
-  // For sermon-based questions
+  // For sermon-based posts
   sermon_title?: string;
   scripture_reference?: string;
   sermon_content?: string;
-  // For topic/verse questions
+  // For topic/verse posts
   topic?: string;
   bible_verse?: string;
 };
 
-type DiscussionQuestionsResult = {
-  questions: string;
+type SocialMediaPostsResult = {
+  posts: string;
   html: string;
   raw?: unknown;
 };
 
-function renderTemplate(template: string, values: DiscussionQuestionsArgs) {
+function renderTemplate(template: string, values: SocialMediaPostsArgs) {
   let rendered = template
     .replace(/\{input_type\}/g, values.input_type)
     .replace(/\{content\}/g, values.content);
@@ -54,7 +53,7 @@ function renderTemplate(template: string, values: DiscussionQuestionsArgs) {
   return rendered;
 }
 
-export const generateDiscussionQuestions = action({
+export const generateSocialMediaPosts = action({
   args: {
     input_type: v.union(v.literal("sermon"), v.literal("topic_verse")),
     content: v.string(),
@@ -64,7 +63,7 @@ export const generateDiscussionQuestions = action({
     topic: v.optional(v.string()),
     bible_verse: v.optional(v.string()),
   },
-  handler: async (_ctx, args): Promise<DiscussionQuestionsResult> => {
+  handler: async (_ctx, args): Promise<SocialMediaPostsResult> => {
     const apiKey = process.env.OPENROUTER_API_KEY;
     const model = process.env.OPENROUTER_MODEL;
 
@@ -76,7 +75,7 @@ export const generateDiscussionQuestions = action({
       throw new Error("Missing OPENROUTER_MODEL environment variable");
     }
 
-    const prompt = renderTemplate(discussionQuestionsPrompt, args);
+    const prompt = renderTemplate(socialMediaPostsPrompt, args);
 
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -97,24 +96,25 @@ export const generateDiscussionQuestions = action({
 
     const data: any = await response.json();
 
-    const questionsText =
+    const postsText =
       data?.choices?.[0]?.text ||
       data?.choices?.[0]?.message?.content ||
       data?.data?.[0]?.text ||
       "";
 
-    const questions = (questionsText as string).trim();
+    const posts = (postsText as string).trim();
 
-    if (!questions) {
+    if (!posts) {
       throw new Error("OpenRouter response did not contain any text");
     }
 
     return {
-      questions,
-      html: markdownToHtml(questions),
+      posts,
+      html: markdownToHtml(posts),
       raw: data,
     };
   },
 });
 
-export type GenerateDiscussionQuestionsAction = typeof generateDiscussionQuestions;
+export type GenerateSocialMediaPostsAction = typeof generateSocialMediaPosts;
+

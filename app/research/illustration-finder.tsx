@@ -233,7 +233,7 @@ export default function IllustrationFinderPage() {
               <Ionicons name="images" size={24} color={theme.colors.primary} />
             </View>
             <View style={styles.toolInfo}>
-              <Text style={styles.toolTitle}>AI-Powered Illustration Finder</Text>
+              <Text style={styles.toolTitle}>Illustration Finder</Text>
               <Text style={styles.toolDescription}>
                 Discover compelling stories and examples for your sermons
               </Text>

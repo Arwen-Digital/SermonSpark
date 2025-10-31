@@ -3,33 +3,33 @@
 import { v } from "convex/values";
 import { markdownToHtml } from "../../utils/markdown";
 import { action } from "../_generated/server";
-import { languageStudyPrompt } from "../prompts/languageStudy";
+import { topicExplorerPrompt } from "../prompts/topicExplorer";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/completions";
 
-
-type LanguageStudyArgs = {
-  bible_text: string;
+type TopicExplorationArgs = {
+  sermon_topic?: string;
+  bible_verse?: string;
 };
 
-type LanguageStudyResult = {
-  study: string;
+type TopicExplorationResult = {
+  exploration: string;
   html: string;
   raw?: unknown;
 };
 
-function renderTemplate(template: string, values: LanguageStudyArgs) {
-  return template.replace(/\{bible_text\}/g, (match, key) => {
-    const value = values.bible_text;
-    return value ? value.trim() : "";
-  });
+function renderTemplate(template: string, values: TopicExplorationArgs) {
+  return template
+    .replace(/\{sermon_topic\}/g, values.sermon_topic || "")
+    .replace(/\{bible_verse\}/g, values.bible_verse || "");
 }
 
-export const generateLanguageStudy = action({
+export const generateTopicExploration = action({
   args: {
-    bible_text: v.string(),
+    sermon_topic: v.optional(v.string()),
+    bible_verse: v.optional(v.string()),
   },
-  handler: async (_ctx, args): Promise<LanguageStudyResult> => {
+  handler: async (_ctx, args): Promise<TopicExplorationResult> => {
     const apiKey = process.env.OPENROUTER_API_KEY;
     const model = process.env.OPENROUTER_MODEL;
 
@@ -41,7 +41,11 @@ export const generateLanguageStudy = action({
       throw new Error("Missing OPENROUTER_MODEL environment variable");
     }
 
-    const prompt = renderTemplate(languageStudyPrompt, args);
+    if (!args.sermon_topic && !args.bible_verse) {
+      throw new Error("Either sermon_topic or bible_verse must be provided");
+    }
+
+    const prompt = renderTemplate(topicExplorerPrompt, args);
 
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
@@ -62,24 +66,25 @@ export const generateLanguageStudy = action({
 
     const data: any = await response.json();
 
-    const studyText =
+    const explorationText =
       data?.choices?.[0]?.text ||
       data?.choices?.[0]?.message?.content ||
       data?.data?.[0]?.text ||
       "";
 
-    const study = (studyText as string).trim();
+    const exploration = (explorationText as string).trim();
 
-    if (!study) {
+    if (!exploration) {
       throw new Error("OpenRouter response did not contain any text");
     }
 
     return {
-      study,
-      html: markdownToHtml(study),
+      exploration,
+      html: markdownToHtml(exploration),
       raw: data,
     };
   },
 });
 
-export type GenerateLanguageStudyAction = typeof generateLanguageStudy;
+export type GenerateTopicExplorationAction = typeof generateTopicExploration;
+
