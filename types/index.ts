@@ -56,6 +56,15 @@ export interface User {
   joinedDate: Date;
 }
 
+export interface Profile {
+  id: string;
+  fullName?: string;
+  title?: string;
+  church?: string;
+  avatarUrl?: string;
+  bio?: string;
+}
+
 export interface CommunityPost {
   id: string;
   authorId: string;

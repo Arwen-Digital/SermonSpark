@@ -5,6 +5,8 @@ import { theme } from '@/constants/Theme';
 import authSession from '@/services/authSession';
 import { sermonRepository } from '@/services/repositories/sermonRepository.native';
 import { seriesRepository } from '@/services/repositories/seriesRepository.native';
+import { profileRepository } from '@/services/repositories/profileRepository.native';
+import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -30,8 +32,6 @@ const MENU_SECTIONS = [
     title: 'Account',
     items: [
       { key: 'edit-profile', label: 'Edit Profile', icon: 'person-outline' },
-      { key: 'preferences', label: 'Preferences', icon: 'settings-outline' },
-      { key: 'notifications', label: 'Notifications', icon: 'notifications-outline' },
       { key: 'privacy', label: 'Privacy & Security', icon: 'shield-outline' },
     ],
   },
@@ -85,6 +85,7 @@ export default function ProfileScreen() {
   const [sermonCount, setSermonCount] = useState<number | null>(null);
   const [seriesCount, setSeriesCount] = useState<number | null>(null);
   const [communityLikes, setCommunityLikes] = useState<number | null>(null);
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -93,26 +94,30 @@ export default function ProfileScreen() {
         // Use local authentication check - no API calls
         const userId = await authSession.getCurrentUserId();
         const isOfflineAuth = await authSession.isAuthenticatedOffline();
-        
+
         if (!isOfflineAuth) {
           router.replace('/auth');
           return;
         }
 
-        // Create user profile from local data
         const isAnonymous = userId?.startsWith('anon_');
+
+        // Load profile from local repository
+        const profile = await profileRepository.getCurrent();
+
+        // Create user profile from local data and profile
         const mapped: User = {
           id: userId || 'unknown',
-          name: isAnonymous ? 'Anonymous User' : 'Pastor',
+          name: profile?.fullName || (isAnonymous ? 'Anonymous User' : 'Pastor'),
           email: isAnonymous ? '' : 'user@example.com',
-          avatar: '',
-          title: isAnonymous ? '' : 'Pastor',
-          church: '',
-          bio: '',
+          avatar: profile?.avatarUrl || '',
+          title: profile?.title || (isAnonymous ? '' : 'Pastor'),
+          church: profile?.church || '',
+          bio: profile?.bio || '',
           isPremium: false,
           joinedDate: new Date(),
         };
-        
+
         if (!mounted) return;
         setUser(mapped);
 
@@ -121,11 +126,11 @@ export default function ProfileScreen() {
           // Get sermon count from local database
           const sermons = await sermonRepository.list();
           setSermonCount(sermons.length);
-          
+
           // Get series count from local database
           const series = await seriesRepository.list();
           setSeriesCount(series.length);
-          
+
           // Community likes only available for online users
           setCommunityLikes(isAnonymous ? null : 0);
         }
@@ -147,7 +152,10 @@ export default function ProfileScreen() {
         console.log('Show premium upgrade');
         break;
       case 'edit-profile':
-        console.log('Navigate to edit profile');
+        setEditProfileVisible(true);
+        break;
+      case 'privacy':
+        router.push('/profile/privacy-security');
         break;
       case 'debug':
         router.push('/debug');
@@ -310,30 +318,43 @@ export default function ProfileScreen() {
   return (
     <FadeInView style={[styles.container, { paddingTop: topPadding, paddingBottom: bottomPadding }]}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+        {loading ? (
+          <View style={{ padding: theme.spacing.lg }}>
+            <LoadingIndicator size="large" color={theme.colors.primary} />
           </View>
-          {loading ? (
-            <View style={{ padding: theme.spacing.lg }}>
-              <LoadingIndicator size="large" color={theme.colors.primary} />
+        ) : (
+          <>
+            {renderProfileHeader()}
+            {renderStatsCard()}
+
+            <View style={styles.menuContainer}>
+              {MENU_SECTIONS_WITH_DEBUG.map(renderMenuSection)}
             </View>
-          ) : (
-            <>
-          
-          {renderProfileHeader()}
-          {renderStatsCard()}
-          
-          <View style={styles.menuContainer}>
-            {MENU_SECTIONS_WITH_DEBUG.map(renderMenuSection)}
-          </View>
-          
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>YouPreacher v1.0.0</Text>
-            <Text style={styles.footerText}>Made with ❤️ for pastors worldwide</Text>
-          </View>
-            </>
-          )}
-        </ScrollView>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>YouPreacher v1.0.0</Text>
+              <Text style={styles.footerText}>Made with ❤️ for pastors worldwide</Text>
+            </View>
+          </>
+        )}
+      </ScrollView>
+
+      <EditProfileModal
+        visible={editProfileVisible}
+        onClose={() => setEditProfileVisible(false)}
+        onSave={(profile) => {
+          setUser({
+            ...user,
+            name: profile.fullName || user.name,
+            title: profile.title || user.title,
+            church: profile.church || user.church,
+            bio: profile.bio || user.bio,
+          });
+        }}
+      />
     </FadeInView>
   );
 }

@@ -128,12 +128,38 @@ async function migrateTo1() {
   await setUserVersion(1);
 }
 
+// Migration v2: Add profiles table
+async function migrateTo2() {
+  const stmts: { sql: string; params?: SQLParams }[] = [
+    {
+      sql: `CREATE TABLE IF NOT EXISTS profiles (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL UNIQUE,
+        full_name TEXT,
+        title TEXT,
+        church TEXT,
+        avatar_url TEXT,
+        bio TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+    },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles (user_id)` },
+  ];
+
+  await runBatch(stmts);
+  await setUserVersion(2);
+}
+
 export async function initDb(): Promise<void> {
   if (initPromise) return initPromise;
   initPromise = (async () => {
     const current = await getUserVersion();
     if (current < 1) {
       await migrateTo1();
+    }
+    if (current < 2) {
+      await migrateTo2();
     }
   })();
   return initPromise;
