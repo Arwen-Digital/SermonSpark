@@ -42,27 +42,6 @@ This file tracks bugs that need to be addressed in future releases.
 
 ## Medium Priority
 
-### 🟡 Android Landscape Mode Not Responsive
-
-- **Platform:** Android
-- **Description:** App layout doesn't adapt properly when device is rotated to landscape mode on Android. Layout remains in portrait orientation even when device is rotated.
-- **Reproduction:**
-  1. Open the app on Android device
-  2. Rotate device to landscape mode
-  3. Layout doesn't adapt - remains in portrait layout
-  4. Expected: Layout should be responsive and adapt to landscape orientation
-  5. Actual: Layout stays in portrait mode, not utilizing landscape screen space
-- **Status:** Not fixed
-- **Priority:** Medium
-- **Assigned:** TBD
-- **Date Reported:** 2025-01-27
-- **Additional Notes:**
-  - iOS landscape mode works correctly
-  - Root cause: `app.json` has `"orientation": "portrait"` which locks orientation
-  - Affects all screens but particularly noticeable in sermon editor and home screen
-  - Requires updating orientation configuration and implementing responsive layouts
-  - WebView-based components (CKEditor) may need special handling for orientation changes
-
 ---
 
 ## Low Priority
@@ -73,7 +52,22 @@ This file tracks bugs that need to be addressed in future releases.
 
 ## Fixed Bugs
 
-*No fixed bugs yet*
+### 🟢 Android Landscape Mode Not Responsive
+
+- **Platform:** Android
+- **Description:** App layout doesn't adapt properly when device is rotated to landscape mode on Android. Layout remains in portrait orientation even when device is rotated.
+- **Reproduction:**
+  1. Open the app on Android device
+  2. Rotate device to landscape mode
+  3. Layout doesn't adapt - remains in portrait layout
+  4. Expected: Layout should be responsive and adapt to landscape orientation
+  5. Actual: Layout stays in portrait mode, not utilizing landscape screen space
+- **Status:** Fixed
+- **Priority:** Medium
+- **Assigned:** TBD
+- **Date Reported:** 2025-01-27
+- **Date Fixed:** 2025-01-27
+- **Solution:** Changed `"orientation": "portrait"` to `"orientation": "default"` in `app.json` to allow automatic rotation between portrait and landscape modes on all devices.
 
 ---
 

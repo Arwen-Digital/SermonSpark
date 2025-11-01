@@ -3,7 +3,7 @@
     "name": "you-preacher",
     "slug": "you-preacher",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "youpreacher",
     "userInterfaceStyle": "automatic",
