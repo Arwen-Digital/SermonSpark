@@ -26,7 +26,7 @@ const CKEditorWebComponent: React.FC<CKEditorWrapperProps> = ({
   const lastSentDataRef = useRef<string>('');
   const changeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load CKEditor from CDN
+  // Load CKEditor from local file
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -58,12 +58,11 @@ const CKEditorWebComponent: React.FC<CKEditorWrapperProps> = ({
     }
 
     const script = document.createElement('script');
-    script.src = 'https://cdn.ckeditor.com/ckeditor5/40.2.0/super-build/ckeditor.js';
+    script.src = '/assets/js/ckeditor.js';
     script.async = false; // Load synchronously to ensure proper initialization
-    script.crossOrigin = 'anonymous';
     
     script.onload = () => {
-      console.log('CKEditor CDN script loaded successfully');
+      console.log('CKEditor local script loaded successfully');
       // Wait a bit for CKEDITOR to be available
       setTimeout(() => {
         if (window.CKEDITOR && window.CKEDITOR.ClassicEditor) {
@@ -76,9 +75,9 @@ const CKEditorWebComponent: React.FC<CKEditorWrapperProps> = ({
     };
 
     script.onerror = (error) => {
-      console.error('Failed to load CKEditor from CDN:', error);
+      console.error('Failed to load CKEditor from local file:', error);
       console.error('Script src:', script.src);
-      setLoadError('Failed to load editor from CDN. Please check your internet connection.');
+      setLoadError('Failed to load editor from local file. The editor may not be available.');
     };
 
     document.head.appendChild(script);
@@ -293,7 +292,7 @@ const CKEditorWebComponent: React.FC<CKEditorWrapperProps> = ({
       )}
       {!isLoaded && !loadError && (
         <div style={loadingStyle}>
-          Loading editor from CDN...
+          Loading editor...
         </div>
       )}
       <div ref={containerRef}></div>

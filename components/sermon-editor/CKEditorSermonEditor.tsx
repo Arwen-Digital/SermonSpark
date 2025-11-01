@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray200,
     ...theme.shadows.sm,
@@ -637,6 +637,8 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontWeight: '700',
     textAlign: 'center',
+    minHeight: undefined,
+    paddingVertical: theme.spacing.xs,
   },
   tabsContainer: {
     flexDirection: 'row',

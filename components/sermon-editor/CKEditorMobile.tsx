@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { CKEditorWrapperProps } from './types';
 
@@ -22,6 +22,56 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
   const lastChangeTimeRef = useRef(0);
   const onChangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isEditorFocusedRef = useRef(false);
+  
+  // Create injected JavaScript that loads CKEditor
+  const injectedJavaScript = useMemo(() => {
+    // Determine platform-specific path at build time
+    const scriptPath = Platform.OS === 'android' 
+      ? 'file:///android_asset/assets/js/ckeditor.js'
+      : './assets/js/ckeditor.js';
+    
+    // This script runs in the WebView context and tries to load CKEditor
+    return `
+      (function() {
+        if (window.CKEDITOR && window.CKEDITOR.ClassicEditor) {
+          return; // Already loaded
+        }
+        
+        // Try to load from local file first (works if bundled correctly)
+        var script = document.createElement('script');
+        script.async = false;
+        
+        script.onerror = function() {
+          // Fallback to CDN if local load fails
+          console.warn('Local CKEditor load failed, trying CDN fallback');
+          var cdnScript = document.createElement('script');
+          cdnScript.src = 'https://cdn.ckeditor.com/ckeditor5/40.2.0/super-build/ckeditor.js';
+          cdnScript.async = false;
+          cdnScript.onload = function() {
+            console.log('CKEditor loaded from CDN fallback');
+          };
+          cdnScript.onerror = function() {
+            console.error('CKEditor failed to load from both local and CDN');
+            if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'error',
+                error: 'CKEditor failed to load from local file and CDN'
+              }));
+            }
+          };
+          document.head.appendChild(cdnScript);
+        };
+        
+        script.onload = function() {
+          console.log('CKEditor loaded from local file');
+        };
+        
+        script.src = '${scriptPath}';
+        document.head.appendChild(script);
+      })();
+      true; // Required for injectedJavaScript to work
+    `;
+  }, []);
 
   // Cleanup timeout on unmount
   React.useEffect(() => {
@@ -42,7 +92,6 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
       <title>CKEditor Mobile</title>
-      <script src="https://cdn.ckeditor.com/ckeditor5/40.2.0/super-build/ckeditor.js"></script>
       <style>
         body {
           margin: 0;
@@ -254,7 +303,7 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
           }
         });
 
-        // Kick off editor init (with retry if script not ready yet)
+        // Kick off editor init (will wait for CKEditor to load)
         setTimeout(function(){ initEditor(); }, 50);
       </script>
     </body>
@@ -401,6 +450,7 @@ export const CKEditorMobile: React.FC<CKEditorWrapperProps> = ({
         mixedContentMode="compatibility"
         keyboardDisplayRequiresUserAction={false}
         hideKeyboardAccessoryView={true}
+        injectedJavaScript={injectedJavaScript}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           console.error('WebView error: ', nativeEvent);
