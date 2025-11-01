@@ -1,60 +1,72 @@
 export const theme = {
   colors: {
-    // Primary colors (minimal red usage)
-    primary: '#4A5568', // Dark gray for main elements
-    primaryLight: '#718096', // Medium gray
-    primaryDark: '#2D3748', // Very dark gray
+    // Primary colors (deep purple - spiritual depth)
+    primary: '#4B2A5E', // Deep purple for main elements
+    primaryLight: '#6B5B7D', // Medium purple
+    primaryDark: '#2D1B3D', // Very deep purple
     
-    // Red accent (minimal usage only)
-    accent: '#FF4444', // Red accent like YouVersion - use sparingly
-    accentLight: '#FF6666', // Light red
-    accentDark: '#CC3333', // Dark red
+    // Gold accent (divine light)
+    accent: '#B8860B', // Warm gold accent
+    accentLight: '#DAA520', // Light gold
+    accentDark: '#8B6914', // Dark gold
     
-    // Secondary colors (neutral grays)
-    secondary: '#666666', // Medium gray
-    secondaryLight: '#999999', // Light gray
-    secondaryDark: '#333333', // Dark gray
+    // Secondary colors (purple-gray neutrals)
+    secondary: '#7B6B8D', // Medium purple-gray
+    secondaryLight: '#9B8DA8', // Light purple-gray
+    secondaryDark: '#5B4B6D', // Dark purple-gray
     
+    // Purple gradient colors
+    purpleDeep: '#2D1B3D', // Deepest purple
+    purpleMid: '#4B2A5E', // Mid purple
+    purpleLight: '#6B5B7D', // Light purple
+    purplePale: '#E8E0F0', // Pale purple
+    purpleBackground: '#F5F0F9', // Background purple
     
-    // Neutral colors (clean grays)
+    // Gold gradient colors
+    goldDeep: '#8B6914', // Deep gold
+    goldMid: '#B8860B', // Mid gold
+    goldLight: '#DAA520', // Light gold
+    goldPale: '#F5E6D3', // Pale gold
+    
+    // Neutral colors (soft grays with purple tint)
     white: '#FFFFFF',
-    black: '#000000',
-    gray100: '#FAFAFA', // Very light gray
-    gray200: '#F5F5F5', // Light gray
-    gray300: '#EEEEEE', // Medium light gray
-    gray400: '#DDDDDD', // Medium gray
-    gray500: '#999999', // Gray
-    gray600: '#666666', // Dark gray
-    gray700: '#333333', // Very dark gray
-    gray800: '#1F1F1F', // Almost black
-    gray900: '#000000', // Pure black
+    black: '#1A1125', // Deep purple-black
+    gray100: '#F9F7FB', // Very light purple-gray
+    gray200: '#F5F0F9', // Light purple-gray
+    gray300: '#E8E0F0', // Medium light purple-gray
+    gray400: '#D4C8DD', // Medium purple-gray
+    gray500: '#9B8DA8', // Purple-gray
+    gray600: '#6B5B7D', // Dark purple-gray
+    gray700: '#4B2A5E', // Very dark purple
+    gray800: '#2D1B3D', // Deep purple
+    gray900: '#1A1125', // Deepest purple
     
     // Semantic colors
-    success: '#28A745',
-    successLight: '#34CE57',
-    error: '#DC3545',
-    errorLight: '#E74C3C',
-    warning: '#FFC107',
-    warningLight: '#FFD43B',
-    info: '#17A2B8',
-    infoLight: '#20C997',
+    success: '#4A8B5E',
+    successLight: '#6BA874',
+    error: '#8B4A4A',
+    errorLight: '#A76666',
+    warning: '#DAA520',
+    warningLight: '#F5C842',
+    info: '#5B7D9B',
+    infoLight: '#7BA8C4',
     
-    // Background colors (clean and minimal)
-    background: '#F7F7F7', // Light gray like YouVersion
-    backgroundSecondary: '#EEEEEE', // Slightly darker gray
+    // Background colors (soft spiritual)
+    background: '#F5F0F9', // Soft purple-tinged background
+    backgroundSecondary: '#E8E0F0', // Secondary background
     surface: '#FFFFFF', // Pure white for cards
-    surfaceSecondary: '#FAFAFA', // Very light gray
+    surfaceSecondary: '#F9F7FB', // Very light surface
     
-    // Text colors (high contrast)
-    textPrimary: '#1F1F1F', // Almost black
-    textSecondary: '#666666', // Medium gray
-    textTertiary: '#999999', // Light gray
-    textOnPrimary: '#FFFFFF', // White on red
-    textOnSecondary: '#FFFFFF', // White on gray
+    // Text colors
+    textPrimary: '#2D1B3D', // Deep purple-black
+    textSecondary: '#6B5B7D', // Medium purple-gray
+    textTertiary: '#9B8DA8', // Light purple-gray
+    textOnPrimary: '#FFFFFF', // White on purple
+    textOnSecondary: '#FFFFFF', // White on gold
     
     // Premium feature indicator
-    premium: '#FFD700',
-    premiumDark: '#FFA500',
+    premium: '#B8860B', // Gold
+    premiumDark: '#8B6914', // Dark gold
   },
   
   spacing: {

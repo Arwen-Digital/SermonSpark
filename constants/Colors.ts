@@ -1,26 +1,26 @@
 /**
  * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Spiritual theme: Deep purple for spiritual depth, warm gold for divine light, soft neutrals
  */
 
-const tintColorLight = '#FF4444'; // Red accent - use sparingly
-const tintColorDark = '#FF6666'; // Lighter red for dark mode
+const tintColorLight = '#B8860B'; // Warm gold accent
+const tintColorDark = '#DAA520'; // Lighter gold for dark mode
 
 export const Colors = {
   light: {
-    text: '#1F1F1F', // Almost black for readability
-    background: '#F7F7F7', // Light gray background like YouVersion
+    text: '#2D1B3D', // Deep purple-black for content
+    background: '#F5F0F9', // Soft purple-tinged background
     tint: tintColorLight,
-    icon: '#666666', // Medium gray for icons
-    tabIconDefault: '#999999', // Light gray for inactive tabs
+    icon: '#6B5B7D', // Medium purple-gray for icons
+    tabIconDefault: '#9B8DA8', // Light purple for inactive tabs
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#FFFFFF',
-    background: '#1F1F1F',
+    text: '#F5E6FF',
+    background: '#1A1125', // Deep purple background
     tint: tintColorDark,
-    icon: '#CCCCCC',
-    tabIconDefault: '#666666',
+    icon: '#B8A9C8',
+    tabIconDefault: '#6B5B7D',
     tabIconSelected: tintColorDark,
   },
 };

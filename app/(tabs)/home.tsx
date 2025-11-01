@@ -3,11 +3,14 @@ import { theme } from '@/constants/Theme';
 import authSession from '@/services/authSession';
 import { seriesRepository } from '@/services/repositories/seriesRepository.native';
 import { sermonRepository } from '@/services/repositories/sermonRepository.native';
+import { SermonDTO, SeriesDTO } from '@/services/repositories/types';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ImageBackground, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 // TODO: Add CommunityPostDto type to a shared types file
 type CommunityPostDto = any;
 
@@ -47,7 +50,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
   const isLargeScreen = Math.min(winW, winH) >= 600;
-  const [sermons, setSermons] = useState<SermonDto[]>([]);
+  const [sermons, setSermons] = useState<SermonDTO[]>([]);
+  const [series, setSeries] = useState<SeriesDTO[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostDto[]>([]);
   const [userName, setUserName] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -78,6 +82,7 @@ export default function HomeScreen() {
       }));
       
       setSermons(formattedSermons);
+      setSeries(seriesList);
       setCommunityPosts([]); // Community posts will be empty for offline users
       
       // Set user name based on authentication state
@@ -90,6 +95,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.warn('Failed to load home data:', error);
       setSermons([]);
+      setSeries([]);
       setCommunityPosts([]);
       setUserName('Pastor');
     } finally {
@@ -129,6 +135,20 @@ export default function HomeScreen() {
     if (hour < 17) return 'partly-sunny';
     return 'moon';
   };
+
+  // Get statistics for dashboard cards
+  const draftSermonsCount = sermons.filter(s => s.status === 'draft').length;
+  const publishedSermonsCount = sermons.filter(s => s.status === 'published').length;
+  const activeSeriesCount = series.filter(s => s.status === 'active' || s.status === undefined).length;
+  
+  // Get recent sermons and series (sorted by updated date)
+  const recentSermons = sermons
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
+    .slice(0, 3);
+  
+  const recentSeries = series
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
+    .slice(0, 3);
 
   if (loading) {
     return (
@@ -171,10 +191,10 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentWrapper}>
-          {/* Greeting */}
-          <View style={styles.greetingContainer}>
-            <Ionicons name={getGreetingIcon()} size={20} color="#666" />
-            <Text style={styles.greetingText}>{getGreeting()}, {userName.toUpperCase()}</Text>
+          {/* Welcome Header */}
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.welcomeHeading}>Welcome back, {userName}</Text>
+            <Text style={styles.welcomeSubtext}>Continue crafting messages that inspire and transform.</Text>
           </View>
 
           {/* Two Column Layout for Web */}
@@ -285,6 +305,48 @@ export default function HomeScreen() {
             ) : (
               // Mobile/Native Layout
               <>
+                {/* Statistics Cards */}
+                <View style={styles.statsContainer}>
+                  {/* Draft Sermons Card */}
+                  <TouchableOpacity 
+                    style={styles.statCard}
+                    onPress={() => router.push('/(tabs)/sermons')}
+                  >
+                    <LinearGradient
+                      colors={[theme.colors.purplePale, theme.colors.purpleLight + '20']}
+                      style={styles.statCardGradient}
+                    >
+                      <Ionicons name="time-outline" size={24} color={theme.colors.primary} />
+                      <Text style={styles.statNumber}>{draftSermonsCount}</Text>
+                      <Text style={styles.statLabel}>Draft Sermons</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  {/* Active Series Card */}
+                  <TouchableOpacity 
+                    style={styles.statCard}
+                    onPress={() => router.push('/series')}
+                  >
+                    <LinearGradient
+                      colors={[theme.colors.goldPale, theme.colors.goldLight + '20']}
+                      style={styles.statCardGradient}
+                    >
+                      <Ionicons name="albums-outline" size={24} color={theme.colors.goldMid} />
+                      <Text style={styles.statNumber}>{sermons.filter(s => s.seriesId).length}</Text>
+                      <Text style={styles.statLabel}>Active Series</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  {/* New Sermon Card */}
+                  <TouchableOpacity 
+                    style={[styles.statCard, styles.newSermonCard]}
+                    onPress={() => router.push('/sermon/create')}
+                  >
+                    <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
+                    <Text style={styles.newSermonTitle}>New Sermon</Text>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Hero Verse Card */}
                 <TouchableOpacity 
                   style={[styles.heroCard, { aspectRatio: isLargeScreen ? 16/9 : 1 }]}
@@ -308,84 +370,92 @@ export default function HomeScreen() {
                   </ImageBackground>
                 </TouchableOpacity>
 
-                {/* Content Cards */}
-                <View style={styles.contentCards}>
-                  {/* Latest Sermon */}
-                  {sermons.length > 0 && (
-                    <TouchableOpacity 
-                      style={styles.contentCard}
-                      onPress={() => router.push(`/sermon/${sermons[0].id}`)}
-                    >
-                      <View style={styles.cardContent}>
-                        <View style={styles.cardLeft}>
-                          <View style={styles.dayBadge}>
-                            <Ionicons name="document-text-outline" size={16} color="#666" />
-                            <Text style={styles.dayText}>Latest Sermon</Text>
+                {/* Recent Sermons Section */}
+                {recentSermons.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>Recent Sermons</Text>
+                      <TouchableOpacity onPress={() => router.push('/(tabs)/sermons')}>
+                        <Text style={styles.viewAllLink}>View all</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {recentSermons.map((sermon) => {
+                      const seriesTitle = sermon.seriesId ? series.find(s => s.id === sermon.seriesId)?.title : null;
+                      const statusColor = sermon.status === 'published' ? theme.colors.goldLight : theme.colors.purpleLight;
+                      return (
+                        <TouchableOpacity 
+                          key={sermon.id}
+                          style={styles.listCard}
+                          onPress={() => router.push(`/sermon/${sermon.id}`)}
+                        >
+                          <View style={styles.listCardContent}>
+                            <View style={styles.listCardLeft}>
+                              <Text style={styles.listCardTitle}>{sermon.title}</Text>
+                              {seriesTitle && (
+                                <Text style={styles.listCardSubtitle}>{seriesTitle}</Text>
+                              )}
+                              {sermon.date && (
+                                <Text style={styles.listCardDate}>
+                                  {new Date(sermon.date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                                </Text>
+                              )}
+                            </View>
+                            {sermon.status && (
+                              <View style={[styles.statusBadge, { backgroundColor: statusColor + '30' }]}>
+                                <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+                                  {sermon.status}
+                                </Text>
+                              </View>
+                            )}
                           </View>
-                          <Text style={styles.cardTitle}>
-                            {sermons[0].title || 'Untitled Sermon'}
-                          </Text>
-                          <View style={styles.progressIndicator} />
-                        </View>
-                        <View style={styles.cardImage} />
-                      </View>
-                    </TouchableOpacity>
-                  )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
 
-                  {/* Create New Sermon */}
-                  <TouchableOpacity 
-                    style={styles.contentCard}
-                    onPress={() => router.push('/sermon/create')}
-                  >
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardLeft}>
-                        <View style={styles.dayBadge}>
-                          <Ionicons name="add-outline" size={16} color="#666" />
-                          <Text style={styles.dayText}>New Sermon</Text>
-                        </View>
-                        <Text style={styles.cardTitle}>Create a New Sermon</Text>
-                        <View style={styles.progressIndicator} />
-                      </View>
-                      <View style={styles.cardImage} />
+                {/* Message Series Section */}
+                {recentSeries.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionTitle}>Message Series</Text>
+                      <TouchableOpacity onPress={() => router.push('/series')}>
+                        <Text style={styles.viewAllLink}>View all</Text>
+                      </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
-
-                  {/* Manage Series */}
-                  <TouchableOpacity 
-                    style={styles.contentCard}
-                    onPress={() => router.push('/series')}
-                  >
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardLeft}>
-                        <View style={styles.dayBadge}>
-                          <Ionicons name="albums-outline" size={16} color="#666" />
-                          <Text style={styles.dayText}>Series</Text>
-                        </View>
-                        <Text style={styles.cardTitle}>Manage Your Series</Text>
-                        <View style={styles.progressIndicator} />
-                      </View>
-                      <View style={styles.cardImage} />
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Research */}
-                  <TouchableOpacity 
-                    style={styles.contentCard}
-                    onPress={() => router.push('/(tabs)/research')}
-                  >
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardLeft}>
-                        <View style={styles.dayBadge}>
-                          <Ionicons name="search-outline" size={16} color="#666" />
-                          <Text style={styles.dayText}>Research</Text>
-                        </View>
-                        <Text style={styles.cardTitle}>Research Your Next Sermon</Text>
-                        <View style={styles.progressIndicator} />
-                      </View>
-                      <View style={styles.cardImage} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
+                    {recentSeries.map((seriesItem, index) => {
+                      const sermonCount = sermons.filter(s => s.seriesId === seriesItem.id).length;
+                      const gradientColors = [
+                        [theme.colors.purpleMid, theme.colors.primary],
+                        [theme.colors.goldMid, theme.colors.goldLight],
+                        [theme.colors.info, theme.colors.infoLight],
+                      ];
+                      const colors = gradientColors[index % gradientColors.length];
+                      return (
+                        <TouchableOpacity 
+                          key={seriesItem.id}
+                          style={styles.listCard}
+                          onPress={() => router.push(`/series/${seriesItem.id}`)}
+                        >
+                          <View style={styles.listCardContent}>
+                            <View style={styles.seriesCardLeft}>
+                              <LinearGradient
+                                colors={colors}
+                                style={styles.seriesIcon}
+                              >
+                                <Ionicons name="albums" size={24} color="white" />
+                              </LinearGradient>
+                              <View style={styles.seriesInfo}>
+                                <Text style={styles.listCardTitle}>{seriesItem.title}</Text>
+                                <Text style={styles.listCardSubtitle}>{sermonCount} sermons</Text>
+                              </View>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -397,7 +467,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -492,28 +562,45 @@ const styles = StyleSheet.create({
   contentWrapper: {
     paddingHorizontal: 15,
   },
+  welcomeContainer: {
+    marginBottom: 24,
+  },
+  welcomeHeading: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+    // Use system serif for content
+    fontFamily: Platform.OS === 'web' ? '"Georgia", "Times New Roman", serif' : undefined,
+  },
+  welcomeSubtext: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    lineHeight: 22,
+    fontWeight: '400',
+  },
   greetingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   greetingText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginLeft: 8,
     letterSpacing: 0.5,
   },
   heroCard: {
     marginVertical: 0,
-    borderRadius: 10,
+    borderRadius: 20,
     overflow: 'hidden',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary + '60',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
     aspectRatio: width > 768 ? 16/9 : 1, // 16:9 on tablets/desktop, 1:1 on mobile
   },
   heroBackground: {
@@ -542,23 +629,75 @@ const styles = StyleSheet.create({
   quoteText: {
     color: '#ffffff',
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
     fontWeight: '500',
     textAlign: 'center',
-    // fontStyle: 'italic',
+    // Use system serif for content
+    fontFamily: Platform.OS === 'web' ? '"Georgia", "Times New Roman", serif' : undefined,
   },
-  contentCards: {
-    paddingTop: 10,
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
   },
-  contentCard: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    marginBottom: 15,
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
+  },
+  statCardGradient: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  newSermonCard: {
+    backgroundColor: theme.colors.purplePale,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  statNumber: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  newSermonTitle: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  contentCards: {
+    paddingTop: 20,
+  },
+  contentCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: theme.colors.primary + '40',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   cardContent: {
     flexDirection: 'row',
@@ -576,20 +715,22 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginLeft: 5,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
+    color: theme.colors.textPrimary,
     lineHeight: 24,
     marginBottom: 10,
+    // Use system serif for content
+    fontFamily: Platform.OS === 'web' ? '"Georgia", "Times New Roman", serif' : undefined,
   },
   progressIndicator: {
     height: 3,
-    backgroundColor: '#ff4444',
+    backgroundColor: theme.colors.accent,
     width: 40,
     borderRadius: 2,
   },
@@ -672,5 +813,89 @@ const styles = StyleSheet.create({
   webCardsColumn: {
     flex: 1,
     gap: 15,
+  },
+  section: {
+    marginTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    // Use system serif for content
+    fontFamily: Platform.OS === 'web' ? '"Georgia", "Times New Roman", serif' : undefined,
+  },
+  viewAllLink: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  listCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: theme.colors.primary + '20',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  listCardContent: {
+    flexDirection: 'row',
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  listCardLeft: {
+    flex: 1,
+  },
+  seriesCardLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seriesIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  seriesInfo: {
+    flex: 1,
+  },
+  listCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+    // Use system serif for content
+    fontFamily: Platform.OS === 'web' ? '"Georgia", "Times New Roman", serif' : undefined,
+  },
+  listCardSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '400',
+  },
+  listCardDate: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
 });
