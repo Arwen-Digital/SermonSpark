@@ -16,6 +16,8 @@
             },
             "distribution": "internal",
             "env": {
+                "CONVEX_DEPLOYMENT": "prod:resolute-beagle-340|eyJ2MiI6IjAyMThhMzYzOGEyMzRjYzM4YzY0M2NlYmZhMzVjMjFlIn0=",
+                "EXPO_PUBLIC_CONVEX_URL": "https://resolute-beagle-340.convex.site",
                 "EXPO_PUBLIC_EXPRESS_API_URL": "https://api-stg.youpreacher.com"
             }
         },

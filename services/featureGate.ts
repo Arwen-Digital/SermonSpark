@@ -39,10 +39,9 @@ const FEATURE_CONFIGS: Record<FeatureType, FeatureConfig> = {
     upgradeMessage: 'Connect your account to join the community and share your sermons with other preachers.',
   },
   research: {
-    requiresAuth: true,
-    accessLevel: 'premium',
+    requiresAuth: false,
+    accessLevel: 'free',
     description: 'AI-powered sermon research and title generation',
-    upgradeMessage: 'Connect your account to access AI-powered research tools and sermon title generation.',
   },
   sync: {
     requiresAuth: true,
