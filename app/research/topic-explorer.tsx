@@ -3,6 +3,24 @@ import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { RichHtml } from '@/components/common/RichHtml';
 import { theme } from '@/constants/Theme';
+import {
+  modalContainer,
+  resultOverlay,
+  backdrop,
+  resultModalContent,
+  resultModalHeader,
+  resultModalTitle,
+  modalCloseButton,
+  modalCloseButtonDisabled,
+  thinkingContainer,
+  thinkingText,
+  errorContainer,
+  errorText,
+  resultScroll,
+  resultScrollContent,
+  resultButtonRow,
+  resultButton,
+} from '@/components/common/ResultModalStyles';
 import { api } from '@/convex/_generated/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useAction } from 'convex/react';
@@ -17,12 +35,10 @@ import {
     Pressable,
     SafeAreaView,
     ScrollView,
-    StyleProp,
     StyleSheet,
     Text,
     TextInput,
     View,
-    ViewStyle,
     useWindowDimensions,
 } from 'react-native';
 
@@ -256,63 +272,127 @@ export default function TopicExplorerPage() {
       {/* Result Modal */}
       <Modal
         visible={isResultModalVisible}
+        transparent={presentationStyle === 'overFullScreen'}
         animationType="slide"
         presentationStyle={presentationStyle}
         onRequestClose={closeResultModal}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.resultModalHeader}>
-            <Text style={styles.resultModalTitle}>Topic Exploration</Text>
+        {presentationStyle === 'pageSheet' ? (
+          <SafeAreaView style={modalContainer}>
+            <View style={resultModalHeader}>
+              <Text style={resultModalTitle}>Topic Exploration</Text>
+              <Pressable
+                style={[modalCloseButton, isGenerating && modalCloseButtonDisabled]}
+                onPress={closeResultModal}
+                disabled={isGenerating}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            {isGenerating && !explorationResult && !modalError ? (
+              <View style={thinkingContainer}>
+                <LoadingIndicator size="large" color={theme.colors.primary} />
+                <Text style={thinkingText}>{`Exploring Topic${animatedDots}`}</Text>
+              </View>
+            ) : null}
+
+            {modalError ? (
+              <View style={errorContainer}>
+                <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+                <Text style={errorText}>{modalError}</Text>
+              </View>
+            ) : null}
+
+            {explorationResult ? (
+              <ScrollView
+                style={resultScroll}
+                contentContainerStyle={resultScrollContent}
+                showsVerticalScrollIndicator={true}
+              >
+                <RichHtml html={explorationResult.html} />
+              </ScrollView>
+            ) : null}
+
+            <View style={resultButtonRow}>
+              <Button
+                title="Copy to Clipboard"
+                onPress={handleCopyExploration}
+                variant="secondary"
+                disabled={!explorationResult || isGenerating}
+                style={resultButton}
+              />
+              <Button
+                title={isGenerating ? 'Regenerating...' : 'Regenerate'}
+                onPress={handleRegenerateExploration}
+                variant="primary"
+                disabled={!lastRequest || isGenerating}
+                style={resultButton}
+              />
+            </View>
+          </SafeAreaView>
+        ) : (
+          <View style={resultOverlay}>
             <Pressable
-              style={[styles.modalCloseButton, isGenerating && styles.modalCloseButtonDisabled]}
+              style={backdrop}
               onPress={closeResultModal}
               disabled={isGenerating}
-            >
-              <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
-            </Pressable>
-          </View>
-
-          {isGenerating && !explorationResult && !modalError ? (
-            <View style={styles.thinkingContainer}>
-              <LoadingIndicator size="large" color={theme.colors.primary} />
-              <Text style={styles.thinkingText}>{`Exploring Topic${animatedDots}`}</Text>
-            </View>
-          ) : null}
-
-          {modalError ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
-              <Text style={styles.errorText}>{modalError}</Text>
-            </View>
-          ) : null}
-
-          {explorationResult ? (
-            <ScrollView
-              style={styles.resultScroll}
-              contentContainerStyle={styles.resultScrollContent}
-              showsVerticalScrollIndicator={true}
-            >
-              <RichHtml html={explorationResult.html} />
-            </ScrollView>
-          ) : null}
-
-          <View style={styles.resultButtonRow}>
-            <Button
-              title="Copy to Clipboard"
-              onPress={handleCopyExploration}
-              variant="secondary"
-              disabled={!explorationResult || isGenerating}
-              style={styles.resultButton}
             />
-            <Button
-              title={isGenerating ? 'Regenerating...' : 'Regenerate'}
-              onPress={handleRegenerateExploration}
-              variant="primary"
-              disabled={!lastRequest || isGenerating}
-              style={styles.resultButton}
-            />
+            <View style={resultModalContent}>
+              <View style={resultModalHeader}>
+                <Text style={resultModalTitle}>Topic Exploration</Text>
+                <Pressable
+                  style={[modalCloseButton, isGenerating && modalCloseButtonDisabled]}
+                  onPress={closeResultModal}
+                  disabled={isGenerating}
+                >
+                  <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+                </Pressable>
+              </View>
+
+              {isGenerating && !explorationResult && !modalError ? (
+                <View style={thinkingContainer}>
+                  <LoadingIndicator size="large" color={theme.colors.primary} />
+                  <Text style={thinkingText}>{`Exploring Topic${animatedDots}`}</Text>
+                </View>
+              ) : null}
+
+              {modalError ? (
+                <View style={errorContainer}>
+                  <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+                  <Text style={errorText}>{modalError}</Text>
+                </View>
+              ) : null}
+
+              {explorationResult ? (
+                <ScrollView
+                  style={resultScroll}
+                  contentContainerStyle={resultScrollContent}
+                  showsVerticalScrollIndicator={true}
+                >
+                  <RichHtml html={explorationResult.html} />
+                </ScrollView>
+              ) : null}
+
+              <View style={resultButtonRow}>
+                <Button
+                  title="Copy to Clipboard"
+                  onPress={handleCopyExploration}
+                  variant="secondary"
+                  disabled={!explorationResult || isGenerating}
+                  style={resultButton}
+                />
+                <Button
+                  title={isGenerating ? 'Regenerating...' : 'Regenerate'}
+                  onPress={handleRegenerateExploration}
+                  variant="primary"
+                  disabled={!lastRequest || isGenerating}
+                  style={resultButton}
+                />
+              </View>
+            </View>
           </View>
-        </SafeAreaView>
+        )}
       </Modal>
     </SafeAreaView>
   );
@@ -328,7 +408,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingTop: Platform.OS === 'android' ? theme.spacing.lg : theme.spacing.sm,
+    paddingBottom: theme.spacing.sm,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray200,
@@ -458,73 +539,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  resultModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray200,
-  },
-  resultModalTitle: {
-    ...theme.typography.h5,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
-  modalCloseButton: {
-    padding: theme.spacing.xs,
-  },
-  modalCloseButtonDisabled: {
-    opacity: 0.5,
-  },
-  thinkingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.xxl,
-  },
-  thinkingText: {
-    ...theme.typography.body1,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.md,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.error + '15',
-    borderRadius: theme.borderRadius.md,
-    margin: theme.spacing.md,
-  },
-  errorText: {
-    ...theme.typography.body2,
-    color: theme.colors.error,
-    flex: 1,
-  },
-  resultScroll: {
-    flex: 1,
-  },
-  resultScrollContent: {
-    padding: theme.spacing.md,
-  },
-  resultButtonRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    padding: theme.spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray200,
-    backgroundColor: theme.colors.surface,
-  },
-  resultButton: {
-    flex: 1,
-  },
+  // Modal styles have been moved to components/common/ResultModalStyles.ts
 });
 
 

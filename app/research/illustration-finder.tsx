@@ -3,6 +3,26 @@ import { Card } from '@/components/common/Card';
 import { LoadingIndicator } from '@/components/common/LoadingIndicator';
 import { RichHtml } from '@/components/common/RichHtml';
 import { theme } from '@/constants/Theme';
+import {
+  resultOverlay,
+  backdrop,
+  sheetContainer,
+  resultModalContent,
+  resultModalContentSheet,
+  resultModalHeader,
+  resultModalTitle,
+  modalCloseButton,
+  modalCloseButtonDisabled,
+  thinkingContainer,
+  thinkingText,
+  errorContainer,
+  errorText,
+  resultScroll,
+  resultScrollSheet,
+  resultScrollContent,
+  resultButtonRow,
+  resultButton,
+} from '@/components/common/ResultModalStyles';
 import { api } from '@/convex/_generated/api';
 import { markdownToHtml } from '@/utils/markdown';
 import { Ionicons } from '@expo/vector-icons';
@@ -160,10 +180,10 @@ export default function IllustrationFinderPage() {
 
   const renderResultBody = (scrollStyle?: StyleProp<ViewStyle>) => (
     <>
-      <View style={styles.resultModalHeader}>
-        <Text style={styles.resultModalTitle}>Generated Illustration</Text>
+      <View style={resultModalHeader}>
+        <Text style={resultModalTitle}>Generated Illustration</Text>
         <Pressable
-          style={[styles.modalCloseButton, isGenerating && styles.modalCloseButtonDisabled]}
+          style={[modalCloseButton, isGenerating && modalCloseButtonDisabled]}
           onPress={closeResultModal}
           disabled={isGenerating}
         >
@@ -172,43 +192,43 @@ export default function IllustrationFinderPage() {
       </View>
 
       {isGenerating && !illustrationResult && !modalError ? (
-        <View style={styles.thinkingContainer}>
+        <View style={thinkingContainer}>
           <LoadingIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.thinkingText}>{`Thinking${animatedDots}`}</Text>
+          <Text style={thinkingText}>{`Thinking${animatedDots}`}</Text>
         </View>
       ) : null}
 
       {modalError ? (
-        <View style={styles.errorContainer}>
+        <View style={errorContainer}>
           <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
-          <Text style={styles.errorText}>{modalError}</Text>
+          <Text style={errorText}>{modalError}</Text>
         </View>
       ) : null}
 
       {illustrationResult ? (
         <ScrollView
-          style={[styles.resultScroll, scrollStyle]}
-          contentContainerStyle={styles.resultScrollContent}
+          style={[resultScroll, scrollStyle]}
+          contentContainerStyle={resultScrollContent}
           showsVerticalScrollIndicator={true}
         >
           <RichHtml html={illustrationResult.html} />
         </ScrollView>
       ) : null}
 
-      <View style={styles.resultButtonRow}>
+      <View style={resultButtonRow}>
         <Button
           title="Copy to Clipboard"
           onPress={handleCopyIllustration}
           variant="secondary"
           disabled={!illustrationResult || isGenerating}
-          style={styles.resultButton}
+          style={resultButton}
         />
         <Button
           title={isGenerating ? 'Regenerating...' : 'Regenerate Result'}
           onPress={handleRegenerateIllustration}
           variant="primary"
           disabled={!lastRequest || isGenerating}
-          style={styles.resultButton}
+          style={resultButton}
         />
       </View>
     </>
@@ -335,17 +355,17 @@ export default function IllustrationFinderPage() {
         onRequestClose={closeResultModal}
       >
         {presentationStyle === 'pageSheet' ? (
-          <SafeAreaView style={styles.sheetContainer}>
-            <View style={styles.resultModalContentSheet}>{renderResultBody(styles.resultScrollSheet)}</View>
+          <SafeAreaView style={sheetContainer}>
+            <View style={resultModalContentSheet}>{renderResultBody(resultScrollSheet)}</View>
           </SafeAreaView>
         ) : (
-          <View style={styles.resultOverlay}>
+          <View style={resultOverlay}>
             <Pressable
-              style={styles.backdrop}
+              style={backdrop}
               onPress={closeResultModal}
               disabled={isGenerating}
             />
-            <View style={styles.resultModalContent}>{renderResultBody()}</View>
+            <View style={resultModalContent}>{renderResultBody()}</View>
           </View>
         )}
       </Modal>
@@ -363,7 +383,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingTop: Platform.OS === 'android' ? theme.spacing.lg : theme.spacing.sm,
+    paddingBottom: theme.spacing.sm,
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray200,
@@ -544,106 +565,5 @@ const styles = StyleSheet.create({
   },
 
   // Modal styles
-  resultOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  sheetContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    paddingTop: 0,
-  },
-  resultModalContent: {
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
-    width: '100%',
-    paddingTop: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
-    maxHeight: '85%',
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  resultModalContentSheet: {
-    flex: 1,
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 720,
-    maxHeight: undefined,
-    paddingTop: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.xl,
-    paddingBottom: theme.spacing.xxl,
-  },
-  resultModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
-  },
-  resultModalTitle: {
-    ...theme.typography.h5,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
-  modalCloseButton: {
-    padding: theme.spacing.xs,
-  },
-  modalCloseButtonDisabled: {
-    opacity: 0.4,
-  },
-  thinkingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.md,
-    paddingVertical: theme.spacing.lg,
-  },
-  thinkingText: {
-    ...theme.typography.body1,
-    color: theme.colors.textSecondary,
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.error + '10',
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  errorText: {
-    ...theme.typography.body2,
-    color: theme.colors.error,
-    flex: 1,
-  },
-  resultScroll: {
-    borderWidth: 1,
-    borderColor: theme.colors.gray200,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.white,
-    maxHeight: '55%',
-    marginBottom: theme.spacing.md,
-  },
-  resultScrollSheet: {
-    maxHeight: undefined,
-    flex: 1,
-  },
-  resultScrollContent: {
-    padding: theme.spacing.md,
-  },
-  resultButtonRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  resultButton: {
-    flex: 1,
-  },
+  // All modal styles have been moved to components/common/ResultModalStyles.ts
 });
