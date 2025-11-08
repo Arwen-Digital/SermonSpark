@@ -64,6 +64,18 @@ export const RichHtml: React.FC<RichHtmlProps> = ({ html, style, testID, fontSiz
           font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         .marker-yellow { background-color: #FFF59D; }
+        sup.citation {
+          font-size: 0.75em;
+          vertical-align: baseline;
+          margin-left: 2px;
+        }
+        sup.citation a {
+          color: #007aff;
+          text-decoration: none;
+        }
+        sup.citation a:hover {
+          text-decoration: underline;
+        }
       </style>
     </head>
     <body>
