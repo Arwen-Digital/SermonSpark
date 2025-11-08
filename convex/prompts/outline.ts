@@ -1,7 +1,7 @@
 export const outlinePrompt = `Create a comprehensive sermon outline with the following parameters:
 - **Outline Type**: {outline_type}
 - **Topic**: {sermon_topic}
-- **Scripture**: 2 Cor 9
+- **Scripture**: {bible_verse}
 - **Preacher Style/Inspiration**: {preacher}
 
 **Outline Type Specifications:**
