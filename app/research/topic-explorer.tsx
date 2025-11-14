@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAction } from 'convex/react';
 import type { FunctionReference } from 'convex/server';
 import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -50,12 +51,21 @@ type GenerateTopicExplorationArgs = {
 type GenerateTopicExplorationResult = {
   exploration: string;
   html: string;
+  citations?: Citation[];
   raw?: unknown;
+};
+
+type Citation = {
+  id: number;
+  url: string;
+  title?: string;
+  snippet?: string;
 };
 
 type TopicExplorationContent = {
   html: string;
   text: string;
+  citations: Citation[];
 };
 
 export default function TopicExplorerPage() {
@@ -122,6 +132,7 @@ export default function TopicExplorerPage() {
       setExplorationResult({
         html,
         text: response.exploration,
+        citations: response.citations ?? [],
       });
     } catch (error) {
       console.error('Failed to generate topic exploration', error);
@@ -311,6 +322,31 @@ export default function TopicExplorerPage() {
                 showsVerticalScrollIndicator={true}
               >
                 <RichHtml html={explorationResult.html} />
+                {explorationResult.citations.length ? (
+                  <View style={styles.citationSection}>
+                    <Text style={styles.citationHeading}>Sources</Text>
+                    {explorationResult.citations.map((citation) => (
+                      <Pressable
+                        key={citation.id}
+                        style={styles.citationRow}
+                        onPress={() => citation.url && Linking.openURL(citation.url)}
+                      >
+                        <Text style={styles.citationIndex}>{`[${citation.id}]`}</Text>
+                        <View style={styles.citationTextContainer}>
+                          <Text style={styles.citationTitle}>
+                            {citation.title || citation.url || `Source ${citation.id}`}
+                          </Text>
+                          {citation.snippet ? (
+                            <Text style={styles.citationSnippet}>{citation.snippet}</Text>
+                          ) : null}
+                        </View>
+                        {citation.url ? (
+                          <Ionicons name="open-outline" size={16} color={theme.colors.primary} />
+                        ) : null}
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
               </ScrollView>
             ) : null}
 
@@ -371,6 +407,31 @@ export default function TopicExplorerPage() {
                   showsVerticalScrollIndicator={true}
                 >
                   <RichHtml html={explorationResult.html} />
+                  {explorationResult.citations.length ? (
+                    <View style={styles.citationSection}>
+                      <Text style={styles.citationHeading}>Sources</Text>
+                      {explorationResult.citations.map((citation) => (
+                        <Pressable
+                          key={citation.id}
+                          style={styles.citationRow}
+                          onPress={() => citation.url && Linking.openURL(citation.url)}
+                        >
+                          <Text style={styles.citationIndex}>{`[${citation.id}]`}</Text>
+                          <View style={styles.citationTextContainer}>
+                            <Text style={styles.citationTitle}>
+                              {citation.title || citation.url || `Source ${citation.id}`}
+                            </Text>
+                            {citation.snippet ? (
+                              <Text style={styles.citationSnippet}>{citation.snippet}</Text>
+                            ) : null}
+                          </View>
+                          {citation.url ? (
+                            <Ionicons name="open-outline" size={16} color={theme.colors.primary} />
+                          ) : null}
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
                 </ScrollView>
               ) : null}
 
@@ -540,6 +601,45 @@ const styles = StyleSheet.create({
   },
 
   // Modal styles have been moved to components/common/ResultModalStyles.ts
+  citationSection: {
+    marginTop: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray200,
+    gap: theme.spacing.sm,
+  },
+  citationHeading: {
+    ...theme.typography.body2,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  citationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+  },
+  citationIndex: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
+    fontWeight: '600',
+    minWidth: 28,
+  },
+  citationTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  citationTitle: {
+    ...theme.typography.body2,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+  },
+  citationSnippet: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    lineHeight: 16,
+  },
 });
 
 
