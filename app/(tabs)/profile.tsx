@@ -9,6 +9,7 @@ import { profileRepository } from '@/services/repositories/profileRepository.nat
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { User } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -80,6 +81,7 @@ const MENU_SECTIONS_WITH_DEBUG = __DEV__
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
   const [user, setUser] = useState<User>(emptyUser);
   const [loading, setLoading] = useState(true);
   const [sermonCount, setSermonCount] = useState<number | null>(null);
@@ -162,6 +164,11 @@ export default function ProfileScreen() {
         break;
       case 'logout': {
         const doLogout = async () => {
+          try {
+            await signOut();
+          } catch (clerkError) {
+            console.warn('Failed to sign out from Clerk:', clerkError);
+          }
           try {
             // Clear local authentication data
             await authSession.clearCachedUserId();

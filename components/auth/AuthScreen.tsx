@@ -1,10 +1,13 @@
 import { theme } from '@/constants/Theme';
-import { useAuth, useOAuth, useSignIn, useSignUp } from '@clerk/clerk-expo';
+import { useAuth, useSSO, useSignIn, useSignUp } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useCallback, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthScreenProps {
   onAuthenticated: () => void;
@@ -27,19 +30,74 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const { isSignedIn } = useAuth();
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
-  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { startSSOFlow } = useSSO();
+  const buildTemporaryPassword = useCallback(() => {
+    const timestampChunk = Date.now().toString(36);
+    const randomChunk = Math.random().toString(36).slice(2, 10);
+    return `Tmp!${timestampChunk}${randomChunk}`;
+  }, []);
 
   const handleGoogleAuth = async () => {
     try {
       setIsLoading(true);
       setErrorMessage('');
       
-      const { createdSessionId, setActive } = await startOAuthFlow();
+      console.log('[OAuth] Starting Google OAuth flow...');
       
-      if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
+      const { createdSessionId, setActive, signIn: oauthSignIn, signUp: oauthSignUp } = await startSSOFlow({ strategy: 'oauth_google' });
+      console.log('[OAuth] startSSOFlow result', {
+        createdSessionId,
+        setActive: !!setActive,
+        oauthSignInStatus: oauthSignIn?.status,
+        oauthSignUpStatus: oauthSignUp?.status,
+        oauthSignInSupportedFirstFactors: oauthSignIn?.supportedFirstFactors?.map(f => f.strategy),
+      });
+      
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
         onAuthenticated();
+        return;
       }
+
+      if (oauthSignIn?.status === 'needs_new_password') {
+        const cleanedPassword = password.trim();
+        const passwordToSet = cleanedPassword.length >= 8 ? cleanedPassword : buildTemporaryPassword();
+        if (cleanedPassword.length < 8) {
+          console.warn('[OAuth] Generating temporary password to satisfy Clerk new-password requirement.');
+        }
+
+        const resetResult = await oauthSignIn.resetPassword({
+          password: passwordToSet,
+          signOutOfOtherSessions: true,
+        });
+
+        console.log('[OAuth] resetPassword result', {
+          status: resetResult.status,
+          createdSessionId: resetResult.createdSessionId,
+        });
+
+        if (resetResult.status === 'complete' && resetResult.createdSessionId && setActive) {
+          await setActive({ session: resetResult.createdSessionId });
+          if (cleanedPassword.length < 8) {
+            Alert.alert(
+              'Password Reset Required',
+              'Your account needed a new password. We applied a temporary one so Google sign-in can continue. You can set your own password later from Profile → Privacy & Security.'
+            );
+          }
+          onAuthenticated();
+          return;
+        }
+
+        setErrorMessage('We could not finish resetting your password automatically. Please try again or use email sign-in to set a new password.');
+        return;
+      }
+
+      if (oauthSignIn || oauthSignUp) {
+        setErrorMessage('Additional verification is required to finish signing in. Please complete the flow in the email we sent.');
+        return;
+      }
+
+      setErrorMessage('Google did not return a session. Please try again.');
     } catch (error: any) {
       console.error('Google OAuth error:', error);
       let errorMsg = 'Failed to authenticate with Google. Please try again.';

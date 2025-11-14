@@ -1,8 +1,12 @@
 import { theme } from '@/constants/Theme';
-import { useAuth, useSignIn } from '@clerk/clerk-expo';
+import { useAuth, useSSO, useSignIn } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface ClerkSignInModalProps {
   visible: boolean;
@@ -17,10 +21,16 @@ export const ClerkSignInModal: React.FC<ClerkSignInModalProps> = ({
 }) => {
   const { isSignedIn } = useAuth();
   const { signIn, setActive, isLoaded } = useSignIn();
+  const { startSSOFlow } = useSSO();
   const [isProcessing, setIsProcessing] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const buildTemporaryPassword = useCallback(() => {
+    const timestampChunk = Date.now().toString(36);
+    const randomChunk = Math.random().toString(36).slice(2, 10);
+    return `Tmp!${timestampChunk}${randomChunk}`;
+  }, []);
 
   // Check if user just signed in
   useEffect(() => {
@@ -55,7 +65,7 @@ export const ClerkSignInModal: React.FC<ClerkSignInModalProps> = ({
         password,
       });
 
-      if (result && result.status === 'complete') {
+      if (result?.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         handleAuthSuccess();
       } else {
@@ -84,6 +94,64 @@ export const ClerkSignInModal: React.FC<ClerkSignInModalProps> = ({
       Alert.alert('Logged In', 'You have successfully logged in. Sync will now proceed.');
     } catch (error: any) {
       Alert.alert('Error', 'Failed to complete login: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    try {
+      setIsProcessing(true);
+      setErrorMessage('');
+
+      const { createdSessionId, setActive: oauthSetActive, signIn: oauthSignIn, signUp: oauthSignUp } = await startSSOFlow({
+        strategy: 'oauth_google',
+      });
+
+      if (createdSessionId && oauthSetActive) {
+        await oauthSetActive({ session: createdSessionId });
+        await handleAuthSuccess();
+        return;
+      }
+
+      if (oauthSignIn?.status === 'needs_new_password') {
+        const cleanedPassword = password.trim();
+        const passwordToSet = cleanedPassword.length >= 8 ? cleanedPassword : buildTemporaryPassword();
+        if (cleanedPassword.length < 8) {
+          console.warn('[Sync OAuth] Generating temporary password for Clerk reset flow.');
+        }
+
+        const resetResult = await oauthSignIn.resetPassword({
+          password: passwordToSet,
+          signOutOfOtherSessions: true,
+        });
+
+        if (resetResult.status === 'complete' && resetResult.createdSessionId && oauthSetActive) {
+          await oauthSetActive({ session: resetResult.createdSessionId });
+          if (cleanedPassword.length < 8) {
+            Alert.alert(
+              'Password Reset Applied',
+              'We set a temporary password to finish Google sign-in. You can update it later from Profile → Privacy & Security.'
+            );
+          }
+          await handleAuthSuccess();
+          return;
+        }
+
+        setErrorMessage('We could not complete the password reset automatically. Please retry or use email sign-in.');
+        return;
+      }
+
+      if (oauthSignIn || oauthSignUp) {
+        setErrorMessage('Additional verification is required to finish signing in. Please check your email.');
+        return;
+      }
+
+      setErrorMessage('Google did not return a session. Please try again.');
+    } catch (error: any) {
+      console.error('Google OAuth error (sync modal):', error);
+      const message = error?.errors?.[0]?.message || error?.message || 'Failed to authenticate with Google.';
+      setErrorMessage(message);
     } finally {
       setIsProcessing(false);
     }
@@ -131,6 +199,20 @@ export const ClerkSignInModal: React.FC<ClerkSignInModalProps> = ({
               </>
             ) : (
               <>
+            <Pressable
+              style={[styles.socialButton, isProcessing && styles.socialButtonDisabled]}
+              onPress={handleGoogleAuth}
+              disabled={isProcessing}
+            >
+              <Ionicons name="logo-google" size={20} color="#DB4437" />
+              <Text style={styles.socialButtonText}>Continue with Google</Text>
+            </Pressable>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.divider} />
+            </View>
             
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
@@ -261,6 +343,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textPrimary,
     backgroundColor: theme.colors.background,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.gray300,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.background,
+    marginBottom: 16,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginLeft: 8,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.gray300,
+  },
+  dividerText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginHorizontal: 12,
+    fontWeight: '600',
   },
   error: {
     color: '#ef4444',
