@@ -1,5 +1,5 @@
 import { theme } from '@/constants/Theme';
-import { useAuth, useSignIn, useSignUp } from '@clerk/clerk-expo';
+import { useAuth, useOAuth, useSignIn, useSignUp } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -27,6 +27,34 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const { isSignedIn } = useAuth();
   const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+
+  const handleGoogleAuth = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage('');
+      
+      const { createdSessionId, setActive } = await startOAuthFlow();
+      
+      if (createdSessionId) {
+        await setActive!({ session: createdSessionId });
+        onAuthenticated();
+      }
+    } catch (error: any) {
+      console.error('Google OAuth error:', error);
+      let errorMsg = 'Failed to authenticate with Google. Please try again.';
+      
+      if (error?.errors?.[0]?.message) {
+        errorMsg = error.errors[0].message;
+      } else if (error?.message) {
+        errorMsg = error.message;
+      }
+      
+      setErrorMessage(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -151,14 +179,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
     }
   };
 
-  const handleSocialAuth = (provider: 'google' | 'apple' | 'facebook') => {
-    console.log(`Authenticating with ${provider}`);
-    // Mock social authentication
-    setTimeout(() => {
-      onAuthenticated();
-    }, 1000);
-  };
-
   const renderHeader = () => (
     <View style={styles.header}>
       {/* <Text style={styles.appName}>YouPreacher</Text>
@@ -193,6 +213,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           <Text style={styles.errorText}>{errorMessage}</Text>
         </View>
       ) : null}
+
+      {/* Google OAuth Button - only show in signin and signup modes */}
+      {mode !== 'forgot' && (
+        <>
+          <Pressable
+            style={styles.socialButton}
+            onPress={handleGoogleAuth}
+            disabled={isLoading}
+          >
+            <Ionicons name="logo-google" size={20} color="#DB4437" />
+            <Text style={styles.socialButtonText}>
+              Continue with Google
+            </Text>
+          </Pressable>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.divider} />
+          </View>
+        </>
+      )}
 
       <View style={styles.form}>
         {mode === 'signup' && (
