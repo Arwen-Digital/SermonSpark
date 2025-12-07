@@ -1,33 +1,33 @@
 /**
- * Hook to integrate Convex with Clerk auth
+ * Hook to integrate Convex with custom auth
  * Provides auth state and Convex client access
  */
 
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth } from '@/services/customAuth';
 import { useConvex } from 'convex/react';
 
 /**
- * Hook that provides both Clerk auth state and Convex client
+ * Hook that provides both custom auth state and Convex client
  */
 export function useConvexAuth() {
-  const { isSignedIn, userId, user } = useAuth();
+  const { isSignedIn, user, isLoading } = useAuth();
   const convex = useConvex();
 
   return {
-    isSignedIn: isSignedIn ?? false,
-    userId: userId ?? null,
+    isSignedIn,
+    userId: user?.id ?? null,
     user,
     convex,
-    isAuthenticated: !!userId && isSignedIn,
+    isAuthenticated: isSignedIn && !!user,
+    isLoading,
   };
 }
 
 /**
  * Hook to check if we should sync to Convex
- * Returns true if user is authenticated with Clerk
+ * Returns true if user is authenticated
  */
 export function useShouldSyncToConvex(): boolean {
   const { isSignedIn } = useAuth();
-  return isSignedIn ?? false;
+  return isSignedIn;
 }
-

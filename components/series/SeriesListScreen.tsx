@@ -1,7 +1,7 @@
 import { theme } from '@/constants/Theme';
+import { useAuth } from '@/services/customAuth';
 import { seriesRepository } from '@/services/repositories';
 import { syncToConvex } from '@/services/sync/convexSyncHandler';
-import { useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -92,19 +92,19 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
     try {
       // Use Convex sync
       const result = await syncToConvex();
-      
+
       Alert.alert(
         'Sync Complete',
         `Pushed: ${result.seriesStats.pushed + result.sermonStats.pushed}, Pulled: ${result.seriesStats.pulled + result.sermonStats.pulled}`
       );
-      
+
       if (result.conflicts?.length > 0) {
         Alert.alert(
           'Conflicts Detected',
           `${result.conflicts.length} conflicts require manual resolution`
         );
       }
-      
+
       await loadSeries();
     } catch (e: any) {
       console.warn('Series sync failed', e);
@@ -316,7 +316,7 @@ export const SeriesListScreen: React.FC<SeriesListScreenProps> = ({
           ))
         )}
       </ScrollView>
-      
+
       {/* Clerk Sign-In Modal */}
       <ClerkSignInModal
         visible={showClerkSignIn}
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     padding: theme.spacing.lg,
   },
-   headerTitle: {
+  headerTitle: {
     ...theme.typography.h5,
     color: theme.colors.textPrimary,
     fontWeight: '600',
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    
+
   },
   backButton: {
     paddingRight: theme.spacing.sm,

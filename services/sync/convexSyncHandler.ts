@@ -3,7 +3,7 @@
  * Handles Clerk authentication checks and bidirectional sync with Convex
  */
 
-import { useAuth } from '@clerk/clerk-expo';
+import { getStoredAccessToken, useAuth } from '@/services/customAuth';
 import { api } from '../../convex/_generated/api';
 import type { DataConflict } from '../conflictResolution';
 import { convexClient } from '../convexClient';
@@ -29,11 +29,11 @@ export async function checkClerkAuth(): Promise<{ isAuthenticated: boolean; user
   // For now, check if we have a cached Clerk user ID (not starting with 'anon_')
   const { getCachedUserId } = await import('../authSession');
   const cachedUserId = await getCachedUserId();
-  
+
   if (cachedUserId && !cachedUserId.startsWith('anon_')) {
     return { isAuthenticated: true, userId: cachedUserId };
   }
-  
+
   return { isAuthenticated: false, userId: null };
 }
 
@@ -42,22 +42,25 @@ export async function checkClerkAuth(): Promise<{ isAuthenticated: boolean; user
  * This should be called from a component
  */
 export function useClerkAuthCheck() {
-  const { isSignedIn, userId } = useAuth();
-  return { isAuthenticated: isSignedIn ?? false, userId: userId ?? null };
+  const { isSignedIn, user } = useAuth();
+  return { isAuthenticated: isSignedIn ?? false, userId: user?.id ?? null };
 }
 
 /**
  * Push local changes to Convex
  * TODO: Implement after running npx convex dev to generate API types
  */
-async function pushLocalChangesToConvex(): Promise<{ 
-  pushed: number; 
-  errors: string[] 
+async function pushLocalChangesToConvex(): Promise<{
+  pushed: number;
+  errors: string[]
 }> {
   let pushed = 0;
   const errors: string[] = [];
 
   try {
+    const token = await getStoredAccessToken();
+    if (!token) throw new Error("Not authenticated");
+
     // Ensure mapping table exists
     await exec(
       `CREATE TABLE IF NOT EXISTS convex_id_mapping (
@@ -74,21 +77,21 @@ async function pushLocalChangesToConvex(): Promise<{
     const userId = await getCachedUserId();
     if (userId) {
       try {
-        await convexClient.query(api.profiles.getOrCreate, {});
+        await convexClient.query(api.profiles.getOrCreate, { token });
       } catch (e: any) {
         errors.push(`Profile ensure failed: ${e?.message || String(e)}`);
       }
     }
 
     // Helper mapping functions
-    const getMap = async (localId: string, type: 'series'|'sermon') => {
+    const getMap = async (localId: string, type: 'series' | 'sermon') => {
       const rows = await queryAll<{ convex_id: string }>(
         `SELECT convex_id FROM convex_id_mapping WHERE local_id = ? AND entity_type = ?`,
         [localId, type]
       );
       return rows.length ? rows[0].convex_id : null;
     };
-    const saveMap = async (localId: string, convexId: string, type: 'series'|'sermon') => {
+    const saveMap = async (localId: string, convexId: string, type: 'series' | 'sermon') => {
       await exec(
         `INSERT OR REPLACE INTO convex_id_mapping (local_id, entity_type, convex_id, synced_at) VALUES (?, ?, ?, ?)`,
         [localId, type, convexId, new Date().toISOString()]
@@ -116,19 +119,20 @@ async function pushLocalChangesToConvex(): Promise<{
             await convexClient.mutation(api.series.update, {
               id: mapping as any,
               ...payload,
+              token,
             });
           } catch (updateError: any) {
             // If update fails (not found), create new instead
             if (updateError?.message?.includes('not found') || updateError?.message?.includes('unauthorized')) {
               console.log(`Series ${mapping} not found, creating new`);
-              const cid = await convexClient.mutation(api.series.create, payload);
+              const cid = await convexClient.mutation(api.series.create, { ...payload, token });
               await saveMap(s.id, cid as unknown as string, 'series');
             } else {
               throw updateError;
             }
           }
         } else {
-          const cid = await convexClient.mutation(api.series.create, payload);
+          const cid = await convexClient.mutation(api.series.create, { ...payload, token });
           await saveMap(s.id, cid as unknown as string, 'series');
         }
         await exec(`UPDATE series SET dirty = 0, synced_at = ? WHERE id = ?`, [new Date().toISOString(), s.id]);
@@ -171,16 +175,17 @@ async function pushLocalChangesToConvex(): Promise<{
             await convexClient.mutation(api.sermons.update, {
               id: mapping as any,
               ...payload,
+              token,
             });
           } catch (updateError: any) {
             // If update fails (not found), create new instead
             const errorMsg = updateError?.message || updateError?.toString() || '';
             console.log(`Update failed, error:`, errorMsg);
-            
+
             // Check for various "not found" patterns
             if (errorMsg.includes('not found') || errorMsg.includes('unauthorized') || errorMsg.includes('Sermon not found')) {
               console.log(`Sermon ${mapping} not found in Convex, creating new instead`);
-              const cid = await convexClient.mutation(api.sermons.create, payload);
+              const cid = await convexClient.mutation(api.sermons.create, { ...payload, token });
               await saveMap(sm.id, cid as unknown as string, 'sermon');
               console.log(`Created new sermon with Convex ID: ${cid}`);
             } else {
@@ -190,7 +195,7 @@ async function pushLocalChangesToConvex(): Promise<{
             }
           }
         } else {
-          const cid = await convexClient.mutation(api.sermons.create, payload);
+          const cid = await convexClient.mutation(api.sermons.create, { ...payload, token });
           await saveMap(sm.id, cid as unknown as string, 'sermon');
         }
         await exec(`UPDATE sermons SET dirty = 0, synced_at = ? WHERE id = ?`, [new Date().toISOString(), sm.id]);
@@ -218,16 +223,19 @@ async function pullRemoteChangesFromConvex(): Promise<{
   const conflicts: DataConflict[] = [];
 
   try {
+    const token = await getStoredAccessToken();
+    if (!token) throw new Error("Not authenticated");
+
     // Helpers
     const nowIso = () => new Date().toISOString();
-    const getMapByConvex = async (convexId: string, type: 'series'|'sermon') => {
+    const getMapByConvex = async (convexId: string, type: 'series' | 'sermon') => {
       const rows = await queryAll<{ local_id: string }>(
         `SELECT local_id FROM convex_id_mapping WHERE convex_id = ? AND entity_type = ?`,
         [convexId, type]
       );
       return rows.length ? rows[0].local_id : null;
     };
-    const saveMap = async (localId: string, convexId: string, type: 'series'|'sermon') => {
+    const saveMap = async (localId: string, convexId: string, type: 'series' | 'sermon') => {
       await exec(
         `INSERT OR REPLACE INTO convex_id_mapping (local_id, entity_type, convex_id, synced_at) VALUES (?, ?, ?, ?)`,
         [localId, type, convexId, nowIso()]
@@ -235,7 +243,7 @@ async function pullRemoteChangesFromConvex(): Promise<{
     };
 
     // Pull Series
-    const remoteSeries: any[] = await convexClient.query(api.series.list, {});
+    const remoteSeries: any[] = await convexClient.query(api.series.list, { token });
     for (const rs of remoteSeries) {
       const localId = await getMapByConvex(rs._id, 'series');
       if (localId) {
@@ -274,7 +282,7 @@ async function pullRemoteChangesFromConvex(): Promise<{
     }
 
     // Pull Sermons (after series so series mapping is ready)
-    const remoteSermons: any[] = await convexClient.query(api.sermons.list, {});
+    const remoteSermons: any[] = await convexClient.query(api.sermons.list, { token });
     for (const rm of remoteSermons) {
       const localId = await getMapByConvex(rm._id, 'sermon');
       if (localId) {
@@ -321,20 +329,20 @@ async function pullRemoteChangesFromConvex(): Promise<{
  */
 export async function syncToConvex(): Promise<SyncResult> {
   const startTime = new Date().toISOString();
-  
+
   try {
     // Push local changes first
     const pushResult = await pushLocalChangesToConvex();
-    
+
     // Then pull remote changes
     const pullResult = await pullRemoteChangesFromConvex();
-    
+
     // Combine results
     const seriesConflicts = pullResult.conflicts.filter(c => c.type === 'series');
     const sermonConflicts = pullResult.conflicts.filter(c => c.type === 'sermon');
-    
+
     const endTime = new Date().toISOString();
-    
+
     return {
       success: true,
       seriesStats: {
@@ -365,4 +373,3 @@ export async function syncToConvex(): Promise<SyncResult> {
     };
   }
 }
-

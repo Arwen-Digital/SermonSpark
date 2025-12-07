@@ -1,5 +1,5 @@
 import { theme } from '@/constants/Theme';
-import { useAuth, useSignIn, useSignUp } from '@clerk/clerk-expo';
+import { useAuth } from '@/services/customAuth';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -12,6 +12,26 @@ interface AuthScreenProps {
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
+// Password validation helper
+function validatePassword(password: string): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (password.length < 8) {
+    errors.push('At least 8 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('One uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('One lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('One number');
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
@@ -23,22 +43,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [passwordTouched, setPasswordTouched] = useState(false);
 
-  const { isSignedIn } = useAuth();
-  const { signIn, isLoaded: signInLoaded } = useSignIn();
-  const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const { signIn, signUp, isSignedIn } = useAuth();
+
+  // Get password validation status for UI feedback
+  const passwordValidation = validatePassword(password);
 
   const handleSubmit = async () => {
     setIsLoading(true);
     setErrorMessage('');
-    
+
     try {
       if (mode === 'signup') {
-        if (!signUpLoaded) {
-          setErrorMessage('Please wait while we initialize...');
-          return;
-        }
-
         // Validation
         if (!name.trim()) {
           setErrorMessage('Please enter your name');
@@ -60,40 +77,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           setIsLoading(false);
           return;
         }
-        if (password.length < 8) {
-          setErrorMessage('Password must be at least 8 characters');
+        if (!passwordValidation.isValid) {
+          setErrorMessage('Password does not meet requirements');
           setIsLoading(false);
           return;
         }
 
-        // Signup with Clerk
-        const result = await signUp.create({
-          emailAddress: email.trim(),
-          password: password,
-          firstName: name.trim().split(' ')[0],
-          lastName: name.trim().split(' ').slice(1).join(' ') || '',
-          unsafeMetadata: {
-            title: title.trim(),
-            church: church.trim(),
-          },
-        });
+        // Signup with custom auth - username is derived from name
+        const username = name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        const result = await signUp(email.trim(), password, username || undefined);
 
-        // Send verification email
-        await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-        
-        Alert.alert(
-          'Verification Required',
-          'Please check your email to verify your account before signing in.'
-        );
-        
-        setMode('signin');
-        
-      } else if (mode === 'signin') {
-        if (!signInLoaded) {
-          setErrorMessage('Please wait while we initialize...');
-          return;
+        if (result.success) {
+          onAuthenticated();
+        } else {
+          setErrorMessage(result.error || 'Sign up failed');
         }
 
+      } else if (mode === 'signin') {
         if (!email.trim()) {
           setErrorMessage('Please enter your email');
           setIsLoading(false);
@@ -104,47 +104,38 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
           setIsLoading(false);
           return;
         }
-        
-        // Signin with Clerk
-        await signIn.create({
-          identifier: email.trim(),
-          password: password,
-        });
-        
-        onAuthenticated();
-        
-      } else if (mode === 'forgot') {
-        if (!signInLoaded) {
-          setErrorMessage('Please wait while we initialize...');
-          setIsLoading(false);
-          return;
+
+        // Signin with custom auth
+        const result = await signIn(email.trim(), password);
+
+        if (result.success) {
+          onAuthenticated();
+        } else {
+          setErrorMessage(result.error || 'Sign in failed');
         }
 
+      } else if (mode === 'forgot') {
         if (!email.trim()) {
           setErrorMessage('Please enter your email');
           setIsLoading(false);
           return;
         }
-        
-        // Forgot password with Clerk
-        await signIn.attemptFirstFactor({
-          strategy: 'reset_password_email_code',
-          identifier: email.trim(),
-        });
-        
-        Alert.alert('Email Sent', 'Password reset instructions have been sent to your email');
+
+        // Password reset not yet implemented
+        Alert.alert(
+          'Coming Soon',
+          'Password reset functionality is coming soon. Please contact support if you need help accessing your account.'
+        );
         setMode('signin');
       }
     } catch (error: any) {
       console.error('Auth error:', error);
       let errorMsg = 'Something went wrong. Please try again.';
-      
-      if (error?.errors?.[0]?.message) {
-        errorMsg = error.errors[0].message;
-      } else if (error?.message) {
+
+      if (error?.message) {
         errorMsg = error.message;
       }
-      
+
       setErrorMessage(errorMsg);
     } finally {
       setIsLoading(false);
@@ -152,11 +143,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   };
 
   const handleSocialAuth = (provider: 'google' | 'apple' | 'facebook') => {
-    console.log(`Authenticating with ${provider}`);
-    // Mock social authentication
-    setTimeout(() => {
-      onAuthenticated();
-    }, 1000);
+    // OAuth not yet implemented
+    Alert.alert(
+      'Coming Soon',
+      `Sign in with ${provider.charAt(0).toUpperCase() + provider.slice(1)} is coming soon!`
+    );
   };
 
   const renderHeader = () => (
@@ -305,9 +296,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
 
         <Button
           title={
-            mode === 'signin' ? 'Sign In' : 
-            mode === 'signup' ? 'Create Account' : 
-            'Send Reset Link'
+            mode === 'signin' ? 'Sign In' :
+              mode === 'signup' ? 'Create Account' :
+                'Send Reset Link'
           }
           onPress={handleSubmit}
           loading={isLoading}
@@ -362,7 +353,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated }) => {
   );
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >

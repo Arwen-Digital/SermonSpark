@@ -1,20 +1,18 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { authenticatedMutation, authenticatedQuery } from "./auth/helpers";
 
-export const list = query({
+export const list = authenticatedQuery({
   args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
+  handler: async (ctx, args) => {
     const sermons = await ctx.db
       .query("sermons")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .order("desc")
       .collect();
 
     // Enrich with series titles
+    // Note: Promise.all with async map is fine here
     return await Promise.all(
       sermons.map(async (sermon) => {
         if (!sermon.seriesId) {
@@ -31,14 +29,11 @@ export const list = query({
   },
 });
 
-export const get = query({
+export const get = authenticatedQuery({
   args: { id: v.id("sermons") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
     const sermon = await ctx.db.get(args.id);
-    if (!sermon || sermon.userId !== identity.subject || sermon.deletedAt) {
+    if (!sermon || sermon.userId !== args.userId || sermon.deletedAt) {
       throw new Error("Sermon not found");
     }
 
@@ -53,7 +48,7 @@ export const get = query({
   },
 });
 
-export const create = mutation({
+export const create = authenticatedMutation({
   args: {
     title: v.string(),
     content: v.optional(v.string()),
@@ -77,23 +72,21 @@ export const create = mutation({
     seriesId: v.optional(v.id("series")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
+    const { userId, ...rest } = args;
     const now = new Date().toISOString();
 
     return await ctx.db.insert("sermons", {
-      userId: identity.subject,
-      ...args,
-      status: args.status ?? "draft",
-      visibility: args.visibility ?? "private",
+      userId,
+      ...rest,
+      status: rest.status ?? "draft",
+      visibility: rest.visibility ?? "private",
       createdAt: now,
       updatedAt: now,
     });
   },
 });
 
-export const update = mutation({
+export const update = authenticatedMutation({
   args: {
     id: v.id("sermons"),
     title: v.optional(v.string()),
@@ -118,34 +111,31 @@ export const update = mutation({
     seriesId: v.optional(v.id("series")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { userId, id, ...updates } = args;
 
-    const sermon = await ctx.db.get(args.id);
-    if (!sermon || sermon.userId !== identity.subject) {
+    const sermon = await ctx.db.get(id);
+    if (!sermon || sermon.userId !== userId) {
       throw new Error("Sermon not found or unauthorized");
     }
 
-    const { id, ...updates } = args;
-    return await ctx.db.patch(args.id, {
+    return await ctx.db.patch(id, {
       ...updates,
       updatedAt: new Date().toISOString(),
     });
   },
 });
 
-export const remove = mutation({
+export const remove = authenticatedMutation({
   args: { id: v.id("sermons") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { userId, id } = args;
 
-    const sermon = await ctx.db.get(args.id);
-    if (!sermon || sermon.userId !== identity.subject) {
+    const sermon = await ctx.db.get(id);
+    if (!sermon || sermon.userId !== userId) {
       throw new Error("Sermon not found or unauthorized");
     }
 
-    return await ctx.db.patch(args.id, {
+    return await ctx.db.patch(id, {
       deletedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

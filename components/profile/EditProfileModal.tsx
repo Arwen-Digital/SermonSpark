@@ -1,23 +1,23 @@
 import { Card } from '@/components/common/Card';
 import { theme } from '@/constants/Theme';
+import { api } from '@/convex/_generated/api';
 import { useConvexAuth } from '@/hooks/useConvexAuth';
+import { useAuthenticatedMutation } from '@/services/customAuth';
 import { profileRepository, type UpdateProfileInput } from '@/services/repositories/profileRepository.native';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Modal,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  ScrollView,
-  Alert,
-  Platform,
-  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -27,7 +27,7 @@ interface EditProfileModalProps {
 
 export function EditProfileModal({ visible, onClose, onSave }: EditProfileModalProps) {
   const { isAuthenticated } = useConvexAuth();
-  const updateProfileMutation = useMutation(api.profiles.update);
+  const updateProfileMutation = useAuthenticatedMutation(api.profiles.update);
 
   const [formData, setFormData] = useState({
     fullName: '',

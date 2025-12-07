@@ -1,7 +1,5 @@
-import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-expo';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { ConvexProvider } from 'convex/react';
-import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,75 +11,33 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import authSession from '@/services/authSession';
-import { clerkTokenCache } from '@/services/clerkTokenCache';
-import { convexClient, useConvexClerkAuth } from '@/services/convexClient';
+import { convexClient } from '@/services/convexClient';
+import { AuthProvider, useAuth } from '@/services/customAuth';
 import { initDb } from '@/services/db/index.native';
 
-// Inner component to access Clerk hooks
+// Inner component to handle auth state changes
 function AppContent() {
-  const { isSignedIn, userId, isLoaded } = useClerkAuth();
-  useConvexClerkAuth(); // Sync Clerk token with Convex client
-  
-  // Track if we've logged the initial state
-  const hasLoggedInitialState = React.useRef(false);
-  const [hasCheckedLocalUserId, setHasCheckedLocalUserId] = React.useState(false);
-  
-  // Check if there's a cached user ID from SQLite on first load
+  const { isSignedIn, user, isLoading } = useAuth();
+
   React.useEffect(() => {
-    const checkLocalUserId = async () => {
-      if (hasCheckedLocalUserId || !isLoaded) return;
-      
-      try {
-        const cachedUserId = await authSession.getCachedUserId();
-        console.log('Checking for cached Clerk user ID:', cachedUserId);
-        
-        if (cachedUserId && !cachedUserId.startsWith('anon_')) {
-          console.log('Found cached Clerk user ID from SQLite:', cachedUserId);
-          // We have a user ID in SQLite, but Clerk doesn't have it
-          // This means the session was lost on app restart
-          // We'll need to prompt user to log in again
-          console.log('WARNING: Clerk session lost. User needs to login again.');
-        }
-        setHasCheckedLocalUserId(true);
-      } catch (error) {
-        console.error('Error checking local user ID:', error);
-        setHasCheckedLocalUserId(true);
-      }
-    };
-    
-    checkLocalUserId();
-  }, [isLoaded, hasCheckedLocalUserId]);
-  
-  React.useEffect(() => {
-    if (!isLoaded) {
-      console.log('Clerk not loaded yet...');
+    if (isLoading) {
+      console.log('Auth loading...');
       return;
     }
-    
-    // Log the initial loaded state once
-    if (!hasLoggedInitialState.current) {
-      console.log('Clerk initial load complete:', { isSignedIn, userId });
-      hasLoggedInitialState.current = true;
+
+    console.log('Auth state changed:', { isSignedIn, userId: user?.id });
+
+    if (isSignedIn && user) {
+      console.log('User is signed in with ID:', user.id);
+      // Sync user ID to local cache
+      authSession.cacheUserId(user.id);
+    } else {
+      console.log('User is NOT signed in');
     }
-    
-    console.log('Auth state changed:', { isSignedIn, userId });
-    
-    if (isSignedIn && userId) {
-      console.log('User is signed in with ID:', userId);
-      // User just logged in, sync their ID to local
-      authSession.syncClerkUserToLocal(userId);
-    } else if (isSignedIn === false && userId === null && isLoaded) {
-      console.log('User is NOT signed in (session not found)');
-    }
-  }, [isSignedIn, userId, isLoaded]);
-  
+  }, [isSignedIn, user, isLoading]);
+
   return <></>;
 }
-
-// Get Clerk publishable key from environment
-const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || Constants.expoConfig?.extra?.clerkPublishableKey || '';
-
-
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -99,10 +55,10 @@ export default function RootLayout() {
         // Initialize SQLite database immediately on app start
         await initDb();
         console.log('SQLite DB initialized');
-        
+
         // Initialize auth session cache/listener (keeps userId cached for offline use)
         authSession.initAuthSession();
-        
+
         // Perform local authentication check first (no API calls)
         try {
           const isOfflineAuth = await authSession.isAuthenticatedOffline();
@@ -117,10 +73,10 @@ export default function RootLayout() {
         } catch (error) {
           console.log('Authentication check failed - allowing offline access:', error);
         }
-        
+
         if (mounted) {
           setDbInitialized(true);
-          
+
           // Only redirect from auth screen if user is already authenticated with a real account
           if (pathname === '/auth') {
             try {
@@ -146,9 +102,9 @@ export default function RootLayout() {
         }
       }
     };
-    
+
     initializeApp();
-    
+
     return () => {
       mounted = false;
     };
@@ -197,14 +153,14 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={clerkTokenCache as any}>
+      <AuthProvider>
         <AppContent />
         <ConvexProvider client={convexClient}>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <View style={Platform.select({
-              web: { 
-                flex: 1, 
-                backgroundColor: theme.colors.background 
+              web: {
+                flex: 1,
+                backgroundColor: theme.colors.background
               },
               default: { flex: 1 }
             })}>
@@ -219,7 +175,7 @@ export default function RootLayout() {
             <StatusBar style="auto" />
           </ThemeProvider>
         </ConvexProvider>
-      </ClerkProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

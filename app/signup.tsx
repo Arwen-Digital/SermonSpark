@@ -1,11 +1,31 @@
 import { theme } from '@/constants/Theme';
-import { useSignUp } from '@clerk/clerk-expo';
+import { useAuth } from '@/services/customAuth';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+// Password validation helper
+function validatePassword(password: string): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (password.length < 8) {
+    errors.push('At least 8 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('One uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('One lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('One number');
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
 export default function SignupPage() {
-  const { signUp, isLoaded } = useSignUp();
+  const { signUp, isLoading: authLoading } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,14 +33,16 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const passwordValidation = validatePassword(password);
+
   const onSubmit = async () => {
-    if (!isLoaded) {
-      setErrorMessage('Please wait while we initialize...');
+    if (!email.trim() || !password.trim() || !name.trim()) {
+      setErrorMessage('Please fill out all fields');
       return;
     }
 
-    if (!email.trim() || !password.trim() || !name.trim()) {
-      setErrorMessage('Please fill out all fields');
+    if (!passwordValidation.isValid) {
+      setErrorMessage('Password does not meet requirements');
       return;
     }
 
@@ -28,25 +50,22 @@ export default function SignupPage() {
     setErrorMessage(null);
 
     try {
-      const firstName = name.trim().split(' ')[0];
-      const lastName = name.trim().split(' ').slice(1).join(' ') || '';
+      // Generate username from name
+      const username = name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
-      await signUp!.create({
-        emailAddress: email.trim(),
-        password,
-        firstName,
-        lastName,
-      });
+      const result = await signUp(email.trim(), password, username || undefined);
 
-      await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
-
-      Alert.alert(
-        'Verify your email',
-        'We sent a code to your email. Please verify, then sign in.'
-      );
-      router.replace('/auth');
+      if (result.success) {
+        Alert.alert(
+          'Account Created',
+          'Your account has been created successfully!'
+        );
+        router.replace('/(tabs)/home');
+      } else {
+        setErrorMessage(result.error || 'Sign up failed. Please try again.');
+      }
     } catch (error: any) {
-      const msg = error?.errors?.[0]?.message || error?.message || 'Sign up failed. Please try again.';
+      const msg = error?.message || 'Sign up failed. Please try again.';
       setErrorMessage(msg);
     } finally {
       setSubmitting(false);

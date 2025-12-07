@@ -8,6 +8,12 @@
  * @module
  */
 
+import type * as auth_helpers from "../auth/helpers.js";
+import type * as auth_index from "../auth/index.js";
+import type * as auth_jwt from "../auth/jwt.js";
+import type * as auth_mutations from "../auth/mutations.js";
+import type * as auth_password from "../auth/password.js";
+import type * as auth_queries from "../auth/queries.js";
 import type * as bible from "../bible.js";
 import type * as bibleCache from "../bibleCache.js";
 import type * as community from "../community.js";
@@ -48,6 +54,12 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "auth/helpers": typeof auth_helpers;
+  "auth/index": typeof auth_index;
+  "auth/jwt": typeof auth_jwt;
+  "auth/mutations": typeof auth_mutations;
+  "auth/password": typeof auth_password;
+  "auth/queries": typeof auth_queries;
   bible: typeof bible;
   bibleCache: typeof bibleCache;
   community: typeof community;

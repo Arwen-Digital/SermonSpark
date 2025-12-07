@@ -57,6 +57,37 @@ export default defineSchema({
     .index("by_series", ["seriesId"])
     .index("by_local_id", ["localId"]),
 
+  // Custom auth - users table
+  users: defineTable({
+    email: v.string(),
+    username: v.optional(v.string()),
+    passwordHash: v.string(),
+    authProvider: v.union(
+      v.literal("email"),
+      v.literal("google"),
+      v.literal("apple")
+    ),
+    authProviderId: v.optional(v.string()), // For OAuth providers
+    isEmailVerified: v.boolean(),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+  })
+    .index("by_email", ["email"])
+    .index("by_username", ["username"])
+    .index("by_provider", ["authProvider", "authProviderId"]),
+
+  // Custom auth - sessions table for refresh tokens
+  sessions: defineTable({
+    userId: v.id("users"),
+    tokenHash: v.string(), // Hash of refresh token for validation
+    expiresAt: v.string(),
+    userAgent: v.optional(v.string()),
+    createdAt: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_expires", ["expiresAt"]),
+
   profiles: defineTable({
     userId: v.string(),
     fullName: v.optional(v.string()),

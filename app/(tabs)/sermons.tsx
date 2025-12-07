@@ -2,14 +2,14 @@ import { ClerkSignInModal } from '@/components/auth/ClerkSignInModal';
 import { FadeInView } from '@/components/common/FadeInView';
 import { FileManager } from '@/components/file-management/FileManager';
 import { theme } from '@/constants/Theme';
+import { useAuth } from '@/services/customAuth';
 import { sermonRepository } from '@/services/repositories';
 import { syncToConvex } from '@/services/sync/convexSyncHandler';
 import { Sermon } from '@/types';
-import { useAuth } from '@clerk/clerk-expo';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
- 
+
 
 export default function SermonsScreen() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
@@ -105,19 +105,19 @@ export default function SermonsScreen() {
     try {
       // Use Convex sync
       const result = await syncToConvex();
-      
+
       Alert.alert(
         'Sync Complete',
         `Pushed: ${result.seriesStats.pushed + result.sermonStats.pushed}, Pulled: ${result.seriesStats.pulled + result.sermonStats.pulled}`
       );
-      
+
       if (result.conflicts?.length > 0) {
         Alert.alert(
           'Conflicts Detected',
           `${result.conflicts.length} conflicts require manual resolution`
         );
       }
-      
+
       await loadSermons();
       console.log('Sync complete');
     } catch (e: any) {
@@ -147,7 +147,7 @@ export default function SermonsScreen() {
         onSyncNow={handleSyncNow}
         syncing={syncing}
       />
-      
+
       {/* Clerk Sign-In Modal */}
       <ClerkSignInModal
         visible={showClerkSignIn}

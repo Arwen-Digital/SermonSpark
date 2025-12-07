@@ -1,15 +1,12 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { authenticatedMutation, authenticatedQuery } from "./auth/helpers";
 
-export const getOrCreate = query({
+export const getOrCreate = authenticatedQuery({
   args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
+  handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .first();
 
     if (existing) {
@@ -18,9 +15,17 @@ export const getOrCreate = query({
 
     // Return a default profile if none exists
     // The mutation can create it when user updates their profile
+    // Note: We don't have user name available in JWT strictly unless we query user,
+    // but the wrapper only gives userId. We could query the user table here if needed.
+    // For now returning basic profile.
+
+    // We can fetch the user to get the name if needed, or just return null name
+    // Cast to any to bypass schema type check for now since we know it's a valid ID from auth
+    const user: any = await ctx.db.get(args.userId as any);
+
     return {
-      userId: identity.subject,
-      fullName: identity.name ?? null,
+      userId: args.userId,
+      fullName: user?.username ?? null, // Use username as fallback or null
       title: null,
       church: null,
       avatarUrl: null,
@@ -30,7 +35,7 @@ export const getOrCreate = query({
   },
 });
 
-export const update = mutation({
+export const update = authenticatedMutation({
   args: {
     fullName: v.optional(v.string()),
     title: v.optional(v.string()),
@@ -38,28 +43,26 @@ export const update = mutation({
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { userId, ...updates } = args;
 
     const existing = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     if (existing) {
       return await ctx.db.patch(existing._id, {
-        ...args,
+        ...updates,
         updatedAt: new Date().toISOString(),
       });
     } else {
       const now = new Date().toISOString();
       return await ctx.db.insert("profiles", {
-        userId: identity.subject,
-        ...args,
+        userId,
+        ...updates,
         createdAt: now,
         updatedAt: now,
       });
     }
   },
 });
-

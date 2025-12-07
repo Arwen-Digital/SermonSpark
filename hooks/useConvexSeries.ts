@@ -3,7 +3,7 @@
  * Automatically handles local SQLite operations and Convex sync
  */
 
-import { useMutation, useQuery } from 'convex/react';
+import { useAuthenticatedMutation, useAuthenticatedQuery } from '@/services/customAuth';
 import { api } from '../convex/_generated/api';
 
 /**
@@ -11,7 +11,7 @@ import { api } from '../convex/_generated/api';
  * This will be used to sync remote data to local SQLite
  */
 export function useConvexSeries() {
-  const series = useQuery(api.series.list);
+  const series = useAuthenticatedQuery(api.series.list);
 
   return {
     series: series ?? [],
@@ -22,10 +22,10 @@ export function useConvexSeries() {
 /**
  * Hook to get a single series
  */
-export function useConvexSeriesItem(id: string | null) {
-  const series = useQuery(
+export function useConvexSeriesItem(seriesId: string | null) {
+  const series = useAuthenticatedQuery(
     api.series.get,
-    id ? { id } : 'skip'
+    seriesId ? { id: seriesId } : "skip"
   );
 
   return {
@@ -38,20 +38,20 @@ export function useConvexSeriesItem(id: string | null) {
  * Hook to create series mutation
  */
 export function useCreateSeriesMutation() {
-  return useMutation(api.series.create);
+  return useAuthenticatedMutation(api.series.create);
 }
 
 /**
  * Hook to update series mutation
  */
 export function useUpdateSeriesMutation() {
-  return useMutation(api.series.update);
+  return useAuthenticatedMutation(api.series.update);
 }
 
 /**
  * Hook to delete series mutation
  */
 export function useDeleteSeriesMutation() {
-  return useMutation(api.series.remove);
+  return useAuthenticatedMutation(api.series.remove);
 }
 

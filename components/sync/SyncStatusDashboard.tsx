@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth } from '@/services/customAuth';
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useConflictResolution } from '../../hooks/useConflictResolution';
@@ -114,10 +114,12 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
         'Connect your account to sync data across devices and access online features.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Connect', onPress: () => {
-            // Navigate to auth screen
-            console.log('Navigate to auth screen');
-          }}
+          {
+            text: 'Connect', onPress: () => {
+              // Navigate to auth screen
+              console.log('Navigate to auth screen');
+            }
+          }
         ]
       );
     }
@@ -125,7 +127,7 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
 
   const handleManualSync = async () => {
     console.log('handleManualSync called, isSignedIn:', isSignedIn);
-    
+
     // Check if user is authenticated
     if (!isSignedIn) {
       console.log('User not signed in, showing Clerk login modal');
@@ -137,19 +139,19 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
     setIsSyncing(true);
     try {
       const result = await syncToConvex();
-      
+
       Alert.alert(
         'Sync Complete',
         `Pushed: ${result.seriesStats.pushed + result.sermonStats.pushed}, Pulled: ${result.seriesStats.pulled + result.sermonStats.pulled}`
       );
-      
+
       if (result.conflicts?.length > 0) {
         Alert.alert(
           'Conflicts Detected',
           `${result.conflicts.length} conflicts require manual resolution`
         );
       }
-      
+
       // Refresh status
       if (status) {
         setStatus({ ...status, syncInProgress: false });
@@ -196,13 +198,13 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
             {overallStatus.text}
           </Text>
         </View>
-        
+
         <OfflineStatusIndicator showDetails={false} />
       </View>
 
       {/* Conflict Notification */}
       {hasConflicts && (
-        <ConflictNotification 
+        <ConflictNotification
           onOpenResolution={() => setShowConflictModal(true)}
         />
       )}
@@ -210,14 +212,14 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
       {/* Detailed Status Components */}
       {showFullDetails && (
         <View style={styles.detailsContainer}>
-          <SyncStatusIndicator 
+          <SyncStatusIndicator
             showDetails={true}
             onConflictsPress={() => setShowConflictModal(true)}
             style={styles.syncIndicator}
           />
-          
+
           {status.pendingOperationsCount > 0 && (
-            <PendingSyncIndicator 
+            <PendingSyncIndicator
               compact={false}
               maxVisible={3}
               style={styles.pendingIndicator}
@@ -229,16 +231,16 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
         {!status.isAuthenticatedOnline && status.isOnline && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.connectButton}
             onPress={handleConnectAccount}
           >
             <Text style={styles.connectButtonText}>Connect Account</Text>
           </TouchableOpacity>
         )}
-        
+
         {(isSignedIn || status.isAuthenticatedOnline) && status.isOnline && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
             onPress={handleManualSync}
             disabled={isSyncing}
@@ -248,9 +250,9 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
             </Text>
           </TouchableOpacity>
         )}
-        
+
         {status.conflictsCount > 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.conflictsButton}
             onPress={onConflictsPress}
           >
@@ -268,13 +270,13 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
             You&apos;re working offline. Changes will sync when you&apos;re back online.
           </Text>
         )}
-        
+
         {status.isOnline && !status.isAuthenticatedOnline && (
           <Text style={styles.localMessage}>
             Your data is stored locally. Connect an account to sync across devices.
           </Text>
         )}
-        
+
         {status.isOnline && status.isAuthenticatedOnline && status.pendingOperationsCount === 0 && (
           <Text style={styles.syncedMessage}>
             All your changes are synced and up to date.
@@ -290,7 +292,7 @@ export const SyncStatusDashboard: React.FC<SyncStatusDashboardProps> = ({
           setShowConflictModal(false);
         }}
       />
-      
+
       {/* Clerk Sign-In Modal */}
       <ClerkSignInModal
         visible={showClerkSignIn}

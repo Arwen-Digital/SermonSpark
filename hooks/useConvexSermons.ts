@@ -3,7 +3,7 @@
  * Automatically handles local SQLite operations and Convex sync
  */
 
-import { useMutation, useQuery } from 'convex/react';
+import { useAuthenticatedMutation, useAuthenticatedQuery } from '@/services/customAuth';
 import { api } from '../convex/_generated/api';
 
 /**
@@ -11,7 +11,7 @@ import { api } from '../convex/_generated/api';
  * This will be used to sync remote data to local SQLite
  */
 export function useConvexSermons() {
-  const sermons = useQuery(api.sermons.list);
+  const sermons = useAuthenticatedQuery(api.sermons.list);
 
   return {
     sermons: sermons ?? [],
@@ -23,7 +23,7 @@ export function useConvexSermons() {
  * Hook to get a single sermon
  */
 export function useConvexSermon(id: string | null) {
-  const sermon = useQuery(
+  const sermon = useAuthenticatedQuery(
     api.sermons.get,
     id ? { id } : 'skip'
   );
@@ -38,20 +38,20 @@ export function useConvexSermon(id: string | null) {
  * Hook to create sermon mutation
  */
 export function useCreateSermonMutation() {
-  return useMutation(api.sermons.create);
+  return useAuthenticatedMutation(api.sermons.create);
 }
 
 /**
  * Hook to update sermon mutation
  */
 export function useUpdateSermonMutation() {
-  return useMutation(api.sermons.update);
+  return useAuthenticatedMutation(api.sermons.update);
 }
 
 /**
  * Hook to delete sermon mutation
  */
 export function useDeleteSermonMutation() {
-  return useMutation(api.sermons.remove);
+  return useAuthenticatedMutation(api.sermons.remove);
 }
 

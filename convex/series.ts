@@ -1,29 +1,23 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { authenticatedMutation, authenticatedQuery } from "./auth/helpers";
 
-export const list = query({
+export const list = authenticatedQuery({
   args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
+  handler: async (ctx, args) => {
     return await ctx.db
       .query("series")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .order("desc")
       .collect();
   },
 });
 
-export const get = query({
+export const get = authenticatedQuery({
   args: { id: v.id("series") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
     const series = await ctx.db.get(args.id);
-    if (!series || series.userId !== identity.subject || series.deletedAt) {
+    if (!series || series.userId !== args.userId || series.deletedAt) {
       throw new Error("Series not found");
     }
 
@@ -31,7 +25,7 @@ export const get = query({
   },
 });
 
-export const create = mutation({
+export const create = authenticatedMutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
@@ -47,21 +41,19 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
+    const { userId, ...rest } = args;
     const now = new Date().toISOString();
 
     return await ctx.db.insert("series", {
-      userId: identity.subject,
-      ...args,
+      userId,
+      ...rest,
       createdAt: now,
       updatedAt: now,
     });
   },
 });
 
-export const update = mutation({
+export const update = authenticatedMutation({
   args: {
     id: v.id("series"),
     title: v.optional(v.string()),
@@ -80,38 +72,33 @@ export const update = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { userId, id, ...updates } = args;
 
-    const series = await ctx.db.get(args.id);
-    if (!series || series.userId !== identity.subject) {
+    const series = await ctx.db.get(id);
+    if (!series || series.userId !== userId) {
       throw new Error("Series not found or unauthorized");
     }
 
-    const { id, ...updates } = args;
-    return await ctx.db.patch(args.id, {
+    return await ctx.db.patch(id, {
       ...updates,
       updatedAt: new Date().toISOString(),
     });
   },
 });
 
-export const remove = mutation({
+export const remove = authenticatedMutation({
   args: { id: v.id("series") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const { userId, id } = args;
 
-    const series = await ctx.db.get(args.id);
-    if (!series || series.userId !== identity.subject) {
+    const series = await ctx.db.get(id);
+    if (!series || series.userId !== userId) {
       throw new Error("Series not found or unauthorized");
     }
 
-    return await ctx.db.patch(args.id, {
+    return await ctx.db.patch(id, {
       deletedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
   },
 });
-
-
